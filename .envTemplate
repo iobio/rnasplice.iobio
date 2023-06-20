@@ -1,0 +1,3 @@
+ENV_IOBIO_BACKEND=backend.iobio.io
+ENV_IOBIO_BACKEND_MOSAIC=mosaic.chpc.utah.edu/gru/api/v1
+ENV_USE_SSL=true
