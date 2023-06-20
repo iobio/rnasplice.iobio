@@ -3,13 +3,13 @@
 
 ## Clone the repo:
 ```
-git clone https://github.com/iobio/gene.iobio
+git clone https://github.com/iobio/splicejunction.iobio
 ```
 
 ## Copy sample env file
 ```
-cd gene.iobio
-cp .env.template .env
+cd splicejunction.iobio
+cp .envTemplate .env
 ```
 
 
