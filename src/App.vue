@@ -76,6 +76,7 @@ export default {
     },
     onGeneSelected: function(gene) {
       this.selectedGene = gene;
+      this.addAlert("info", "gene <pre>" + gene.gene_name + "</pre> loaded", gene.gene_name)
     },
     onLoadData: function(loadInfo) {
       this.loadInfo = loadInfo;
@@ -88,6 +89,7 @@ export default {
       if (self.$refs && self.$refs.ref_SpliceJunctionHome) {
         self.$refs.ref_SpliceJunctionHome.clearAndReload(geneNameToReload);
       }
+      self.addAlert("info", "reloaded data")
     },
     addAlert: function(type, message, genes=null, details=null) {
       let self = this;

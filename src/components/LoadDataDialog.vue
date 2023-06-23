@@ -26,7 +26,7 @@
                 density="compact" 
                 label="Splice Junction URL (.bed.gz)">
               </v-text-field>
-              <v-btn density="compact" size="small" variant="text" @click="onTryDemoBed">try demo bed url</v-btn>
+              <v-btn class="mt-1" density="compact" size="medium" color="primary" variant="text" @click="onTryDemoBed">try demo bed url</v-btn>
             </div>
 
           </div>
