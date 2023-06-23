@@ -6,9 +6,12 @@
     :selectedGene="selectedGene"
      @gene-region-buffer-change="onGeneRegionBufferChange"/>
 
-    <v-card class="full-width-card" v-if="selectedGene">
+    <v-card  v-show="selectedGene" class="full-width-card" style="min-height: calc(100vh - 180px);">
         <SpliceJunctionViz 
+        :loadInfo="loadInfo"
         :selectedGene="selectedGene"
+        :genomeBuildHelper="genomeBuildHelper"
+        @reinit="$emit('reinit')"
         />
 
     </v-card>
@@ -30,6 +33,7 @@ import SpliceJunctionViz from './SpliceJunctionViz.vue'
       SpliceJunctionViz
     },
     props: { 
+      loadInfo: Object,
       genes: Array,
       genomeBuild: Array,
       searchedGene: Object,
@@ -64,11 +68,11 @@ import SpliceJunctionViz from './SpliceJunctionViz.vue'
 
         self.urlParams = new URLSearchParams(window.location.search);
 
-        self.genomeBuildHelper = new GenomeBuildHelper(self.globalApp, true, 
-          { DEFAULT_BUILD: 'GRCh38' });
+        self.genomeBuildHelper = new GenomeBuildHelper(self.globalApp, 
+                                                       true, 
+                                                       { DEFAULT_BUILD: 'GRCh38' });
         self.geneModel =         new GeneModel(self.globalApp, 
-                                               self.genomeBuildHelper, 
-                                               process.env.VUE_APP_LIMIT_GENES)
+                                               self.genomeBuildHelper)
         self.geneModel.setAllKnownGenes(self.genes)
         self.geneModel.addEventListener("alertIssued", function(eventArgs) {
           let [type, message, genes, details] = eventArgs
@@ -82,16 +86,18 @@ import SpliceJunctionViz from './SpliceJunctionViz.vue'
       loadGene: function(geneName) {
         let self = this;
         self.geneModel.promiseAddGeneName(geneName)
-        .then(function(success) {
-          if (success) {
-            self.geneModel.promiseGetGeneObject(geneName)
-            .then(function(theGeneObject) {
-              self.geneModel.adjustGeneRegion(theGeneObject);
-              self.geneRegionStart = theGeneObject.start;
-              self.geneRegionEnd   = theGeneObject.end;
-              self.$emit("gene-selected", theGeneObject)                         
-            })
-          }
+        .then(function() {
+          self.geneModel.promiseGetGeneObject(geneName)
+          .then(function(theGeneObject) {
+            self.geneModel.adjustGeneRegion(theGeneObject);
+            self.geneRegionStart = theGeneObject.start;
+            self.geneRegionEnd   = theGeneObject.end;
+            self.$emit("gene-selected", theGeneObject)                         
+          })
+        })
+        .catch(function(error) {
+          console.log("Unable to add gene")
+          console.log(error)
         })
       },
       addAppAlert: function(type, message, genes, details) {
@@ -102,11 +108,20 @@ import SpliceJunctionViz from './SpliceJunctionViz.vue'
         self.geneModel.geneRegionBuffer = theGeneRegionBuffer;
         self.geneModel.adjustGeneRegion(self.selectedGene);
       },
+      clearAndReload: function(geneNameToLoad) {
+        let self = this;
+        self.geneModel.clearAllGenes();
+        if (geneNameToLoad) {
+          self.loadGene(geneNameToLoad);
+        }
+      }
     },
     watch: {
       searchedGene: function() {
         let self = this;
-        self.loadGene(self.searchedGene.gene_name);
+        if (self.searchedGene) {
+          self.loadGene(self.searchedGene.gene_name);
+        }
       }
     }
   }

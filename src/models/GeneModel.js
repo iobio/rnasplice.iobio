@@ -1,11 +1,11 @@
 import Reactor from './Reactor.js';
 
 class GeneModel {
-  constructor(globalApp, genomeBuildHelper, limitGenes) {
+  constructor(globalApp, genomeBuildHelper) {
 
     this.globalApp                 = globalApp;
     this.genomeBuildHelper         = genomeBuildHelper;
-    this.limitGenes                = limitGenes;
+    this.limitGenes                = 100;
 
     this.NCBI_GENE_SEARCH_URL      = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gene&usehistory=y&retmode=json";
     this.NCBI_GENE_SUMMARY_URL     = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gene&usehistory=y&retmode=json";
@@ -298,7 +298,7 @@ class GeneModel {
         me.sortedGeneNames.push(geneName);
         me.promiseGetGeneObject(geneName)
         .then(function() {
-          resolve(true);
+          resolve();
         })
         .catch(function(error) {
           if (error.hasOwnProperty('message')) {
@@ -308,10 +308,10 @@ class GeneModel {
             console.log(error)
             me.dispatchEvent('alertIssued', ['error', error.toString(), geneName]);
           }
-          resolve(false)
+          reject()
         })
       } else {
-        resolve(false);
+        resolve();
       }
 
     })
@@ -478,9 +478,6 @@ class GeneModel {
     return this.geneDangerSummaries[geneName.toUpperCase()];
   }
 
-  clearDangerSummaries() {
-    this.geneDangerSummaries = {};
-  }
 
   clearGeneToLatestTranscript() {
     this.geneToLatestTranscript = {}
@@ -1254,7 +1251,14 @@ class GeneModel {
   }
 
   clearAllGenes() {
-    this.promiseCopyPasteGenes("");
+    let self = this;
+    let genesToRemove = [];
+    self.geneNames.forEach(function(geneName) {
+      genesToRemove.push(geneName);
+    })
+    genesToRemove.forEach(function(geneNameToRemove) {
+      self.removeGene(geneNameToRemove)
+    })
   }
 
   removeGene(geneName) {

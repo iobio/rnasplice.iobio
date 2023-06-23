@@ -31,10 +31,6 @@ export default {
     referenceURL: String,
     genomeBuild: String,
     locus: String,
-    visible: {
-      type: Boolean,
-      default: true,
-    },
     showLabels: {
       type: Boolean,
       default: false,
@@ -47,9 +43,7 @@ export default {
     }
   },
   mounted: function () {
-    if (this.visible) {
-      this.init();
-    }
+    this.init();
   },
   methods: {
     init: function() {
@@ -57,16 +51,22 @@ export default {
       const igvDiv = this.$el.querySelector('#igv-content');
 
       var options = {
-        locus: 'chr15:92835700-93031800',
+        locus: this.locus,
         genome: 'hg38',
         loadDefaultGenomes: true,
         tracks: self.tracks,
+        queryParametersSupported: true
       };
 
 
       igv.createBrowser(igvDiv, options).then((browser) => {
         this.browser = browser;
       })
+    },
+    search: function() {
+      if (this.browser && this.locus) {
+        this.browser.search(this.locus)
+      }
     },
     zoomOut: function() {
       this.browser.zoomOut();
@@ -77,17 +77,30 @@ export default {
     launchFullIGV: function() {
       launchIGV(this.referenceURL, this.locus, this.tracks);
     },
-  },
-  watch: {
-    visible: function() {
+    reinit: function() {
       if (!this.browser) {
         this.init();
       }
-      else if (!this.visible) {
+      else {
         igv.removeBrowser(this.browser);
         this.browser = null;
+        this.init();
       }
-      //igv.visibilityChange();
+    }
+  },
+  watch: {
+    locus: function() {
+      this.search();
+    },
+    genome: function() {
+      if (this.genome && this.tracks) {
+        this.reinit();
+      }
+    },
+    tracks: function() {
+      if (this.genome && this.tracks) {
+        this.reinit();
+      }
     },
   }
 }
@@ -96,8 +109,8 @@ function launchIGV(referenceURL, locus, tracks) {
 
   var options = {
     loadDefaultGenomes: true,
-    locus: 'chr15:92835700-93031800',
-    genome: 'hg38',
+    locus: this.locus,
+    genome: this.genomeBuild,
     tracks: tracks,
   };
 

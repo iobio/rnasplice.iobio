@@ -54,12 +54,12 @@
       selectedGene: Object,
     },
     data: () => ({
-      regionBuffer: null,
+      regionBuffer: 1000,
 
     }),
     methods: {
-      onGeneRegionBufferChange: function (newGeneRegionBuffer) {
-        this.$emit('gene-region-buffer-change', parseInt(newGeneRegionBuffer));
+      onGeneRegionBufferChange: function (event) {
+        this.$emit('gene-region-buffer-change', parseInt(this.regionBuffer));
       },
       formatRegion: function (value) {
         return !value ? '' : value.toLocaleString('en-US');

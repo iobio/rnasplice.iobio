@@ -8,10 +8,10 @@
           <v-icon id="alert-button-icon">mdi-bell</v-icon>
         </v-badge>
       </v-btn>
-      <v-icon class="navbar-icon-button" v-if="true || (alertCounts && alertCounts.error && alertCounts.error > 0)"  id="error-badge" >
+      <v-icon class="navbar-icon-button" v-if="(alertCounts && alertCounts.error && alertCounts.error > 0)"  id="error-badge" >
        mdi-alert-octagon
       </v-icon>
-      <v-icon class="navbar-icon-button" v-if="true || (alertCounts && alertCounts.warning && alertCounts.warning > 0)"  id="warning-badge" >
+      <v-icon class="navbar-icon-button" v-if="(alertCounts && alertCounts.warning && alertCounts.warning > 0)"  id="warning-badge" >
         mdi-alert
       </v-icon>
     </div>

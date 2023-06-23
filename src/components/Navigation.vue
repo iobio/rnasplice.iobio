@@ -29,7 +29,7 @@
 
       <v-spacer></v-spacer>
 
-      <v-btn id="load-data-button" class="navbar-icon-button mr-9" text>
+      <v-btn id="load-data-button" @click="onShowLoadDataDialog" class="navbar-icon-button mr-9" text>
         <v-icon  class="mr-1">mdi-open-in-new</v-icon>
         Load data
       </v-btn>
@@ -46,20 +46,28 @@
         </v-btn>
       </template>
 
+      <LoadDataDialog
+      :showIt="showLoadDataDialog"
+      @load="onLoadData"
+      @cancel="onCancelLoadData"/>
+
     </v-app-bar>
+
 </template>
 
 <script>
 
 
-import AlertButton   from '../components/AlertButton.vue'
+import AlertButton    from '../components/AlertButton.vue'
+import LoadDataDialog from '../components/LoadDataDialog.vue'
 import { Typeahead } from 'uiv'
 
   export default {
     name: 'Navigation',
     components: {
       AlertButton,
-      Typeahead
+      Typeahead,
+      LoadDataDialog
     },
     props: {
       genes: Array,
@@ -68,7 +76,8 @@ import { Typeahead } from 'uiv'
       alertCounts: Object
     },
     data: () => ({
-      searchedGene: null
+      searchedGene: null,
+      showLoadDataDialog: false
     }),
     watch: {
       searchedGene: function() {
@@ -80,6 +89,16 @@ import { Typeahead } from 'uiv'
     methods: {
       onShowAlertPanel: function() {
         this.$emit('show-alert-panel', true);
+      },
+      onShowLoadDataDialog: function() {
+        this.showLoadDataDialog = true;
+      },
+      onLoadData: function(loadInfo) {
+        this.$emit('load-data', loadInfo)
+        this.showLoadDataDialog = false;
+      },
+      onCancelLoadData: function() {
+        this.showLoadDataDialog = false;
       }
     }
   }

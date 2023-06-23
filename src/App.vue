@@ -1,13 +1,12 @@
 <template>
-    <v-layout>
+    <v-layout class="bg-grey-lighten-3">
       <Navigation 
       :genes="genes" 
-      :genomeBuild="genomeBuild" 
       :alerts="appAlerts"
       :alertCounts="appAlertCounts"
-      :geneToAlerts="geneToAppAlerts"
       @gene-searched="onGeneSearched"
       @show-alert-panel="onShowAlertPanel"
+      @load-data="onLoadData"
       />
 
       <AlertPanel :show="showAlertPanel"
@@ -17,17 +16,19 @@
       @clear-all-alerts="onClearAllAlerts"/>
 
 
-      <v-main class="bg-grey-lighten-3">
+      <v-main  >
          <SpliceJunctionHome 
+          ref="ref_SpliceJunctionHome"
+          :loadInfo="loadInfo"
           :genes="genes" 
-          :genomeBuild="genomeBuild" 
           :searchedGene="searchedGene"
           :selectedGene="selectedGene"
           :alerts="appAlerts"
           :alertCounts="appAlertCounts"
           :geneToAlerts="geneToAppAlerts"
           @add-alert="addAlert"
-          @gene-selected="onGeneSelected"/>
+          @gene-selected="onGeneSelected"
+          @reinit="onReinit"/>
 
 
       </v-main>
@@ -42,8 +43,6 @@ import Navigation         from './components/Navigation.vue';
 import AlertPanel         from './components/AlertPanel.vue';
 
 import genesData          from '@/data/genes.json'
-import genomeBuildData    from '@/data/genomebuild.json'
-
 
 
 export default {
@@ -57,10 +56,12 @@ export default {
 
   data: () => ({
     genes:       genesData,
-    genomeBuild: genomeBuildData,
 
     searchedGene: null,
     selectedGene: null,
+
+    loadInfo: null,
+    isLoaded: false,
 
     appAlerts: [],
     appAlertCounts: {'total': 0, 'success': 0, 'info': 0, 'warning': 0, 'error': 0},
@@ -75,6 +76,18 @@ export default {
     },
     onGeneSelected: function(gene) {
       this.selectedGene = gene;
+    },
+    onLoadData: function(loadInfo) {
+      this.loadInfo = loadInfo;
+    },
+    onReinit: function() {
+      let self = this;
+      let geneNameToReload = self.selectedGene ? self.selectedGene.gene_name : null;
+      self.selectedGene = null;
+      self.searchedGene = null;
+      if (self.$refs && self.$refs.ref_SpliceJunctionHome) {
+        self.$refs.ref_SpliceJunctionHome.clearAndReload(geneNameToReload);
+      }
     },
     addAlert: function(type, message, genes=null, details=null) {
       let self = this;
