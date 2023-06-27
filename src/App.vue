@@ -45,6 +45,9 @@ import AlertPanel         from './components/AlertPanel.vue';
 import genesData          from '@/data/genes.json'
 
 
+import  qs  from 'qs'
+
+
 export default {
   name: 'App',
 
@@ -70,6 +73,16 @@ export default {
 
     
   }),
+  created: function() {
+    let idx = window.location.hash.indexOf("#access_token")
+    if (idx == 0) {
+      let queryParams = qs.parse(window.location.hash.substring(1));
+      let { access_token, expires_in, token_type, ...otherQueryParams } = queryParams;
+      localStorage.setItem('hub-iobio-tkn', token_type + ' ' + access_token);
+      let urlPath = window.location.origin + "?" + qs.stringify(otherQueryParams)
+      window.history.pushState({},"", urlPath);
+    } 
+  },
   methods: {
     onGeneSearched: function(gene) {
       this.searchedGene = gene;
