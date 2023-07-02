@@ -35,6 +35,9 @@
         Load data
       </v-btn>
 
+      <v-spacer></v-spacer>
+
+
       <AlertButton 
       class="mr-9"
       :alerts="alerts" 
@@ -45,12 +48,41 @@
         <v-btn icon>
           <v-icon>mdi-dots-vertical</v-icon>
         </v-btn>
+
+        <v-menu activator="parent">
+          <v-list>
+            <v-list-item>
+              <v-list-item-title>Version {{ globalApp.version }}</v-list-item-title>
+            </v-list-item>
+            <v-list-item>
+              <v-list-item-title @click="showDisclaimer=true">Disclaimer</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
       </template>
 
       <LoadDataDialog
       :showIt="showLoadDataDialog"
       @load="onLoadData"
       @cancel="onCancelLoadData"/>
+
+
+      <v-dialog v-model="showDisclaimer" max-width="400" min-height="400">
+        <v-card class="full-width">
+          <v-card-title class="headline">Disclaimer</v-card-title>
+          <v-card-text>
+
+                  The University of Utah makes no claims that iobio applications, including gene.iobio are approved for clinical use. All users of iobio applications including gene.iobio understand and accept that any information gained by using these applications, whether the information comes from visualization, processing, internal or external databases, or analysis, may not in any way be used for clinical purposes. The University of Utah makes no representation that iobio or gene.iobio is either safe or effective for any intended use for which research may currently be performed.
+                  <br><br>
+                  iobio, or any iobio applications ARE TO BE USED FOR RESEARCH PURPOSES ONLY. USE FOR CLINICAL PURPOSES IS EXPRESSLY FORBIDDEN. Approval of iobio applications for clinical use has neither been applied for, nor received, in any country, including the United States of America.
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn   @click.native="showDisclaimer = false">Close</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
 
     </v-app-bar>
 
@@ -79,7 +111,8 @@ import { Typeahead } from 'uiv'
     data: () => ({
       searchedGene: null,
       searchedGeneInput: null,
-      showLoadDataDialog: false
+      showLoadDataDialog: false,
+      showDisclaimer: false
     }),
     watch: {
       searchedGene: function() {

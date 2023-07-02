@@ -18,10 +18,10 @@
         </div>
 
         <div class="pr-3 d-flex flex-row align-center flex-grow-0 flex-shrink-0">
-          <div  id="gene-plus-minus-label"  class="mr-3">+  -</div>
+          <div  id="gene-plus-minus-label"  class="ml-2 mr-1">+  -</div>
 
           <div style="width:70px">
-            <v-text-field density="compact" hide-details
+            <v-text-field  density="compact" hide-details="auto"
                     id="gene-region-buffer-input"
                     v-model="regionBuffer"
                     v-on:change="onGeneRegionBufferChange">

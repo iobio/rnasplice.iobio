@@ -6,7 +6,8 @@
     :selectedGene="selectedGene"
      @gene-region-buffer-change="onGeneRegionBufferChange"/>
 
-    <v-card  v-show="selectedGene" class="full-width-card" style="min-height: calc(100vh - 180px);">
+    <v-card  v-show="selectedGene" class="full-width-card" style="min-height: calc(100vh + 20px);">
+        
         <SpliceJunctionViz 
         :loadInfo="loadInfo"
         :selectedGene="selectedGene"
@@ -16,6 +17,24 @@
         />
 
     </v-card>
+    
+      <v-snackbar
+        v-model="snackbar"
+        location="center"
+        transition="fade-transition">
+        {{ snackbarText }}
+
+        <template v-slot:actions>
+          <v-btn
+            color="pink"
+            variant="text"
+            @click="snackbar = false"
+          >
+            Close
+          </v-btn>
+        </template>
+      </v-snackbar>
+
 </div>
 
 </template>
@@ -46,7 +65,11 @@ import SpliceJunctionViz from './SpliceJunctionViz.vue'
     data: () => ({
       urlParams: null,
       launchedFromMosaic: null,
-      geneModel: null
+      geneModel: null,
+
+      snackbar: false,
+      snackbarText: "",
+      snackbarTimeout: 5000
 
 
     }),
@@ -95,7 +118,12 @@ import SpliceJunctionViz from './SpliceJunctionViz.vue'
             self.geneModel.adjustGeneRegion(theGeneObject);
             self.geneRegionStart = theGeneObject.start;
             self.geneRegionEnd   = theGeneObject.end;
-            self.$emit("gene-selected", theGeneObject)                         
+            self.$emit("gene-selected", theGeneObject)    
+
+            if (self.loadInfo == null) {
+              self.snackbarText = "Click on 'Load data' to continue."
+              self.snackbar = true;
+            }
           })
         })
         .catch(function(error) {
@@ -124,6 +152,13 @@ import SpliceJunctionViz from './SpliceJunctionViz.vue'
         let self = this;
         if (self.searchedGene) {
           self.loadGene(self.searchedGene.gene_name);
+        }
+      },
+      loadInfo: function() {
+        let self = this;
+        if (self.loadInfo != null && self.searchedGene == null) {
+          self.snackbarText = "Type in a gene name to display splice junctions."
+          self.snackbar = true;
         }
       }
     }

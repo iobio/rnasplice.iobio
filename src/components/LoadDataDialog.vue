@@ -26,7 +26,6 @@
                 density="compact" 
                 label="Splice Junction URL (.bed.gz)">
               </v-text-field>
-              <v-btn class="mt-1" density="compact" size="medium" color="primary" variant="text" @click="onTryDemoBed">Load demo data</v-btn>
             </div>
 
 
@@ -44,6 +43,8 @@
           
         </v-card-text>
         <v-card-actions class="mt-4">
+          <v-btn class="mt-1" density="comfort" size="medium" color="primary" variant="tonal" @click="onTryDemoBed">Load demo data</v-btn>
+
           <v-spacer/>
           <v-btn  elevation="2" size="large" density="comfortable" @click="onLoad">Load</v-btn>
           <v-btn  elevation="2" size="large" density="comfortable" @click="onCancel">Cancel</v-btn>

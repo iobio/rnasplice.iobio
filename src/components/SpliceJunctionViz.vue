@@ -2,33 +2,32 @@
 
     <div class="d-flex flex-column" v-if="loadInfo && coord">
       <div id="igv-heading" class="d-flex flex-row justify-space-between align-center mb-1" >
-          <h2>
+          <h2 class="mr-16">
             Splice Junctions
           </h2>
-          <v-spacer/>
-          <div style="width:155px" class="mr-4">
-            <v-select 
-              v-model="theGeneSource"
-              hide-details="auto"
-              label="Gene annotations"
-              density="compact"
-              :items="['gencode', 'refseq',]"
-            ></v-select>
-          </div>
-          <div style="width:195px" class="mr-4">
+          <div style="width:195px" class="ml-4 mr-5">
             <v-text-field 
             density="compact"
             hide-details="auto" 
             label="Min Uniquely Mapped Reads" 
             v-model="minUniquelyMappedReads"/>
           </div>
-          <div style="width:155px" class="mr-4">
+          <div style="width:155px" class="mr-5">
             <v-select 
               v-model="colorBy"
               hide-details="auto"
               label="Color by"
               density="compact"
               :items="['numUniqueReads', 'numReads', 'isAnnotatedJunction', 'strand', 'motif']"
+            ></v-select>
+          </div>
+          <div style="width:155px" class="mr-5">
+            <v-select 
+              v-model="theGeneSource"
+              hide-details="auto"
+              label="Gene annotations"
+              density="compact"
+              :items="['gencode', 'refseq',]"
             ></v-select>
           </div>
 
@@ -276,5 +275,11 @@ import RNASeqIGV   from './RNASeqIGV.vue'
     font-weight: 600
     color: #494949
 
+  #igv-heading
+    .v-select__selection-text
+      font-size: 13px
+    v-field__field
+      label
+        font-size: 13px
     
 </style>

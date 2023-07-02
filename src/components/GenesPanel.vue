@@ -119,7 +119,7 @@ export default {
 
   .gene-button
     justify-content: flex-start
-    margin-left: 20px
+    margin-left: 5px
 
   #close-button
     margin-right: -15px

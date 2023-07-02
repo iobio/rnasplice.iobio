@@ -49,7 +49,7 @@
 #alert-button-container
 
   #alert-button-icon
-    font-size: 28px
+    font-size: 26px
 
   #error-badge 
     color: $badge-error-color  !important
