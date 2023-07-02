@@ -47,7 +47,7 @@ class GeneModel {
 
     this.geneSources = ['gencode', 'refseq'];
 
-    this.geneSource = null;
+    this.geneSource = 'gencode';
     this.refseqOnly = {};
     this.gencodeOnly = {};
 

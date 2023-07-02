@@ -1,11 +1,11 @@
 <template>
   <v-app-bar 
-       color="#0D47A1" dark 
+      dark 
       style="padding-top:2px"
     >
 
       <template v-slot:prepend>
-        <v-app-bar-nav-icon></v-app-bar-nav-icon>
+        <v-app-bar-nav-icon @click="onShowGenesPanel"></v-app-bar-nav-icon>
       </template>
 
       <v-app-bar-title>splicejunction.iobio</v-app-bar-title>
@@ -14,14 +14,15 @@
 
 
       <div id="search-gene-box" style="min-width:200px">
-        <v-text-field id="input" class="pl-2"
+        <v-text-field id="search-gene-input" class="pl-2"
         hide-details 
+        v-model="searchedGeneInput"
         density="compact" 
         label="Gene" 
         prepend-icon="mdi-magnify" 
         />
         <Typeahead  v-model="searchedGene" 
-        target="#input" 
+        target="#search-gene-input" 
         :data="genes" 
         item-key="gene_name" /> 
       </div>
@@ -77,6 +78,7 @@ import { Typeahead } from 'uiv'
     },
     data: () => ({
       searchedGene: null,
+      searchedGeneInput: null,
       showLoadDataDialog: false
     }),
     watch: {
@@ -99,6 +101,12 @@ import { Typeahead } from 'uiv'
       },
       onCancelLoadData: function() {
         this.showLoadDataDialog = false;
+      },
+      onShowGenesPanel: function() {
+        this.$emit('show-genes-panel')
+      },
+      setGeneSearchField: function(theValue) {
+        this.searchedGeneInput = theValue;
       }
     }
   }

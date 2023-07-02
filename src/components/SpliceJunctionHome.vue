@@ -1,6 +1,6 @@
 <template>
 
-<div class="d-flex flex-column mt-1">
+<div style="margin-left:5px;margin-right:5px;" class="d-flex flex-column mt-1">
   
     <GeneCard  v-if="selectedGene" class="full-width-card"
     :selectedGene="selectedGene"
@@ -11,6 +11,7 @@
         :loadInfo="loadInfo"
         :selectedGene="selectedGene"
         :genomeBuildHelper="genomeBuildHelper"
+        :geneModel="geneModel"
         @reinit="$emit('reinit')"
         />
 
@@ -45,6 +46,7 @@ import SpliceJunctionViz from './SpliceJunctionViz.vue'
     data: () => ({
       urlParams: null,
       launchedFromMosaic: null,
+      geneModel: null
 
 
     }),
@@ -78,6 +80,7 @@ import SpliceJunctionViz from './SpliceJunctionViz.vue'
           let [type, message, genes, details] = eventArgs
           self.addAppAlert(type, message, genes, details)
         })
+        self.$emit("gene-model-initialized", self.geneModel)
 
         self.addAppAlert('success', 'app initialized')
 

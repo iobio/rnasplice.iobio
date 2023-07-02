@@ -26,7 +26,18 @@
                 density="compact" 
                 label="Splice Junction URL (.bed.gz)">
               </v-text-field>
-              <v-btn class="mt-1" density="compact" size="medium" color="primary" variant="text" @click="onTryDemoBed">try demo bed url</v-btn>
+              <v-btn class="mt-1" density="compact" size="medium" color="primary" variant="text" @click="onTryDemoBed">Load demo data</v-btn>
+            </div>
+
+
+            <div class="pt-4">
+              <v-text-field id="bigwig-url-text" 
+                v-model="bigwigURL"
+                hide-details 
+                density="compact" 
+                label="Coverage URL (.bw or .bigWig)">
+              </v-text-field>
+
             </div>
 
           </div>
@@ -53,15 +64,18 @@ export default {
         show: false,
         buildName: 'GRCh38',
         bedURL: null,
+        bigwigURL: null,
 
         demoInfo: {
           'demo1': {
             'bedURL': "https://s3.amazonaws.com/tony.splicejunction.bed/1099_SJ.out.bed.gz",
-            'bedIndexURL': "https://s3.amazonaws.com/tony.splicejunction.bed/1099_SJ.out.bed.gz.tbi"
+            'bedIndexURL': "https://s3.amazonaws.com/tony.splicejunction.bed/1099_SJ.out.bed.gz.tbi",
+            'bigwigURL': "https://s3.amazonaws.com/tony.splicejunction.bed/1099_RNA.bigWig"
           },
           'demo2': {
             'bedURL': "splice_junction_track_test_cases_sampleA.chr15-92835700-93031800.SJ.out.bed.gz?dl=0",
-            'bedIndexURL': "https://www.dropbox.com/s/iv5tcg3t8v3xu23/splice_junction_track_test_cases_sampleA.chr15-92835700-93031800.SJ.out.bed.gz.tbi?dl=0"
+            'bedIndexURL': "https://www.dropbox.com/s/iv5tcg3t8v3xu23/splice_junction_track_test_cases_sampleA.chr15-92835700-93031800.SJ.out.bed.gz.tbi?dl=0",
+            'bigwigURL': "https://www.dropbox.com/s/8j2uf0hsqprusnc/splice_junction_track_test_cases_sampleA.chr15-92835700-93031800.bigWig?dl=0"
           }
         }
       }
@@ -70,7 +84,8 @@ export default {
       onLoad: function() {
         let loadInfo = {'buildName': this.buildName, 
                         'bedURL': this.bedURL, 
-                        'bedIndexURL': this.bedURL + '.tbi'}
+                        'bedIndexURL': this.bedURL + '.tbi',
+                        'bigwigURL': this.bigwigURL}
         this.$emit("load", loadInfo)
       },
       onCancel: function() {
@@ -78,6 +93,7 @@ export default {
       },
       onTryDemoBed: function() {
         this.bedURL = this.demoInfo.demo1.bedURL;
+        this.bigwigURL = this.demoInfo.demo1.bigwigURL;
       }
     },
     watch: {
@@ -94,7 +110,8 @@ export default {
 </script>
 
 <style>
-#load-data-dialog-content #bed-url-text {
+#load-data-dialog-content #bed-url-text,
+#load-data-dialog-content #bigwig-url-text {
   font-size: 13px;
 }
 </style>

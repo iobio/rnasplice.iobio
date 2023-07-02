@@ -4,7 +4,7 @@
       v-model="showAlertPanel"
       permanent
       location="right"
-      style="padding: 5px;height: calc(100% - 65px);">
+      style="margin-left: 5px; margin-right: 5px; padding: 5px;height: calc(100% - 65px);">
 
     <div style="padding-top:0px;padding-left:5px" >
 

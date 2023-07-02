@@ -1,23 +1,7 @@
 <template>
-  <v-container>
-    <div class="d-flex flex-column">
-      <div id="igv-heading" class="d-flex flex-row justify-space-between align-center mb-1" >
-          <h2>
-            {{heading}}
-          </h2>
-          <v-spacer/>
-          <div>
-            <v-btn id="igv-launch-button" @click='launchFullIGV'>
-              <v-icon class="igv-zoom-icon  mr-1" size="16" icon="mdi-launch"></v-icon>
-              Full screen
-          </v-btn>
-          </div>
-      </div>
-      <div>
-        <div id='igv-content'></div>
-      </div>
-    </div>
-  </v-container>
+  <div>
+    <div id='igv-content'></div>
+  </div>
 </template>
 
 <script>
@@ -52,7 +36,7 @@ export default {
 
       var options = {
         locus: this.locus,
-        genome: 'hg38',
+        genome: this.genomeBuild,
         loadDefaultGenomes: true,
         tracks: self.tracks,
         queryParametersSupported: true
@@ -60,12 +44,21 @@ export default {
 
 
       igv.createBrowser(igvDiv, options).then((browser) => {
-        this.browser = browser;
+        self.browser = browser;
+        self.removeTrackByName("Refseq Genes")
       })
     },
     search: function() {
+      let self = this;
       if (this.browser && this.locus) {
         this.browser.search(this.locus)
+      }
+    },
+    onRefreshTracks: function() {
+      let self = this;
+      if (this.browser) {
+        let locus = this.browser.currentLoci()
+        this.browser.doSearch(locus)
       }
     },
     zoomOut: function() {
@@ -73,9 +66,6 @@ export default {
     },
     zoomIn: function() {
       this.browser.zoomIn();
-    },
-    launchFullIGV: function() {
-      launchIGV(this.referenceURL, this.locus, this.tracks);
     },
     reinit: function() {
       if (!this.browser) {
@@ -85,6 +75,16 @@ export default {
         igv.removeBrowser(this.browser);
         this.browser = null;
         this.init();
+      }
+    },
+    removeTrackByName: function(trackName) {
+      let self = this;
+      for (var i = 0, l = self.browser.trackViews.length; i < l; i++) {
+        var trackView = self.browser.trackViews[i];
+        if (trackView.track.name === trackName) {
+          self.browser.removeTrack(trackView.track);
+          return;
+        }
       }
     }
   },
@@ -105,39 +105,10 @@ export default {
   }
 }
 
-function launchIGV(referenceURL, locus, tracks) {
-
-  var options = {
-    loadDefaultGenomes: true,
-    locus: this.locus,
-    genome: this.genomeBuild,
-    tracks: tracks,
-  };
-
-  
-
-  const url = 'https://s3.amazonaws.com/static.iobio.io/dev/igv.iobio.io/index.html?config=' + JSON.stringify(options)
-  window.open(url, '_blank')
-}
-
 </script>
 
 <style>
 
-#igv-heading {
-}
-#igv-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #494949
-}
-.igv-zoom-icon {
-  color: #737373;
-}
-#igv-launch-button {
-  font-weight: 600;
-  color: #494949;
-}
 
 .igv-right-hand-gutter {
   right: initial;

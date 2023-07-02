@@ -1,13 +1,23 @@
 <template>
     <v-layout class="bg-grey-lighten-3">
+
       <Navigation 
+      ref="ref_Navigation"
       :genes="genes" 
       :alerts="appAlerts"
       :alertCounts="appAlertCounts"
       @gene-searched="onGeneSearched"
       @show-alert-panel="onShowAlertPanel"
+      @show-genes-panel="onShowGenesPanel"
       @load-data="onLoadData"
       />
+
+      <GenesPanel :show="showGenesPanel"
+      :geneModel="geneModel"
+      @close-genes-panel="onCloseGenesPanel"
+      @clear-gene="onClearGene"
+      @clear-all-genes="onClearAllGenes"
+      @gene-clicked="onGeneClicked"/>
 
       <AlertPanel :show="showAlertPanel"
       :alerts="appAlerts"
@@ -28,7 +38,8 @@
           :geneToAlerts="geneToAppAlerts"
           @add-alert="addAlert"
           @gene-selected="onGeneSelected"
-          @reinit="onReinit"/>
+          @reinit="onReinit"
+          @gene-model-initialized="onGeneModelInitialized"/>
 
 
       </v-main>
@@ -41,6 +52,7 @@
 import SpliceJunctionHome from './components/SpliceJunctionHome.vue';
 import Navigation         from './components/Navigation.vue';
 import AlertPanel         from './components/AlertPanel.vue';
+import GenesPanel         from './components/GenesPanel.vue';
 
 import genesData          from '@/data/genes.json'
 
@@ -54,11 +66,14 @@ export default {
   components: {
     SpliceJunctionHome,
     Navigation,
-    AlertPanel
+    AlertPanel,
+    GenesPanel
   },
 
   data: () => ({
     genes:       genesData,
+
+    geneModel: null,
 
     searchedGene: null,
     selectedGene: null,
@@ -69,7 +84,9 @@ export default {
     appAlerts: [],
     appAlertCounts: {'total': 0, 'success': 0, 'info': 0, 'warning': 0, 'error': 0},
     geneToAppAlerts: {},
-    showAlertPanel: false
+
+    showAlertPanel: false,
+    showGenesPanel: false
 
     
   }),
@@ -84,12 +101,25 @@ export default {
     } 
   },
   methods: {
+    onGeneModelInitialized: function(geneModel) {
+      this.geneModel = geneModel;
+    },
+    onGeneClicked: function(geneName) {
+      this.onGeneSearched({'gene_name': geneName})
+      if (this.$refs && this.$refs.ref_Navigation) {
+        this.$refs.ref_Navigation.setGeneSearchField(geneName)
+      }
+    },
     onGeneSearched: function(gene) {
       this.searchedGene = gene;
     },
     onGeneSelected: function(gene) {
       this.selectedGene = gene;
       this.addAlert("info", "gene <pre>" + gene.gene_name + "</pre> loaded", gene.gene_name)
+
+      if (this.geneModel.geneNames.length > 1) {
+        this.onShowGenesPanel();
+      }
     },
     onLoadData: function(loadInfo) {
       this.loadInfo = loadInfo;
@@ -218,11 +248,43 @@ export default {
     },
     onCloseAlertPanel: function() {
       this.showAlertPanel = false;
+    },
+    onShowGenesPanel: function() {
+      this.showGenesPanel = true;
+    },
+    onCloseGenesPanel: function() {
+      this.showGenesPanel = false;
+    },
+    onClearAllGenes: function() {
+      this.searchedGene = null;
+      this.selectedGene = null;
+      this.geneModel.clearAllGenes();
+      
+    },
+    onClearGene: function(geneName) {
+      this.geneModel.removeGene(geneName)
+      if (this.searchedGene.gene_name == geneName) {
+        this.searchedGene = null;
+        this.selectedGene = null;
+        if (this.$refs && this.$refs.ref_Navigation) {
+          this.$refs.ref_Navigation.setGeneSearchField("")
+        }
+
+      }
+
     }
   }
 
 };
 </script>
+
+
+<style lang="sass">
+@import './styles/variables.sass'
+
+.v-app-bar
+  background-color: $nav-color !important
+</style>
 
 
 <style>
@@ -283,9 +345,9 @@ h2, .h2 {
   padding: 10px !important;
 }
 .v-card.full-width-card {
-  margin-left:   10px !important;
-  margin-right:  10px !important;
-  margin-top:    5px !important;
+  margin-left:   5px !important;
+  margin-right:  5px !important;
+  margin-top:    0px !important;
   margin-bottom: 5px !important;
 }
 
