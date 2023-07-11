@@ -19,14 +19,14 @@ class GlobalApp {
   }
 
   initBackendSource(iobioSource) {
-      this.IOBIO_SERVICES = (this.useSSL ? "https://" : "http://") + iobioSource + "/";
-      this.HTTP_SERVICES  = (this.useSSL ? "https://" : "http://") + iobioSource + "/";;
+      this.IOBIO_SERVICES = (this.useSSL ? "https://" : "http://") + iobioSource;
+      this.HTTP_SERVICES  = (this.useSSL ? "https://" : "http://") + iobioSource;
       if (this.IOBIO_SERVICES.indexOf('mosaic.chpc.utah.edu') >= 0 && this.IOBIO_SERVICES.indexOf("gru-dev") < 0) {
         this.launchedFromUtahMosaic = true;
       }
 
-      this.geneInfoServer            = this.HTTP_SERVICES + "geneinfo/";
-      this.genomeBuildServer         = this.HTTP_SERVICES + "genomebuild/"
+      this.geneInfoServer            = this.HTTP_SERVICES + "/geneinfo/";
+      this.genomeBuildServer         = this.HTTP_SERVICES + "/genomebuild/"
   }
 
   initServices(useMosaicBackend) {

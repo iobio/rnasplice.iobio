@@ -7,6 +7,8 @@ import './main.scss'
 
 import 'bootstrap/dist/css/bootstrap.min.css'
 
+
+
 // Components
 import App from './App.vue'
 
@@ -16,7 +18,6 @@ import { createApp } from 'vue'
 // Plugins
 import { registerPlugins } from '@/plugins'
 
-
 const app = createApp(App)
 
 registerPlugins(app)
@@ -25,6 +26,9 @@ import * as uiv from 'uiv'
 
 app.use(uiv)
 
+import * as d3 from "d3";
+
+window.d3 = d3;
 
 
 import jQuery               from 'jquery'

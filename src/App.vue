@@ -36,10 +36,12 @@
           :alerts="appAlerts"
           :alertCounts="appAlertCounts"
           :geneToAlerts="geneToAppAlerts"
+          :spliceJunctionsForGene="spliceJunctionsForGene"
           @add-alert="addAlert"
           @gene-selected="onGeneSelected"
           @reinit="onReinit"
-          @gene-model-initialized="onGeneModelInitialized"/>
+          @gene-model-initialized="onGeneModelInitialized"
+          @splice-junctions-loaded="onSpliceJunctionsLoaded"/>
 
 
       </v-main>
@@ -77,6 +79,7 @@ export default {
 
     searchedGene: null,
     selectedGene: null,
+    spliceJunctionsForGene: null,
 
     loadInfo: null,
     isLoaded: false,
@@ -99,6 +102,7 @@ export default {
       let urlPath = window.location.origin + "?" + qs.stringify(otherQueryParams)
       window.history.pushState({},"", urlPath);
     } 
+    d3.select("body")
   },
   methods: {
     onGeneModelInitialized: function(geneModel) {
@@ -133,6 +137,9 @@ export default {
         self.$refs.ref_SpliceJunctionHome.clearAndReload(geneNameToReload);
       }
       self.addAlert("info", "reloaded data")
+    },
+    onSpliceJunctionsLoaded: function(spliceJunctionData) {
+      this.spliceJunctionsForGene = spliceJunctionData;
     },
     addAlert: function(type, message, genes=null, details=null) {
       let self = this;
@@ -275,6 +282,7 @@ export default {
     }
   }
 
+
 };
 </script>
 
@@ -353,5 +361,10 @@ h2, .h2 {
 
 .v-input--center-affix .v-input__prepend, .v-input--center-affix .v-input__append {
   margin-right: 2px;
+}
+.v-switch .v-label {
+  font-size: 13px;
+  padding-top: 4px;
+  padding-left: 6px;
 }
 </style>

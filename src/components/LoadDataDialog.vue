@@ -43,11 +43,11 @@
           
         </v-card-text>
         <v-card-actions class="mt-4">
-          <v-btn class="mt-1" density="comfort" size="medium" color="primary" variant="tonal" @click="onTryDemoBed">Load demo data</v-btn>
+          <v-btn class="mt-1" density="compact" size="medium" color="primary" variant="tonal" @click="onTryDemoBed">Load demo data</v-btn>
 
           <v-spacer/>
-          <v-btn  elevation="2" size="large" density="comfortable" @click="onLoad">Load</v-btn>
-          <v-btn  elevation="2" size="large" density="comfortable" @click="onCancel">Cancel</v-btn>
+          <v-btn  elevation="2" density="compact" size="large"  @click="onLoad">Load</v-btn>
+          <v-btn  elevation="2" density="compact" size="large" @click="onCancel">Cancel</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

@@ -7,15 +7,40 @@
      @gene-region-buffer-change="onGeneRegionBufferChange"/>
 
     <v-card  v-show="selectedGene" class="full-width-card" style="min-height: calc(100vh + 20px);">
-        
-        <SpliceJunctionViz 
-        :loadInfo="loadInfo"
-        :selectedGene="selectedGene"
-        :genomeBuildHelper="genomeBuildHelper"
-        :geneModel="geneModel"
-        @reinit="$emit('reinit')"
-        />
+        <v-tabs density="compact"
+          v-model="tab" 
+          align-tabs="left" class="mb-2"
+        >
+          <v-tab  color="#376daf" style="font-weight: 600" value="tab-1">IGV</v-tab>
+          <v-tab  color="#376daf" style="font-weight: 600"  value="tab-2">Custom</v-tab>
+        </v-tabs>
+        <v-window v-model="tab">
+          <v-window-item value="tab-1">
 
+            <SpliceJunctionViz 
+            :loadInfo="loadInfo"
+            :selectedGene="selectedGene"
+            :genomeBuildHelper="genomeBuildHelper"
+            :geneModel="geneModel"
+            @reinit="$emit('reinit')"
+            />
+         
+          </v-window-item>
+            
+          <v-window-item value="tab-2" eager>
+
+            <SpliceJunctionD3 
+            :selectedGene="selectedGene" 
+            :genomeBuildHelper="genomeBuildHelper"
+            :geneModel="geneModel"
+            :spliceJunctionsForGene="spliceJunctionsForGene"
+            :tab="tab"
+            :loadInProgress="loadInProgress"
+            @reinit="$emit('reinit')"/>
+
+          </v-window-item>
+        </v-window>      
+       
     </v-card>
     
       <v-snackbar
@@ -35,6 +60,8 @@
         </template>
       </v-snackbar>
 
+
+
 </div>
 
 </template>
@@ -42,34 +69,46 @@
 <script>
 import GenomeBuildHelper from '@/models/GenomeBuildHelper.js'
 import GeneModel         from '@/models/GeneModel.js'
+import Endpoint          from '@/models/Endpoint.js'
 
 import GeneCard          from './GeneCard.vue'
 import SpliceJunctionViz from './SpliceJunctionViz.vue'
+import SpliceJunctionD3  from './SpliceJunctionD3.vue'
 
   export default {
     name: 'SpliceJunctionHome',
     components: {
       GeneCard,
-      SpliceJunctionViz
+      SpliceJunctionViz,
+      SpliceJunctionD3
     },
     props: { 
       loadInfo: Object,
       genes: Array,
       genomeBuild: Array,
+
+      
       searchedGene: Object,
       selectedGene: Object,
+      spliceJunctionsForGene: Object,
+
+
       alerts: Array,
       alertCounts: Object,
-      geneToAlerts: Object
+      geneToAlerts: Object,
     },
     data: () => ({
       urlParams: null,
       launchedFromMosaic: null,
       geneModel: null,
+      endpoint: null,
+      loadInProgress: false,
 
       snackbar: false,
       snackbarText: "",
-      snackbarTimeout: 5000
+      snackbarTimeout: 5000,
+
+      tab: 'tab-1'
 
 
     }),
@@ -107,6 +146,8 @@ import SpliceJunctionViz from './SpliceJunctionViz.vue'
 
         self.addAppAlert('success', 'app initialized')
 
+        this.endpoint = new Endpoint(self.globalApp, self.genomeBuildHelper)
+
 
       },
       loadGene: function(geneName) {
@@ -118,7 +159,7 @@ import SpliceJunctionViz from './SpliceJunctionViz.vue'
             self.geneModel.adjustGeneRegion(theGeneObject);
             self.geneRegionStart = theGeneObject.start;
             self.geneRegionEnd   = theGeneObject.end;
-            self.$emit("gene-selected", theGeneObject)    
+            self.$emit("gene-selected", theGeneObject)   
 
             if (self.loadInfo == null) {
               self.snackbarText = "Click on 'Load data' to continue."
@@ -145,6 +186,27 @@ import SpliceJunctionViz from './SpliceJunctionViz.vue'
         if (geneNameToLoad) {
           self.loadGene(geneNameToLoad);
         }
+      },
+      getSpliceJunctionRecords: function() {
+        let self = this;
+        self.loadInProgress = true;
+        let region = {'refName': self.selectedGene.chr, 
+                       'start':   self.selectedGene.start,
+                       'end':     self.selectedGene.end };
+        self.endpoint.promiseGetBedRegion(self.loadInfo.bedURL, 
+                                          self.loadInfo.bedIndexURL, 
+                                          region)
+        .then(function(spliceJunctionRecords) {
+          self.loadInProgess = false;
+          let spliceJunctions = {'gene': self.selectedGene.gene_name, 
+                                    'spliceJunctions': spliceJunctionRecords}
+          self.$emit('splice-junctions-loaded', spliceJunctions)
+        })
+        .catch(function(error) {
+          self.loadInProgress = false;
+          self.$emit("add-alert", 'error', error.message, self.selectedGene.gene_name, error.details ? [error.details] : null)
+        })
+
       }
     },
     watch: {
@@ -160,7 +222,14 @@ import SpliceJunctionViz from './SpliceJunctionViz.vue'
           self.snackbarText = "Type in a gene name to display splice junctions."
           self.snackbar = true;
         }
+      },
+      selectedGene: function() {
+        let self = this;
+        if (self.loadInfo && self.selectedGene) {
+          self.getSpliceJunctionRecords()
+        }
       }
     }
+
   }
 </script>
