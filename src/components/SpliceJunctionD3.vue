@@ -1,6 +1,6 @@
 <template>
 
-<div>
+<div style="padding-bottom: 10px">
 	<div class="text-center" v-if="showLoading">
     <v-progress-circular v-if="showLoading"
       indeterminate
@@ -13,11 +13,7 @@
             Splice Junctions
           </h2>
           <div class="ml-4 mr-5 d-flex align-center">
-            <div style="width: 150px">
-		          <v-switch v-model="zoomSwitch" label="Drag to zoom"  hide-details>
-		          </v-switch>
-		        </div>
-	          <div class="instruction-box" v-if="zoomSwitch && regionIsSelected">
+	          <div class="instruction-box" v-if="regionIsSelected">
 	          	Click outside of bounding box to zoom out
 	          </div>
         	</div>
@@ -35,7 +31,7 @@
               hide-details="auto"
               label="Color by"
               density="compact"
-              :items="['numUniqueReads','strand', 'motif']"
+              :items="['none', 'strand', 'motif', 'exon span']"
             ></v-select>
           </div>
           <div style="width:155px" class="mr-5">
@@ -53,29 +49,39 @@
       </div>
 
 	<div id="diagrams">
+    <div id="brushable-axis">
+      <svg/>
+    </div>
+
 	  <div id="arc-diagram">
 	  </div>
 
     <div id="selected-transcript-panel">
+
 		  <div id="transcript-diagram" >
 		    <svg/>
 		  </div>
 	  </div>
+	  <div class="d-flex" style="padding-right:20px">
+	    <v-spacer/>
+		  <v-btn variant="tonal" color="primary" density="compact">
+	     Select a transcript
+	      <v-menu eager bottom activator="parent">
+	         <v-list id="list-for-transcript-menu">
+	          <v-list-item>
+	            <div id="transcript-menu-panel">
+		        		<div id="transcript-diagram" class="multiple">
+		        			<svg/>
+		        	  </div>
+		        	</div>
+	        	</v-list-item>
+	         </v-list>
+				
+	      </v-menu>
+	    </v-btn>
+    </div>
 	  
-	  <v-expansion-panels density="compact">
-		  <v-expansion-panel eager>
-		    <v-expansion-panel-title>
-		    	Select transcript
-		    </v-expansion-panel-title>
-
-		    <v-expansion-panel-text eager>
-		    	<div id="transcript-menu-panel">
-					  <div id="transcript-diagram" class="multiple">
-					  </div>
-					</div>
- 				</v-expansion-panel-text>
- 			</v-expansion-panel>
-		</v-expansion-panels>
+	  
 
 
 	</div>
@@ -112,13 +118,14 @@ export default {
 		UTR_HEIGHT: 10,
 		CDS_HEIGHT: 20,
 
-		zoomSwitch: false,
 		regionIsSelected: false,
 
 		selectedTranscript: null,
 		selectedEdges: null,
 
 		xArcDiagram: null,
+		xBrushable: null,
+		xTranscriptDiagram: null,
 		tooltip: null,
 
 		brush: null,
@@ -126,8 +133,13 @@ export default {
 		showLoading: false,
 
     minUniquelyMappedReads: 1,
-    colorBy: 'motif',
+    colorBy: '',
     theGeneSource: self.geneModel ? self.geneModel.geneSource : 'gencode',
+
+    arcPointerWidth: 16,
+    arcPointerHeight: 16,
+
+    MIN_ARC_HEIGHT: 30
 
 
 	}),
@@ -205,14 +217,17 @@ export default {
 		    d3.selectAll('#diagrams svg').remove();
 		    d3.selectAll('#zoomed-diagrams svg').remove();
 
+		    self.drawBrushableAxis("#diagrams", geneStart, geneEnd)
+
 		    self.drawArcDiagram('#diagrams', self.selectedEdges, geneStart, geneEnd, 
 		    	{'createBrush': false});
 
 		    self.drawTranscriptDiagram("#diagrams #selected-transcript-panel", self.selectedGene, geneStart, geneEnd,  
-		      {'selectedTranscriptOnly': true, 'allowSelection': false})
+		      {'selectedTranscriptOnly': true, 'allowSelection': false, 'showBoundingBox': true})
 
 
-		    self.drawTranscriptDiagram('#diagrams #transcript-menu-panel', self.selectedGene, geneStart, geneEnd, 
+		    d3.selectAll("#transcript-menu-panel #transcript-diagram svg").remove();
+		    self.drawTranscriptDiagram('#transcript-menu-panel', self.selectedGene, geneStart, geneEnd, 
 		    	{'selectedTranscriptOnly': false, 'allowSelection': true});			
   		} else {
   			console.log("Problem encountered. Splice junctions gene does not match selected gene.")
@@ -269,8 +284,12 @@ export default {
 		    return +bedRow.score >= self.minUniquelyMappedReads
 		  })
 		  .map(function(bedRow) {
-		    return {from:    null, 
-		            to:      null, 
+		  	let startExon = self.locateExon(+bedRow.start)
+		  	let endExon   = self.locateExon(+bedRow.end)
+		  	let exonSpan = startExon && endExon ? Math.abs(+endExon.number - +startExon.number) : '';
+		    return {from:     startExon ? startExon.number : null, 
+		            to:       endExon ? endExon.number : null, 
+		            exonSpanned: exonSpan > 1 ? true : false,
 		            fromPos: +bedRow.start, 
 		            toPos:   +bedRow.end, 
 		            score:   +bedRow.score,
@@ -288,30 +307,64 @@ export default {
 		  let extent = event.selection 
 		  if (extent && extent.length == 2 && extent[0] != extent[1]) {
 		  	self.regionIsSelected = true;
-		    let regionStart = self.xArcDiagram.invert(extent[0]);
-		    let regionEnd   = self.xArcDiagram.invert(extent[1]);
+		    let regionStart = self.xBrushable.invert(extent[0]);
+		    let regionEnd   = self.xBrushable.invert(extent[1]);
+
+		    self.showSelectionBox("#diagrams #arc-diagram svg", regionStart, regionEnd, 
+		    	                    self.xArcDiagram )
+		    self.showSelectionBox("#diagrams #transcript-diagram svg", regionStart, regionEnd, 
+		    	                    self.xTranscriptDiagram )
 		    
 		    d3.select("#zoomed-diagrams").select("#arc-diagram svg").remove();
 		    d3.select("#zoomed-diagrams").select("#transcript-diagram svg").remove();
 
-		    let filteredEdges = self.selectedEdges.filter(function(edge) {
-		      if (edge.fromPos < edge.toPos) {
-		        return edge.fromPos >= regionStart || edge.toPos <= regionEnd;
-		      } else {
-		        return edge.toPos >= regionStart || edge.fromPos <= regionEnd;
-		      }
-		    })
-		    self.drawArcDiagram("#zoomed-diagrams", filteredEdges, regionStart, regionEnd, {'createBrush': false})
+		    if (event.type == 'end') {
+			    let filteredEdges = self.selectedEdges.filter(function(edge) {
+			      if (edge.fromPos < edge.toPos) {
+			        return edge.fromPos >= regionStart || edge.toPos <= regionEnd;
+			      } else {
+			        return edge.toPos >= regionStart || edge.fromPos <= regionEnd;
+			      }
+			    })
+			    let filteredEdgesClone = [];
+			    filteredEdges.forEach(function(d) {
+			    	let edge = $.extend({}, d)
+			    	filteredEdgesClone.push(edge);
+			    })
+			    self.drawArcDiagram("#zoomed-diagrams", filteredEdgesClone, regionStart, regionEnd, {'createBrush': false})
 
-		    self.drawTranscriptDiagram("#zoomed-diagrams", self.selectedGene, regionStart, regionEnd, 
-		      {'selectedTranscriptOnly': true, 'allowSelection': false})
+			    self.drawTranscriptDiagram("#zoomed-diagrams", self.selectedGene, regionStart, regionEnd, 
+			      {'selectedTranscriptOnly': true, 'allowSelection': false})
+
+		    }
 		  } else {
 		    d3.select("#zoomed-diagrams").select("#arc-diagram svg").remove();
 		    d3.select("#zoomed-diagrams").select("#transcript-diagram svg").remove();
 		    self.regionIsSelected = false;
+		    d3.select("#diagrams #arc-diagram svg .bounding-box.active").classed("active", false)
+		    d3.select("#diagrams #transcript-diagram svg .bounding-box.active").classed("active", false)
 
 		  }
 		},
+
+		showSelectionBox: function(container, regionStart, regionEnd, x) {
+			let self = this;
+
+			let x1   = x(regionStart);
+		  let x2   = x(regionEnd);
+		  let width = x2 - x1;
+
+
+      let height = parseInt(d3.select(container).style("height"));
+
+	  	let boundingBox = d3.select(container).select('.bounding-box');
+	  	boundingBox.attr("x", x1)
+	  	boundingBox.attr("y", 0)
+	  	boundingBox.attr("width", width)
+	  	boundingBox.attr("height", height)
+	  	boundingBox.classed("active", true)
+
+	  },
 
 		clearZoom: function() {
 			let self = this;
@@ -330,9 +383,9 @@ export default {
 
 		addBrushing: function() {
 			let self = this;
-			let width = +d3.select("#diagrams").select("#arc-diagram svg").attr("width");
-			let height = +d3.select("#diagrams").select("#arc-diagram svg").attr("height");
-			d3.select("#diagrams").select("#arc-diagram svg")
+			let width = +d3.select("#diagrams").select("#brushable-axis svg").attr("width");
+			let height = +d3.select("#diagrams").select("#rushable-axis svg").attr("height");
+			d3.select("#diagrams").select("rushable-axis svg")
 		      .call( self.brush = d3.brushX()                  
 		        .extent( [ [0,10], [width,height] ] )
 		        .on("start end", self.onBrush)    
@@ -342,13 +395,19 @@ export default {
 		drawTranscriptDiagram: function(container, gene, regionStart, regionEnd, options) {
 			let self = this;
 		  // dimensions
-		  var margin = {top: 0, right: 170, bottom: 10, left: 0};
+		  var margin = {top: 5, right: 170, bottom: 10, left: 0};
 		  var width = self.$el.offsetWidth - 20;
 
 		  var transcriptCount = options && options.selectedTranscriptOnly ? 1 : gene.transcripts.length;
 		  var transcriptPadding = 5;
 		  var transcriptHeight = self.CDS_HEIGHT;
-		  var height = ((transcriptCount * (self.CDS_HEIGHT + transcriptPadding)) - self.CDS_HEIGHT);
+
+		  var height = null;
+		  if (transcriptCount == 1) {
+		  	height = self.CDS_HEIGHT + margin.top;
+		  } else {
+			  height = (transcriptCount * (transcriptHeight+transcriptPadding)) + margin.top + margin.bottom
+		  }
 
 		  var innerWidth = width - margin.left - margin.right;
 		  var innerHeight = height - margin.top - margin.bottom;
@@ -360,13 +419,13 @@ export default {
 		            .range([margin.left, innerWidth + margin.left]);
 		  var y = d3.scalePoint();
 		  y.domain(gene.transcripts)
-		  y.range([margin.bottom, height-margin.top])
+		  y.range([margin.bottom, height-margin.top-margin.bottom])
 
 		  // append the svg object to the body of the page
 		  var svg = d3.select(container).select("#transcript-diagram")
 		  .append("svg")
 		    .attr("width", width)
-		    .attr("height", height + margin.top + margin.bottom + (gene.transcripts.length))
+		    .attr("height", height)
 		  .append("g")
 		    .attr("transform",
 		          "translate(" + margin.left + "," + margin.top + ")");
@@ -516,6 +575,64 @@ export default {
 		      });
 		      */
 
+		  if (options && options.showBoundingBox) {  
+		    self.xTranscriptDiagram = x;	
+			  svg.selectAll("rect.bounding-box").remove();
+			  svg
+				 .append("rect")
+				 .attr("class", "bounding-box")
+				 .attr("x", 0)
+				 .attr("y", 0)
+				 .attr("width", 0)
+				 .attr("height", 0)
+		  }
+
+		},
+
+		drawBrushableAxis: function(container, regionStart, regionEnd) {
+			let self = this;
+
+		  // dimensions
+		  var margin = {top: 40, right: 170, bottom: 5, left: 0};
+		  var width = self.$el.offsetWidth - 20,
+		      height = 60;
+
+		  var innerWidth = width - margin.left - margin.right;
+		  var innerHeight = height - margin.top - margin.bottom;
+
+		  // scales
+		  self.xBrushable = d3.scaleLinear()
+		            .domain([regionStart, regionEnd])
+		            .range([margin.left, innerWidth+margin.left]);
+		  
+		  var tickFormatter = function(d) {
+				if ((d / 1000000) >= 1)
+		      d = d / 1000000 + "M";
+		    else if ((d / 1000) >= 1)
+		      d = d / 1000 + "K";
+		    return d;
+		  }
+
+		  // axis
+		  var xAxis = d3.axisTop(self.xBrushable)
+		                .tickFormat(tickFormatter);		                   
+
+		  // append the svg object to the body of the page
+		  var svg = d3.select(container).select("#brushable-axis")
+		  .append("svg")
+		    .attr("width", innerWidth)
+		    .attr("height", height)
+		  .append("g")
+		    .attr("transform",
+		          "translate(" + margin.left + "," + margin.top + ")")
+		  .call(xAxis);
+
+		  svg
+      .call( self.brush = d3.brushX()                  
+        .extent( [ [0,-40], [width,height] ] )
+        .on("start brush end", self.onBrush)    
+      )      
+
 		},
 		
 		drawArcDiagram: function(container, edges, regionStart, regionEnd, options) {
@@ -525,9 +642,9 @@ export default {
 		  })
 
 		  // dimensions
-		  var margin = {top: 0, right: 170, bottom: 0, left: 0};
+		  var margin = {top: 5, right: 170, bottom: 5, left: 0};
 		  var width = self.$el.offsetWidth - 20,
-		      height = 200;
+		      height = 150;
 
 		  var innerWidth = width - margin.left - margin.right;
 		  var innerHeight = height - margin.top - margin.bottom;
@@ -537,7 +654,7 @@ export default {
 		  // scales
 		  var x = d3.scaleLinear()
 		            .domain([regionStart, regionEnd])
-		            .range([margin.left, innerWidth]);
+		            .range([margin.left, innerWidth+margin.left]);
 		  if (self.xArcDiagram == null) { 
 		    // need this class variable so we can invert scale from screen coord to genome coords
 		    self.xArcDiagram = x;   
@@ -549,7 +666,10 @@ export default {
 
 		  var scaleArcWidth = d3.scaleLinear()
 		                    .domain([self.minUniquelyMappedReads, maxScore])
-		                    .range([1, 10])
+		                    .range([2, 12])
+
+
+		           
 
 		  // append the svg object to the body of the page
 		  var svg = d3.select(container).select("#arc-diagram")
@@ -558,18 +678,23 @@ export default {
 		    .attr("height", height + margin.top + margin.bottom)
 		  .append("g")
 		    .attr("transform",
-		          "translate(" + margin.left + "," + margin.top + ")");
+		          "translate(" + margin.left + "," + margin.top + ")")
+
 
 
 		  if (options && options.createBrush) {
 		    svg
 		      .call( self.brush = d3.brushX()                  
-		        .extent( [ [0,10], [width,innerHeight] ] )
+		        .extent( [ [0,10], [width,10] ] )
 		        .on("start end", self.onBrush)    
 		      )       
 		  }
 
 		  var arcColor = null;
+		  let motifColors = ["#4e79a7","#f28e2c","#bcbd22","#76b7b2","#59a14f","#edc949","#af7aa1","#ff9da7","#9c755f","#bab0ab"]
+		  let strandColors = ["#1b9e77","#d95f02","#666666"]
+		  let exonSpanColors = ["#4e79a7","#f28e2c"]
+
 		  if (self.colorBy == 'motif') {
 			  let motifMap = {};
 			  edges.forEach(function(edge) {
@@ -579,39 +704,84 @@ export default {
 	                   .domain(Object.keys(motifMap))
 	                   .range(d3.schemeTableau10);
 		  } else if (self.colorBy == 'strand') {
-	       arcColor = d3.scaleOrdinal()
-	                   .domain(Object.keys(['+', '-']))
+				let strandMap = {};
+					edges.forEach(function(edge) {
+					strandMap[edge.strand] = edge.strand
+				})
+	      arcColor = d3.scaleOrdinal()
+	                   .domain(['+', '-', 'undefined'])
 	                   .range(d3.schemeTableau10);
-		  } else if (self.colorBy == 'numUniqueReads') {
-		  	let minReads = d3.min(edges, function(d) {
-		  		return d.numUniqueReads;
-		  	})
-		  	let maxReads = d3.max(edges, function(d) {
-		  		return d.numUniqueReads;
-		  	})
-		  	arcColor = d3.scaleSequential()
-		  	             .domain([maxReads, minReads])
-                     .interpolator(d3.interpolateCividis);
-		  }
+		  } else if (self.colorBy == 'exon span') {
+			  arcColor = d3.scaleOrdinal()
+	                   .domain([true, false])
+	                   .range(d3.schemeTableau10);
 
-		  let arc = function(d) {
+		  } 
+
+		  let arc_old = function(d) {
 		    let start = x(d.fromPos);  // X position of start node on the X axis
 		    let end  = x(d.toPos);   // X position of end node
-		    let distance = end - start
+		    let distance = Math.round(end - start)
+		    
 		    let inflectionRatio = 2;
-		    let inflectionPoint = distance/inflectionRatio;
+		    let inflectionPoint = Math.round(distance/inflectionRatio);
 		    let inflectionPoint2 = inflectionPoint*inflectionRatio;
-		    if (inflectionPoint > (height/2)-10) {
-		      inflectionPoint = height;
-		      inflectionPoint2 = inflectionPoint/3;
+		    if (inflectionPoint2 > innerHeight-20) {
+		    	inflectionPoint = innerHeight-20;
+		      inflectionPoint2 = Math.round(inflectionPoint/2.5);
 		    } 
-		    return ['M', start, height-self.CDS_HEIGHT, // the arc starts at the coord x=start
+
+		    d.arcYTop = innerHeight - Math.max(inflectionPoint, inflectionPoint2)
+		    d.arcXCenter = start + (distance/2)
+
+
+		    return ['M', start, innerHeight, // the arc starts at the coord x=start
 		      'A',                   // build an elliptical arc
 		      inflectionPoint, ',',  // Next 2 lines are the coordinates of the inflexion point. Height of this point is proportional with start - end distance
 		      inflectionPoint2, 0, 0, ',',
-		      start < end ? 1 : 0, end, ',', height-self.CDS_HEIGHT] // We always want the arc on top. So if end is before start, putting 0 here turn the arc upside down.
+		      start < end ? 1 : 0, end, ',', innerHeight] // We always want the arc on top. So if end is before start, putting 0 here turn the arc upside down.
 		      .join(' ');
 		  }
+
+			let arc = function(d) {
+		    let start = x(d.fromPos);  // X position of start node on the X axis
+		    let end  = x(d.toPos);   // X position of end node
+		    let distance = Math.round(end - start)
+
+		    let rx = null;
+		    let ry = null;
+		    let maxHeight = innerHeight - 10;
+		    
+		    if (distance/2 <= self.MIN_ARC_HEIGHT) {
+		    	rx = distance/2;
+		    	ry = self.MIN_ARC_HEIGHT;
+
+		    } else  {
+		    	if (distance/2 <= maxHeight) {
+		    		rx = distance/2;
+		    		ry = distance/2;
+	    		} else {
+	    			rx = distance/2;
+	    			ry = maxHeight;
+	    		}
+		    }
+
+				d.arcYTop = innerHeight - Math.max(rx, ry)
+		    d.arcXCenter = start + (distance/2)
+
+		    return ['M', start, innerHeight, // the arc starts at the coord x=start
+		      'A',                   // build an elliptical arc
+		      rx, ',',               // rx
+		      ry,                    // ry 
+		      0,                     // rotation 
+		      0,                     // large arc
+		      ',',
+		      start < end ? 1 : 0,   // sweep 
+		      end, ',',              // end x
+		      innerHeight]           // end y
+		      .join(' ');
+		  }
+
 
 
 		  var edges =  svg.insert("g", "*")
@@ -619,23 +789,51 @@ export default {
 		  .data(edges)
 		  .join("path")
 		    .attr("d", arc)
-		    .attr("class", "junction")
+		    .attr("class", function(d) {
+		    	return "junction " + (d.exonSpanned ? "exon-spanned" : "");
+		    })
 		    .attr("stroke-width", function(d) {
-		      return scaleArcWidth(d.score);
+		      //return scaleArcWidth(d.score);
+		      return 2;
 		    })
 		    .attr("stroke", function(d) {
-		    	return arcColor(d[self.colorBy]);
+		    	if (self.colorBy == '') {
+		    		return "#9f9f9f";
+
+		    	} else {
+			    	let colorField = null;
+			    	if (self.colorBy == 'exon span') {
+			    		colorField = 'exonSpanned'
+			    	} else {
+			    		colorField = self.colorBy;
+			    	}
+			    	return arcColor(d[colorField]);		    		
+		    	}
 		    })
+		    
 		  .on("mouseover", function(event,d) {
 		    self.tooltip.transition()
 		     .duration(200)
 		     .style("opacity", .9);
+
+		     let arcXCenter = d.arcXCenter;
+		     let arcYTop    = d.arcYTop;
 
 		     let startExon = self.locateExon(d.fromPos);
 		     let endExon = self.locateExon(d.toPos);
 
 		     d3.selectAll("#arc-diagram path.junction").classed("selected", false);
 		     d3.select(this).classed("selected", true)
+
+		     svg.select(".arc-pointer")
+		        .attr("transform", function(d) {
+		        	return "translate(" + (arcXCenter - self.arcPointerWidth/2) 
+		        	+ "," 
+		        	+ (arcYTop - self.arcPointerHeight) + ")"
+		         })
+			      .transition()
+			      .duration(200)
+			      .style("opacity", .9); 
 
 		     d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)
 
@@ -646,17 +844,22 @@ export default {
 		       d3.selectAll('#transcript-diagram .transcript.selected .exon-' + endExon.number).classed("exon-highlight", true);
 		     }
 
+		     let exonLine = ""
 		     if (startExon && endExon) {
-		      self.tooltip.html('Exon ' + startExon.number  + " to " + endExon.number  + "<br/>" + d.score + " uniquely mapped reads")
+		     	exonLine = 'Exon ' + startExon.number  + " to " + endExon.number;		     
 		     } else if (startExon ) {
-		      self.tooltip.html('Exon ' + startExon.number  + " to " + '?'  + "<br/>" + d.score + " uniquely mapped reads")
+		      exonLine = 'Exon ' + startExon.number  + " to Pos " + d.toPos;
 		     } else if (endExon) {
-		      self.tooltip.html('Exon ' + '?'  + " to " + endExon.number  + "<br/>" + d.score + " uniquely mapped reads")
+		      exonLine = 'Pos ' + d.fromPos  + " to " + endExon.number;
 		     } else {
-		      self.tooltip.html("Pos " + d.fromPos + " to " + d.toPos + "<br/>" + d.score + " uniquely mapped reads")
+		      exonLine = "Pos " + d.fromPos + " to " + d.toPos;
 		     }
+		     self.tooltip.html(exonLine  
+		      	+ "<br/>" + d.score + " uniquely mapped reads"
+		      	+ "<br/>" + 'motif ' + d.motif 
+		      	+ "<br/>" + 'strand ' + d.strand)
 		     let x = (event.pageX - 100) < 0 ? 0 : (event.pageX - 100);
-		     let y = (event.pageY -  75)  < 0 ? 0 : (event.pageY - 75);
+		     let y = (event.pageY - 90)  < 0 ? 0 : (event.pageY - 90);
 		     self.tooltip.style("left", x + "px")
 		            .style("top",  y + "px");
 
@@ -664,16 +867,45 @@ export default {
 		 .on("mouseout", function(d) {
 		    d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)    
 
+		     d3.selectAll("#arc-diagram path.junction.selected").classed("selected", false);
+
 		    self.tooltip.transition()
 		     .duration(500)
 		     .style("opacity", 0);
 
-
+		    svg.select(".arc-pointer")
+			      .transition()
+			      .duration(500)
+			      .style("opacity", 0); 
 		  });
 
-		}
+		 svg.selectAll("rect.bounding-box").remove();
+		 svg
+		 .append("rect")
+		 .attr("class", "bounding-box")
+		 .attr("x", 0)
+		 .attr("y", 0)
+		 .attr("width", 0)
+		 .attr("height", 0)
 
+     svg.selectAll(".arc-pointer").remove();
+		 svg
+		 .append("polygon")
+		 .attr("class", "arc-pointer")
+		 .attr("points", function(d) {
+		 		return self.arcPointerWidth + ",0 "
+		 		       + (self.arcPointerWidth/2) + "," + self.arcPointerHeight 
+		 		       + " 0,0"
+		 	})
+		 .style("opacity", "0")
+
+
+		 
+		}
   },
+
+
+
   watch: {
   	selectedGene: function() {
   		this.onDataChanged();
@@ -698,13 +930,6 @@ export default {
         this.geneModel.geneSource = this.theGeneSource;
         this.$emit("reinit")
       }
-    },
-    zoomSwitch: function() {
-    	if (this.zoomSwitch) {
-    		this.addBrushing(); 
-    	} else {
-    		this.clearZoom();
-    	}
     }
   }
 }
@@ -725,9 +950,25 @@ export default {
   padding-bottom: 5px;
   height: 40px;
 }
-#arc-diagram, #transcript-diagram {
-	padding: 0px 10px 0px 10px;
+
+#brushable-axis  text{ 
+	font-size: 13px; 
+	font-family: 'Poppins';
 }
+#arc-diagram, #transcript-diagram {
+	padding: 0px;
+}
+
+rect.bounding-box {
+	fill: #75abffab;
+	fill-opacity: 0.3; 
+	stroke: #fff;
+	visibility: hidden;
+}
+rect.bounding-box.active {
+	visibility: visible;
+}
+
 
 svg rect.UTR, svg rect.CDS, svg rect.exon {
   fill:   #bdc0c5;
@@ -740,8 +981,10 @@ svg path.junction {
   fill: transparent;
 }
 
+
+
 svg path.junction.selected {
-  stroke: red;
+	stroke: red;
 }
 
 svg line.gene {
@@ -751,12 +994,14 @@ svg line.gene {
 
 svg text.transcript-label {
   font-size: 12px;
+  pointer-events: none;
+  cursor: pointer;
 }
 div.tooltip {
   position: absolute;
   text-align: center;
-  width: 200px;
-  height: 50px;
+  width:  200px;
+  height: 75px;
   padding: 2px;
   font-size: 12px;
   background: lightsteelblue;
@@ -766,7 +1011,9 @@ div.tooltip {
   padding: 5px;
 }
 
-#transcript-diagram {
+#transcript-menu-panel #transcript-diagram {
+	overflow-y: scroll;
+	max-height: 150px;
 }
 
 #transcript-diagram .exon-highlight {
@@ -809,12 +1056,14 @@ div.tooltip {
     cursor: pointer;
 }
 
-.v-expansion-panel-title {
-	min-height: 30px !important;
-	padding: 5px !important;
-	font-size: 14px !important;
+.arc-pointer {
+	fill: red;
+	stroke: black; 
+	stroke-width: 1;
 }
-.v-expansion-panel-text__wrapper {
-	padding: 10px 0 8px 0 !important;
+
+
+#list-for-transcript-menu .v-list-item {
+	padding: 0;
 }
 </style>

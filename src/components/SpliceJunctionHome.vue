@@ -46,6 +46,7 @@
       <v-snackbar
         v-model="snackbar"
         location="center"
+        :timeout="snackbarTimeout"
         transition="fade-transition">
         {{ snackbarText }}
 
@@ -106,7 +107,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
 
       snackbar: false,
       snackbarText: "",
-      snackbarTimeout: 5000,
+      snackbarTimeout: 3000,
 
       tab: 'tab-1'
 
