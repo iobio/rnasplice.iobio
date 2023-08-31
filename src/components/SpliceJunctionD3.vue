@@ -12,11 +12,6 @@
           <h2 class="mr-16">
             Splice Junctions
           </h2>
-          <div class="ml-4 mr-5 d-flex align-center">
-	          <div class="instruction-box" v-if="regionIsSelected">
-	          	Click outside of bounding box to zoom out
-	          </div>
-        	</div>
 
           <div style="width:195px" class="mr-5">
             <v-text-field 
@@ -44,7 +39,16 @@
             ></v-select>
           </div>
 
-          <v-spacer/>
+          
+          <div class="ml-6 mr-5 d-flex align-center">
+	          <div class="instruction-box" v-if="!regionIsSelected">
+	          	Click and drag to zoom into a region
+	          </div>
+	          <div class="instruction-box" v-if="regionIsSelected">
+	          	Click outside of bounding box to zoom out
+	          </div>
+        	</div>
+        	<v-spacer/>
 
       </div>
 
@@ -133,7 +137,7 @@ export default {
 		showLoading: false,
 
     minUniquelyMappedReads: 1,
-    colorBy: '',
+    colorBy: 'exon span',
     theGeneSource: self.geneModel ? self.geneModel.geneSource : 'gencode',
 
     arcPointerWidth: 16,
@@ -949,6 +953,8 @@ export default {
   padding-top: 5px;
   padding-bottom: 5px;
   height: 40px;
+  width: 320px;
+  justify-content: center;
 }
 
 #brushable-axis  text{ 

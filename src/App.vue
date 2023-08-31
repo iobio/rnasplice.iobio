@@ -106,7 +106,18 @@ export default {
   },
   methods: {
     onGeneModelInitialized: function(geneModel) {
+      let self = this;
       this.geneModel = geneModel;
+
+      // TODO - Remove. This is temporary code until we have worked out 
+      // how the app is launched
+      setTimeout(function() {
+        if (self.$refs && self.$refs.ref_Navigation) {
+          self.$refs.ref_Navigation.onShowLoadDataDialog()
+        }
+
+      }, 1000)
+
     },
     onGeneClicked: function(geneName) {
       this.onGeneSearched({'gene_name': geneName})
@@ -126,7 +137,13 @@ export default {
       }
     },
     onLoadData: function(loadInfo) {
+      let self = this;
       this.loadInfo = loadInfo;
+
+      // TODO: Remove. Temporary demo code
+      setTimeout(function() {
+        self.onGeneClicked('NEB')
+      }, 1000)
     },
     onReinit: function() {
       let self = this;

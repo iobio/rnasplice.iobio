@@ -42,11 +42,11 @@
           </div>
           
         </v-card-text>
-        <v-card-actions class="mt-4">
-          <v-btn class="mt-1" density="compact" size="medium" color="primary" variant="tonal" @click="onTryDemoBed">Load demo data</v-btn>
+        <v-card-actions  class="mt-4">
+          <v-btn class="mt-1" v-if="false" density="compact" size="medium" color="primary" variant="tonal" @click="onTryDemoBed">Load demo data</v-btn>
 
           <v-spacer/>
-          <v-btn  elevation="2" density="compact" size="large"  @click="onLoad">Load</v-btn>
+          <v-btn elevation="2" variant="flat" density="compact" color="blue-darken-4" size="large"  @click="onLoad">Load</v-btn>
           <v-btn  elevation="2" density="compact" size="large" @click="onCancel">Cancel</v-btn>
         </v-card-actions>
       </v-card>
@@ -81,6 +81,12 @@ export default {
         }
       }
     },
+    mounted: function() {
+      let self = this;
+      // TODO - Remove. Temporary code to default to demo data on load.
+      this.onTryDemoBed();
+      
+    },
     methods: {
       onLoad: function() {
         let loadInfo = {'buildName': this.buildName, 
@@ -100,6 +106,7 @@ export default {
     watch: {
       showIt: function() {
         this.show = this.showIt;
+
       },
       show: function() {
         if (!this.show) {

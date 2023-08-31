@@ -12,7 +12,7 @@
           align-tabs="left" class="mb-2"
         >
           <v-tab  color="#376daf" style="font-weight: 600" value="tab-1">IGV</v-tab>
-          <v-tab  color="#376daf" style="font-weight: 600"  value="tab-2">Custom</v-tab>
+          <v-tab  color="#376daf" style="font-weight: 600"  value="tab-2">New D3 Visualization</v-tab>
         </v-tabs>
         <v-window v-model="tab">
           <v-window-item value="tab-1">
@@ -149,6 +149,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
 
         this.endpoint = new Endpoint(self.globalApp, self.genomeBuildHelper)
 
+       
 
       },
       loadGene: function(geneName) {
@@ -219,10 +220,17 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       },
       loadInfo: function() {
         let self = this;
+
+        // TODO Remove. This is temporary code while we are flushing 
+        // out the data flow, etc.
+        ['NEB', 'MTHFR', 'TTN'].forEach(function(geneName) {
+          self.loadGene(geneName)
+        })
         if (self.loadInfo != null && self.searchedGene == null) {
           self.snackbarText = "Type in a gene name to display splice junctions."
           self.snackbar = true;
         }
+
       },
       selectedGene: function() {
         let self = this;

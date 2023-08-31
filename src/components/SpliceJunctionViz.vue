@@ -12,7 +12,7 @@
             label="Min Uniquely Mapped Reads" 
             v-model="minUniquelyMappedReads"/>
           </div>
-          <div style="width:155px" class="mr-5">
+          <div style="width:220px" class="mr-5">
             <v-select 
               v-model="colorBy"
               hide-details="auto"

@@ -3,13 +3,13 @@
  
     <div class="d-flex flex-column">
     
-      <div id="gene-name">
-        <h2> Gene {{ selectedGene.gene_name }} </h2>
-      </div>
-
       <div class="d-flex flex-row justify-start align-center">
 
-        <div class="pr-3 flex-grow-0 flex-shrink-0">
+        <div  id="gene-name" style="padding-top:4px">
+          <h2> Gene {{ selectedGene.gene_name }} </h2>
+        </div>
+
+        <div class="pl-6 pr-3 flex-grow-0 flex-shrink-0">
           {{ selectedGene.chr }}
         </div>
 
@@ -30,7 +30,7 @@
         </div>
 
 
-        <v-chip class="pr-3 flex-grow-0 flex-shrink-0" id="minus-strand" 
+        <v-chip   class="ml-2 pr-3 flex-grow-0 flex-shrink-0" id="minus-strand" 
         v-if="selectedGene.strand == '-'">
           reverse strand
         </v-chip>
@@ -95,5 +95,7 @@
         font-size: 14px
         color: $text-color
         fill:  $text-color
+  #minus-strand
+    font-size: 13px
 
 </style>
