@@ -1,13 +1,6 @@
 <template>
-  <v-navigation-drawer 
-      id="genes-panel"
-      width="165"
-      v-model="showGenesPanel"
-      permanent
-      location="left"
-      style="margin-left: 5px;margin-right: 5px;padding: 5px;height: calc(100% - 65px);">
-
-    <div style="padding-top:0px;padding-left:5px" >
+ 
+    <v-card id="genes-panel" style="padding-top:0px;padding-left:5px" >
 
 
       <div class="d-flex flex-row align-center">
@@ -32,8 +25,8 @@
           :key="geneName" style="display: flex"
 
         >
-          <v-btn class="gene-button" @click="onGeneClicked(geneName)" size="medium" variant="flat"
-          style="font-size: 13px; width:110px" density="compact">{{ geneName }}</v-btn>
+          <v-btn class="gene-button" @click="onGeneClicked(geneName)" size="medium" 
+          style="margin-left:0px;padding-left: 5px;padding-right:5px;padding-top: 1px;padding-bottom: 1px;font-size: 13px; width:110px" variant="outlined"  density="compact">{{ geneName }}</v-btn>
           
           <v-btn  id="clear-gene-button" variant="text" @click="onClearGene(geneName)">
             <v-icon icon="mdi-close"></v-icon>
@@ -42,37 +35,35 @@
         </div>
       </div>
 
-    </div>
 
-    <ConfirmDialog
-      :showIt="showConfirmDialog"
-      :message="confirmMessage"
-      :title="confirmTitle"
-      @confirmed="onConfirmed"/>
+    </v-card>
 
-  </v-navigation-drawer>
+   
+  
 </template>
 
 <script>
+import ConfirmDialog      from '../components/ConfirmDialog.vue'
 
-import ConfirmDialog from './ConfirmDialog.vue'
 
 export default {
   name: 'GenesPanel',
   components: {
     ConfirmDialog
-    
   },
   props: {
     geneModel: Object,
-    show: Boolean
+    show: Boolean,
+
+    selectedObject: Object
   },
   data: () => ({
     showGenesPanel: true,
 
     showConfirmDialog: false,
     confirmMessage: "",
-    confirmTitle: ""
+    confirmTitle: "",
+
     
   }),
   methods: {
@@ -116,6 +107,7 @@ export default {
 <style lang="sass">
 @import '../styles/variables.sass'
 #genes-panel
+  margin-bottom: 10px
 
   .gene-button
     justify-content: flex-start
@@ -126,11 +118,6 @@ export default {
     margin-top: 0px
     min-width: 20px
     margin-bottom: 5px
-
-  margin-left: 10px
-  margin-right: 10px
-  margin-top: 5px
-  margin-bottom: 0px
 
   .alert-item
     clear: both

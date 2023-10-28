@@ -35,6 +35,15 @@
           reverse strand
         </v-chip>
 
+        <div style="width:155px" class="mr-5">
+            <v-select 
+              v-model="theGeneSource"
+              hide-details="auto"
+              label="Gene annotations"
+              density="compact"
+              :items="['gencode', 'refseq',]"
+            ></v-select>
+          </div>
     
       </div>
 
@@ -52,9 +61,11 @@
     },
     props: {
       selectedGene: Object,
+      geneModel: Object
     },
     data: () => ({
       regionBuffer: 1000,
+      theGeneSource: 'gencode'
 
     }),
     methods: {
@@ -76,6 +87,12 @@
     },
     watch: {
       alerts: function() {
+      },
+      theGeneSource: function() {
+        if (this.geneModel) {
+          this.geneModel.geneSource = this.theGeneSource;
+        //  this.$emit("reinit")
+        }
       }
     }
   }

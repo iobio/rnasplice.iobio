@@ -4,7 +4,9 @@
   
     <GeneCard  v-if="selectedGene" class="full-width-card"
     :selectedGene="selectedGene"
-     @gene-region-buffer-change="onGeneRegionBufferChange"/>
+    :geneModel="geneModel"
+     @gene-region-buffer-change="onGeneRegionBufferChange"
+     @reinit="$emit('reinit')"/>
 
     <v-card  v-show="selectedGene" class="full-width-card" style="min-height: calc(100vh + 20px);">
         <v-tabs density="compact"
@@ -20,6 +22,7 @@
             <SpliceJunctionViz 
             :loadInfo="loadInfo"
             :selectedGene="selectedGene"
+            :geneSource="geneModel.geneSource"
             :genomeBuildHelper="genomeBuildHelper"
             :geneModel="geneModel"
             @reinit="$emit('reinit')"
@@ -33,10 +36,12 @@
             :selectedGene="selectedGene" 
             :genomeBuildHelper="genomeBuildHelper"
             :geneModel="geneModel"
+            :geneSource="geneModel.geneSource"
             :spliceJunctionsForGene="spliceJunctionsForGene"
             :tab="tab"
             :loadInProgress="loadInProgress"
-            @reinit="$emit('reinit')"/>
+            @reinit="$emit('reinit')"
+            @object-selected="onObjectSelected"/>
 
           </v-window-item>
         </v-window>      
@@ -184,7 +189,19 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       },
       clearAndReload: function(geneNameToLoad) {
         let self = this;
+
+        let geneNames = [];
+        if (self.geneModel.sortedGeneNames) {
+          geneNames = self.geneModel.sortedGeneNames.filter(function(geneName) {
+            return geneNameToLoad == null || geneName != geneNameToLoad;
+          });
+        }
+        
         self.geneModel.clearAllGenes();
+        geneNames.forEach(function(geneName) {
+          self.loadGene(geneName);
+        })
+
         if (geneNameToLoad) {
           self.loadGene(geneNameToLoad);
         }
@@ -209,6 +226,9 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
           self.$emit("add-alert", 'error', error.message, self.selectedGene.gene_name, error.details ? [error.details] : null)
         })
 
+      },
+      onObjectSelected: function(selectedObject) {
+        this.$emit('object-selected', selectedObject)
       }
     },
     watch: {

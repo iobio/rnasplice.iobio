@@ -1,7 +1,7 @@
 <template>
 
     <div class="d-flex flex-column" v-if="loadInfo && coord">
-      <div id="igv-heading" class="d-flex flex-row justify-space-between align-center mb-1" >
+      <div id="panel-heading" class="d-flex flex-row justify-space-between align-center mb-1" >
           <h2 class="mr-16">
             Splice Junctions
           </h2>
@@ -21,17 +21,6 @@
               :items="['numUniqueReads', 'numReads', 'isAnnotatedJunction', 'strand', 'motif']"
             ></v-select>
           </div>
-          <div style="width:155px" class="mr-5">
-            <v-select 
-              v-model="theGeneSource"
-              hide-details="auto"
-              label="Gene annotations"
-              density="compact"
-              :items="['gencode', 'refseq',]"
-            ></v-select>
-          </div>
-
-          <v-spacer/>
 
       </div>
 
@@ -64,7 +53,8 @@ import RNASeqIGV   from './RNASeqIGV.vue'
     	selectedGene: Object,
       genomeBuildHelper: Object,
       geneModel: Object,
-      loadInfo: Object
+      loadInfo: Object,
+      geneSource: String
     },
     data() {
       let self = this;
@@ -77,7 +67,6 @@ import RNASeqIGV   from './RNASeqIGV.vue'
 
         minUniquelyMappedReads: 1,
         colorBy: 'motif',
-        theGeneSource: self.geneModel ? self.geneModel.geneSource : 'gencode',
 
       	tracksSpliceJunctions:  [
           {
@@ -208,9 +197,8 @@ import RNASeqIGV   from './RNASeqIGV.vue'
         this.tracksSpliceJunctions[0].tracks[1].colorBy = this.colorBy;
         this.onSettingsChange();
       },
-      theGeneSource: function() {
+      geneSource: function() {
         if (this.geneModel) {
-          this.geneModel.geneSource = this.theGeneSource;
           this.setGeneAnnotationsTrack();
           this.$refs.ref_RNASeqIGV.reinit();
         }
@@ -275,7 +263,7 @@ import RNASeqIGV   from './RNASeqIGV.vue'
     font-weight: 600
     color: #494949
 
-  #igv-heading
+  #panel-heading
     .v-select__selection-text
       font-size: 13px
     v-field__field

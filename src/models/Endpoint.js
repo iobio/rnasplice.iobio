@@ -6,7 +6,8 @@ export default class EndpointCmd {
     this.globalApp         = globalApp;
     this.genomeBuildHelper = genomeBuildHelper;
     //this.api = new Client(this.globalApp.IOBIO_SERVICES);
-    this.api = new Client('https://mosaic.chpc.utah.edu/gru-dev-9003')
+    //this.api = new Client('https://mosaic.chpc.utah.edu/gru-dev-9002')
+    this.api = new Client('https://mosaic.chpc.utah.edu/gru/api/v1')
   }
 
 

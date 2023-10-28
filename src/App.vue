@@ -8,16 +8,36 @@
       :alertCounts="appAlertCounts"
       @gene-searched="onGeneSearched"
       @show-alert-panel="onShowAlertPanel"
-      @show-genes-panel="onShowGenesPanel"
+      @show-genes-panel="onShowLeftNavDrawer"
       @load-data="onLoadData"
       />
 
-      <GenesPanel :show="showGenesPanel"
-      :geneModel="geneModel"
-      @close-genes-panel="onCloseGenesPanel"
-      @clear-gene="onClearGene"
-      @clear-all-genes="onClearAllGenes"
-      @gene-clicked="onGeneClicked"/>
+       <v-navigation-drawer 
+        id="left-nav-drawer"
+        width="400"
+        v-model="showLeftNavDrawer"
+        permanent
+        location="left">
+          
+            <GenesPanel 
+              class="d-flex flex-column" 
+              style="flex-grow: 1;height: calc(100% - 410px);"
+              :show="showLeftNavDrawer"
+              :geneModel="geneModel"
+              :selectedObject="selectedObject"
+              @close-genes-panel="onCloseLeftNavDrawer"
+              @clear-gene="onClearGene"
+              @clear-all-genes="onClearAllGenes"
+              @gene-clicked="onGeneClicked"
+            />
+
+            <ObjectDetails 
+              class="d-flex flex-column" 
+              style="flex-grow: 0;height: 400px;overflow-y:scroll"
+              :selectedObject="selectedObject"
+            />
+
+      </v-navigation-drawer>
 
       <AlertPanel :show="showAlertPanel"
       :alerts="appAlerts"
@@ -41,12 +61,14 @@
           @gene-selected="onGeneSelected"
           @reinit="onReinit"
           @gene-model-initialized="onGeneModelInitialized"
-          @splice-junctions-loaded="onSpliceJunctionsLoaded"/>
+          @splice-junctions-loaded="onSpliceJunctionsLoaded"
+          @object-selected="onObjectSelected"/>
 
 
       </v-main>
 
     </v-layout>
+
 
 </template>
 
@@ -55,6 +77,8 @@ import SpliceJunctionHome from './components/SpliceJunctionHome.vue';
 import Navigation         from './components/Navigation.vue';
 import AlertPanel         from './components/AlertPanel.vue';
 import GenesPanel         from './components/GenesPanel.vue';
+import ObjectDetails      from './components/ObjectDetails.vue';
+
 
 import genesData          from '@/data/genes.json'
 
@@ -69,7 +93,8 @@ export default {
     SpliceJunctionHome,
     Navigation,
     AlertPanel,
-    GenesPanel
+    GenesPanel,
+    ObjectDetails
   },
 
   data: () => ({
@@ -89,7 +114,10 @@ export default {
     geneToAppAlerts: {},
 
     showAlertPanel: false,
-    showGenesPanel: false
+    showLeftNavDrawer: false,
+
+
+    selectedObject: null
 
     
   }),
@@ -133,7 +161,7 @@ export default {
       this.addAlert("info", "gene <pre>" + gene.gene_name + "</pre> loaded", gene.gene_name)
 
       if (this.geneModel.geneNames.length > 1) {
-        this.onShowGenesPanel();
+        this.onShowLeftNavDrawer();
       }
     },
     onLoadData: function(loadInfo) {
@@ -273,11 +301,11 @@ export default {
     onCloseAlertPanel: function() {
       this.showAlertPanel = false;
     },
-    onShowGenesPanel: function() {
-      this.showGenesPanel = true;
+    onShowLeftNavDrawer: function() {
+      this.showLeftNavDrawer = true;
     },
-    onCloseGenesPanel: function() {
-      this.showGenesPanel = false;
+    onCloseLeftNavDrawer: function() {
+      this.showLeftNavDrawer = false;
     },
     onClearAllGenes: function() {
       this.searchedGene = null;
@@ -296,6 +324,10 @@ export default {
 
       }
 
+    },
+    onObjectSelected: function(selectedObject) {
+      this.selectedObject = selectedObject;
+
     }
   }
 
@@ -309,6 +341,36 @@ export default {
 
 .v-app-bar
   background-color: $nav-color !important
+
+#left-nav-drawer
+  background-color: lightgray
+  margin-left: 5px
+  margin-right: 5px
+  padding: 5px
+  height: calc(100vh - 65px)
+
+h1, .h1 
+  font-size: 20px !important
+  margin-top: 0px !important
+  margin-bottom: 5px !important
+  color: $link-color !important
+  font-weight: 500 !important
+
+h2, .h2 
+  font-size: 18px !important
+  margin-top: 0px !important
+  margin-bottom: 5px !important
+  color: $link-color !important
+  font-weight: 500 !important
+
+h3, .h3
+  font-size: 13px !important
+  margin-top: 0px !important
+  margin-bottom: 5px !important
+  color: $link-color !important
+  font-weight: 500 !important
+
+
 </style>
 
 
@@ -356,18 +418,10 @@ export default {
   padding: 5px ;
   border-radius: 5px;
 }
-h1, .h1 {
-    font-size: 20px !important;
-    margin-top: 0px !important;
-    margin-bottom: 5px !important;
-}
-h2, .h2 {
-    font-size: 18px !important;
-    margin-top: 0px !important;
-    margin-bottom: 5px !important;
-}
+
 .v-card {
   padding: 10px !important;
+  font-size: 13px;
 }
 .v-card.full-width-card {
   margin-left:   5px !important;
