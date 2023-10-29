@@ -35,6 +35,7 @@
               class="d-flex flex-column" 
               style="flex-grow: 0;height: 400px;overflow-y:scroll"
               :selectedObject="selectedObject"
+              :selectedGene="selectedGene"
             />
 
       </v-navigation-drawer>

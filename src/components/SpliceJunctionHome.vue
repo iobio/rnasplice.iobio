@@ -14,7 +14,7 @@
           align-tabs="left" class="mb-2"
         >
           <v-tab  color="#376daf" style="font-weight: 600" value="tab-1">IGV</v-tab>
-          <v-tab  color="#376daf" style="font-weight: 600"  value="tab-2">New D3 Visualization</v-tab>
+          <v-tab  color="#376daf" style="font-weight: 600"  value="tab-2">Custom Data Viz</v-tab>
         </v-tabs>
         <v-window v-model="tab">
           <v-window-item value="tab-1">

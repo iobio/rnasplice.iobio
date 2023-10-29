@@ -726,6 +726,140 @@ class GeneModel {
     return canonical;
   }
 
+  addUnionedTranscript(geneObject) {
+    let self = this;
+    let featureMap = {}
+
+    let existing = geneObject.transcripts.filter(function(transcript) {
+      return transcript.UNIONED;
+    })
+    if (existing.length > 0) {
+      return existing[0];
+    }
+
+    // First map all of the coding regions in the MANE transcript
+    let canonicalTranscript = $.extend({'UNIONED': true}, self.getCanonicalTranscript(geneObject))
+    let cr = self.getCodingRegions(canonicalTranscript)
+    let codingRegions = cr.map(function(feature) {
+      return $.extend({'key': feature.start + "-" + feature.end}, feature);
+    })
+    codingRegions.forEach(function(feature) {
+      featureMap[feature.key] = feature;
+    })
+
+    // Now hash any additional coding regions not found in the MANE transcript
+    geneObject.transcripts.forEach(function(transcript) {
+      if (!transcript.DEFAULT) {
+        let exons = self._getSortedExonsForTranscript(transcript)
+        let codingRegions = exons.map(function(feature) {
+          if (feature != 'UTR') {
+            return $.extend({'key': feature.start + "-" + feature.end}, feature);
+          }
+        })   
+        codingRegions.forEach(function(feature) {
+          if (featureMap[feature.key] ==  null) {
+            feature.ADDITIONAL = true;
+            featureMap[feature.key] = feature;          
+          }
+        })     
+      }
+    })
+
+    let start = 999999;
+    let end = 0;
+    let unionedTranscript = {'transcript_id': geneObject.gene_name + ' Unioned', 
+                             'chr':  geneObject.chr,
+                             'start': null,
+                             'end': null,
+                             'strand': geneObject.strand,
+                             'feature_type': 'transcript',
+                             'transcript_type': 'UNIONED',
+                             'source': 'iobio',
+                             'features': []
+                           }
+    Object.keys(featureMap).forEach(function(key) {
+      let feature = featureMap[key];
+      unionedTranscript.features.push(feature);
+      if (+feature.start < start) {
+        start = +feature.start;
+      }
+      if (+feature.end > end) {
+        end = +feature.end;
+      }
+    })
+    unionedTranscript.start = start;
+    unionedTranscript.end   = end;
+
+    geneObject.transcripts.push(unionedTranscript);
+    return unionedTranscript;
+  }
+
+  createSpliceJunctions(bedRecords, geneObject, transcript) {
+    let self = this;
+    let spliceJunctions = bedRecords.map(function(bedRow) {
+      let startPos =  geneObject.strand == "+" ? +bedRow.start : +bedRow.end;
+      let endPos   =  geneObject.strand == "+" ? +bedRow.end   : +bedRow.start;
+
+      let startExon = self.locateExon(transcript, +startPos); 
+      let endExon   = self.locateExon(transcript, +endPos);
+
+      let exonSpan = startExon && endExon ? Math.abs(+endExon.number - +startExon.number) : '';
+      
+      let isCanonicalSplice = true;
+      if (startExon == null || endExon == null) {
+        isCanonicalSplice = false;
+      } else if (startExon && endExon) {
+        if (geneObject.strand == '-') {
+          if (Math.abs(startExon.start - startPos) > 1) {
+            isCanonicalSplice = false;
+          } else if (Math.abs(endExon.end - endPos) > 1) {
+            isCanonicalSplice = false;
+          }             
+        } else {
+          if (Math.abs(startExon.end - startPos) > 1) {
+            isCanonicalSplice = false;
+          } else if (Math.abs(endExon.start - endPos) > 1) {
+            isCanonicalSplice = false;
+          }             
+
+        }
+      }
+      let isAlternateSplice = false;
+      if (isCanonicalSplice && exonSpan > 1) {
+        isAlternateSplice = true;
+      }
+
+      return {from:          startExon ? startExon.number : null, 
+              to:            endExon ? endExon.number : null, 
+              exonSpanned:   exonSpan > 1 ? true : false,
+              fromPos:       startPos, 
+              toPos:         endPos, 
+              score:         +bedRow.score,
+              motif:         bedRow.annots.motif,
+              strand:         bedRow.strand,
+              numUniqueReads: +bedRow.score,
+              'isCanonicalSplice':  isCanonicalSplice,
+              'isAlternateSplice':  isAlternateSplice}
+    })
+    return spliceJunctions;
+
+  }
+
+
+  locateExon(transcript, position) {
+    var matched = transcript.exons.filter(function(exon) {
+      let exonStart = +exon.start - 1;
+      let exonEnd   = +exon.end;
+      return exonStart <= +position && exonEnd >= +position;
+    })
+    if (matched.length > 0) {
+      return matched[0];
+    } else {
+      return null;
+    }
+  }
+
+
 
   getCanonicalTranscriptOld(theGeneObject) {
     let me = this;
@@ -770,7 +904,7 @@ class GeneModel {
       codingRegions = [];
       transcript.features.forEach( function(feature) {
         if ($.inArray(feature.feature_type, ['EXON', 'CDS', 'UTR']) !== -1) {
-          codingRegions.push({ start: feature.start, end: feature.end });
+          codingRegions.push($.extend({}, feature));
         }
       });
       me.transcriptCodingRegions[transcript.transcript_id] = codingRegions;
@@ -1464,6 +1598,7 @@ class GeneModel {
         .then((response) => {
           if (response.length > 0 && response[0].hasOwnProperty('gene_name')) {
             var theGeneObject = response[0];
+            me.addUnionedTranscript(theGeneObject)
             me.geneObjects[theGeneObject.gene_name] = theGeneObject;
             resolve(theGeneObject);
           } else {

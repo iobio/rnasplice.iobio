@@ -30,12 +30,12 @@
         </div>
 
 
-        <v-chip   class="ml-2 pr-3 flex-grow-0 flex-shrink-0" id="minus-strand" 
-        v-if="selectedGene.strand == '-'">
+        <v-chip   class="ml-2 mr-5 pr-3 flex-grow-0 flex-shrink-0" id="minus-strand" 
+        v-if="selectedGene.strand == '-'" color="red">
           reverse strand
         </v-chip>
 
-        <div style="width:155px" class="mr-5">
+        <div style="width:155px" class="ml-5">
             <v-select 
               v-model="theGeneSource"
               hide-details="auto"

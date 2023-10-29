@@ -27,6 +27,9 @@
         >
           <v-btn class="gene-button" @click="onGeneClicked(geneName)" size="medium" 
           style="margin-left:0px;padding-left: 5px;padding-right:5px;padding-top: 1px;padding-bottom: 1px;font-size: 13px; width:110px" variant="outlined"  density="compact">{{ geneName }}</v-btn>
+          <div>
+            
+          </div>
           
           <v-btn  id="clear-gene-button" variant="text" @click="onClearGene(geneName)">
             <v-icon icon="mdi-close"></v-icon>

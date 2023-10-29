@@ -252,6 +252,7 @@ export default {
 		    
 		    let exons = transcript.features.filter(function(feature) {
 		      if ( transcript.transcript_type == 'protein_coding'
+		      	  || transcript.transcript_type == 'UNIONED'
 		          || feature.transcript_type == 'mRNA'
 		          || feature.transcript_type == 'transcript'
 		          || feature.transcript_type == 'primary_transcript') {
@@ -291,48 +292,14 @@ export default {
 		  }
 		},
 
-		createEdges: function(spliceJunctions) {
+		createEdges: function(bedRecords) {
 		  let self = this;
-		  let edges = spliceJunctions.filter(function(bedRow) {
+		  let bedRecordsFiltered = bedRecords.filter(function(bedRow) {
 		    return +bedRow.score >= self.minUniquelyMappedReads
-		  })
-		  .map(function(bedRow) {
-		  	let startPos =  self.selectedGene.strand == "+" ? +bedRow.start : +bedRow.end;
-		  	let endPos   =  self.selectedGene.strand == "+" ? +bedRow.end   : +bedRow.start;
+		  });
 
-		  	let startExon = self.locateExon(+startPos); 
-		  	let endExon   = self.locateExon(+endPos);
-
-		  	let exonSpan = startExon && endExon ? Math.abs(+endExon.number - +startExon.number) : '';
-		    
-		    let isCanonicalSplice = true;
-		    if (startExon == null || endExon == null) {
-		    	isCanonicalSplice = false;
-		    } else if (startExon && endExon) {
-		    	if (Math.abs(startExon.start - startPos) > 1) {
-		    		isCanonicalSplice = false;
-		    	} else if (Math.abs(endExon.end - endPos) > 1) {
-		    		isCanonicalSplice = false;
-		    	} 
-		    }
-		    let isAlternateSplice = false;
-		    if (isCanonicalSplice && exonSpan > 1) {
-		    	isAlternateSplice = true;
-		    }
-
-		    return {from:          startExon ? startExon.number : null, 
-		            to:            endExon ? endExon.number : null, 
-		            exonSpanned:   exonSpan > 1 ? true : false,
-		            fromPos:       startPos, 
-		            toPos:         endPos, 
-		            score:         +bedRow.score,
-		            motif:         bedRow.annots.motif,
-		            strand:         bedRow.strand,
-		            numUniqueReads: +bedRow.score,
-		            'isCanonicalSplice':  isCanonicalSplice,
-		            'isAlternateSplice':  isAlternateSplice}
-		  })
-		  return edges;
+		  let spliceJunctions = self.geneModel.createSpliceJunctions(bedRecordsFiltered, self.selectedGene, self.selectedTranscript);
+		  return spliceJunctions;
 		},
 
 		// Function that is triggered when brushing is performed
@@ -620,6 +587,8 @@ export default {
 
 		},
 
+
+
 		onSelectExon: function(exon, options={'click': false}) {
 
 			let self = this;
@@ -674,8 +643,12 @@ export default {
 		  var width = self.$el.offsetWidth - 20,
 		      height = 60;
 
+
+
 		  var innerWidth = width - margin.left - margin.right;
 		  var innerHeight = height - margin.top - margin.bottom;
+
+		  var center = innerWidth / 2;
 
 		  // scales
 		  self.xBrushable = d3.scaleLinear()
@@ -700,9 +673,25 @@ export default {
 		    .attr("width", innerWidth)
 		    .attr("height", height)
 		  .append("g")
+		    .attr("class", "gene")
 		    .attr("transform",
 		          "translate(" + margin.left + "," + margin.top + ")")
 		  .call(xAxis);
+
+		  
+      svg.selectAll(".arrow").remove();
+      svg.selectAll('.arrow').data([
+      	{'gene': self.selectedGene, 'x': center - center/2},
+      	{'gene': self.selectedGene, 'x': center},
+      	{'gene': self.selectedGene, 'x': center + center/2},
+      ])
+          .enter().append('path')
+          .attr('class', 'arrow')
+          .attr('d', function(d) {
+            return self.centerArrow(d, innerHeight, 15)
+          })
+          .style('transform', 'translate(-10px, -8px)')
+
 
 		  svg
       .call( self.brush = d3.brushX()                  
@@ -711,6 +700,16 @@ export default {
       )      
 
 		},
+
+
+	  centerArrow: function(d, height, arrowHeight) {
+	    var arrowHead = parseInt(d.gene.strand + '5');
+	    var pathStr = "M ";
+	    pathStr += d.x + ' ' + (height - arrowHeight)/2;
+	    pathStr += ' L ' + parseInt(d.x+arrowHead) + ' ' + height/2;
+	    pathStr += ' L ' + d.x + ' ' + parseInt(height + arrowHeight)/2;
+	    return pathStr;
+	  },
 		
 		drawArcDiagram: function(container, edges, regionStart, regionEnd, options) {
 			let self = this;
@@ -1140,7 +1139,7 @@ svg text.transcript-label {
   pointer-events: none;
   cursor: pointer;
 }
-div.tooltip {
+div.tooltip1 {
   position: absolute;
   text-align: center;
   width:  200px;
@@ -1152,6 +1151,11 @@ div.tooltip {
   border-radius: 8px;
   pointer-events: none;
   padding: 5px;
+}
+
+.arrow {
+	stroke: #494949;
+	stroke-width: 1.5;
 }
 
 #transcript-menu-panel #transcript-diagram {
