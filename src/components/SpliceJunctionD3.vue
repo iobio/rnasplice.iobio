@@ -19,18 +19,27 @@
 				      label="Show read counts"
 				    ></v-checkbox>
 			    </div>
+
+          <div id="show-noncanonical-only-cb" class="mr-5" >
+						<v-checkbox 
+						  hide-details="true"
+				      v-model="showNonCanonicalOnly"
+				      label="Hide canonical splice junctions"
+				    ></v-checkbox>
+			    </div>
+
           <div id="show-matching-strand-only-cb" class="mr-5" >
 						<v-checkbox 
 						  hide-details="true"
 				      v-model="showSameStrandOnly"
-				      label="Show junctions when strand matches gene"
+				      label="Hide junctions not matching gene strand"
 				    ></v-checkbox>
 			    </div>
           <div style="width:195px" class="mr-5">
             <v-text-field 
             density="compact"
             hide-details="auto" 
-            label="Min Uniquely Mapped Reads" 
+            label="Min read count" 
             v-model="minUniquelyMappedReads"/>
           </div>
           <div style="width:155px" class="mr-5">
@@ -45,27 +54,29 @@
           
 
           
-          <div class="ml-6 mr-5 d-flex align-center">
-	          <div class="instruction-box" v-if="!regionIsSelected">
-	          	Click and drag to zoom into a region
-	          </div>
-	          <div class="instruction-box" v-if="regionIsSelected">
-	          	Click outside of bounding box to zoom out
-	          </div>
-        	</div>
-        	<v-spacer/>
-
+          
       </div>
 
 	<div id="diagrams">
-    <div id="brushable-axis">
-      <svg/>
+	  <div  class="d-flex flex-row align-center">
+	    <div id="brushable-axis">
+	      <svg/>
+	    </div>
+
+    	<div style="max-width:150px">
+        <div class="instruction-box" v-if="!regionIsSelected">
+        	Click and drag to zoom into a region
+        </div>
+        <div class="instruction-box" v-if="regionIsSelected">
+        	Click outside of bounding box to zoom out
+        </div>
+    	</div>      
     </div>
 
-	  <div id="arc-diagram" class="hide-labels">
+	  <div id="arc-diagram" class="hide-labels" style="margin-top:-11px">
 	  </div>
 
-    <div id="selected-transcript-panel">
+    <div id="selected-transcript-panel" style="margin-top:-11px">
 
 		  <div id="transcript-diagram" >
 		    <svg/>
@@ -96,7 +107,7 @@
 	</div>
 
 	<div id="zoomed-diagrams" style="z-index:1000">
-	  <div id="arc-diagram">
+	  <div id="arc-diagram" class="hide-labels">
 	    <svg/>
 	  </div>
 	  <div id="transcript-diagram">
@@ -140,18 +151,20 @@ export default {
 
 		showLabels: false,
 		showSameStrandOnly: false, 
+		junctionsToShow: null,
+		showNonCanonicalOnly: false,
 
 		brush: null,
 
 		showLoading: false,
 
     minUniquelyMappedReads: 1,
-    colorBy: 'exon span',
+    colorBy: 'strand',
 
     arcPointerWidth: 16,
     arcPointerHeight: 16,
 
-    MIN_ARC_HEIGHT: 30,
+    MIN_ARC_HEIGHT: 50,
     ARC_FACTOR:     2
 
 
@@ -212,6 +225,7 @@ export default {
 		    if (transcript.is_mane_select) {
 		      transcript.isSelected = true;
 		      self.selectedTranscript = transcript;
+		      self.$emit('transcript-selected', self.selectedTranscript);
 		    }
 		  })
   	},
@@ -249,8 +263,26 @@ export default {
 
 		determineExons: function(gene) {
 		  gene.transcripts.forEach(function(transcript) {
-		    
+
+		  	// Exons are what we use the number the features. Each exon is assigned 
+		  	// a number sequentially. For forward strand, we number exons from
+		  	// first to last exon; For reverse strand, we number from last to 
+		  	// first exon. 
 		    let exons = transcript.features.filter(function(feature) {
+		    	return feature.feature_type.toLowerCase() == 'exon';
+		    })
+		    .sort(function(a,b) {
+		      if (gene.strand == "+") {
+		        return a.start - b.start;
+		      } else {
+		        return (a.start - b.start) * -1;
+		      }
+		    })
+
+		    // These are the features (UTRs and CDSs for protein coding transcripts, 
+		    // EXONs for non-protein coding transcripts) that we treat as exons, that we 
+		    // will draw on the trascript diagram
+		    let exonicFeatures  = transcript.features.filter(function(feature) {
 		      if ( transcript.transcript_type == 'protein_coding'
 		      	  || transcript.transcript_type == 'UNIONED'
 		          || feature.transcript_type == 'mRNA'
@@ -268,12 +300,44 @@ export default {
 		        return (a.start - b.start) * -1;
 		      }
 		    })
+
+		    // Assign the exon number sequentially
 		    let count = 1;
 		    exons.forEach(function(exon) {
 		      exon.number = count++;
 		      exon.name = 'Exon ' + exon.number + ' (of ' + exons.length + ')'
 		    })
-		    transcript.exons = exons;
+
+		    let getEncapsulatingExon = function(feature) {
+		    	let matched = exons.filter(function(exon) {
+		    		return exon.start <= feature.start && exon.end >= feature.end;
+		    	})
+		    	if (matched.length > 0) {
+		    		return matched[0];
+		    	} else {
+		    		return null;
+		    	}
+		    }
+
+		   	// Number the UTR and CDS according to the encapsulating EXON.
+		    exonicFeatures.forEach(function(feature) {
+		    	if (!feature.hasOwnProperty("number")) {
+			    	let theExon = getEncapsulatingExon(feature, exons)
+			    	if (theExon) {
+			    		feature.number = theExon.number;
+			    	} else {
+			    		console.log("Unable to find encapsulating exon in gene " + 
+			    			gene.gene_name + " for feature " + 
+			    			feature.feature_type + " " + 
+			    			feature.start + "-" + feature.end + 
+			    			". Feature will not numbered.")
+			    	}
+
+		    	}
+		    })
+
+
+		    transcript.exons = exonicFeatures;
 		  })
 		  return gene;
 		},
@@ -322,10 +386,10 @@ export default {
 
 		    if (event.type == 'end') {
 			    let filteredEdges = self.edgesForGene.filter(function(edge) {
-			      if (edge.fromPos < edge.toPos) {
-			        return edge.fromPos >= regionStart || edge.toPos <= regionEnd;
+			      if (edge.donor.pos < edge.acceptor.pos) {
+			        return edge.donor.pos >= regionStart || edge.acceptor.pos <= regionEnd;
 			      } else {
-			        return edge.toPos >= regionStart || edge.fromPos <= regionEnd;
+			        return edge.acceptor.pos >= regionStart || edge.donor.pos <= regionEnd;
 			      }
 			    })
 			    let filteredEdgesClone = [];
@@ -386,8 +450,8 @@ export default {
 		addBrushing: function() {
 			let self = this;
 			let width = +d3.select("#diagrams").select("#brushable-axis svg").attr("width");
-			let height = +d3.select("#diagrams").select("#rushable-axis svg").attr("height");
-			d3.select("#diagrams").select("rushable-axis svg")
+			let height = +d3.select("#diagrams").select("#brushable-axis svg").attr("height");
+			d3.select("#diagrams").select("brushable-axis svg")
 		      .call( self.brush = d3.brushX()                  
 		        .extent( [ [0,10], [width,height] ] )
 		        .on("start end", self.onBrush)    
@@ -397,7 +461,7 @@ export default {
 		drawTranscriptDiagram: function(container, gene, regionStart, regionEnd, options) {
 			let self = this;
 		  // dimensions
-		  var margin = {top: 5, right: 170, bottom: 10, left: 0};
+		  var margin = {top: 5, right: 170, bottom: 30, left: 0};
 		  var width = self.$el.offsetWidth - 20;
 
 		  var transcriptCount = options && options.selectedTranscriptOnly ? 1 : gene.transcripts.length;
@@ -406,7 +470,7 @@ export default {
 
 		  var height = null;
 		  if (transcriptCount == 1) {
-		  	height = self.CDS_HEIGHT + margin.top;
+		  	height = self.CDS_HEIGHT + margin.top + margin.bottom;
 		  } else {
 			  height = (transcriptCount * (transcriptHeight+transcriptPadding)) + margin.top + margin.bottom
 		  }
@@ -491,6 +555,7 @@ export default {
      	}
 
 
+
       transcripts.selectAll("line.gene").remove();
       transcripts.selectAll("line.gene")
       .data(function(d) {
@@ -571,6 +636,32 @@ export default {
 		         .duration(500)
 		         .style("opacity", 0);
 		      });
+
+	   let exonLabels = transcripts.insert("g", "*")
+			  .attr("class", "exon-labels")
+			  .attr("transform", "translate(0," + (height - margin.top - 10) + ")")
+			  .selectAll("text.exon-label")
+				.data(function(d) { 
+			        return d['features'].filter(function(feature) {
+			          let matchesRegion = +feature.start >= +regionStart && +feature.end <= +regionEnd;
+			          return feature.feature_type.toLowerCase() == 'exon' && matchesRegion;
+			        })
+		    		}, 
+		        function(d) {
+		        	return d.feature_type + "-" + d.seq_id + "-" + d.start + "-" + d.end;
+		        }
+		    )
+		    .join("text")
+		      .attr("class", "exon-label")
+		      .attr("x", function(d) {
+		      	return x(d.start) + ( Math.abs((x(d.start) - x(d.end))) / 2 )
+		      })
+		      .attr("y", function(d) {
+		      	return 0;
+		      })
+		      .text(function(d) {
+		      	return d.number;
+		      })
 		      
 
 		  if (options && options.showBoundingBox) {  
@@ -596,41 +687,41 @@ export default {
     	d3.selectAll('#transcript-diagram .transcript.selected .exon-' + exon.number).classed("exon-highlight",true);
 
     	let count = 0;
-    	let spliceJunctionsStarting = self.edgesForGene.filter(function(edge) {
-    		if (edge.from && edge.from == exon.number) {
+    	let donorSpliceJunctions = self.edgesForGene.filter(function(edge) {
+    		if (edge.donor.exon && edge.donor.exon.number == exon.number) {
     			return true;
     		} else {
     			return false;
     		}
     	}).map(function(spliceJunction) {
-    		let startExon = self.locateExon(spliceJunction.fromPos);
-		    let endExon = self.locateExon(spliceJunction.toPos);
+    		let donorExon = self.locateExon(spliceJunction.donor.pos);
+		    let acceptorExon   = self.locateExon(spliceJunction.acceptor.pos);
 		    let sj = {'key': count++,
-    			        'startExon': startExon,
-    			        'endExon': endExon}
+    			        'donorExon': donorExon,
+    			        'acceptorExon': acceptorExon}
     		return $.extend(sj, spliceJunction)
     	})
     	count = 0;
-    	let spliceJunctionsEnding = self.edgesForGene.filter(function(edge) {
-    		if (edge.to && edge.to == exon.number) {
+    	let acceptorSpliceJunctions = self.edgesForGene.filter(function(edge) {
+    		if (edge.acceptor.exon && edge.acceptor.exon.number == exon.number) {
     			return true;
     		} else {
     			return false;
     		}
     	}).map(function(spliceJunction) {
-    		let startExon = self.locateExon(spliceJunction.fromPos);
-		    let endExon = self.locateExon(spliceJunction.toPos);
+    		let donorExon = self.locateExon(spliceJunction.donor.pos);
+		    let acceptorExon   = self.locateExon(spliceJunction.acceptor.pos);
 		    let sj = {'key': count++,
-    			        'startExon': startExon,
-    			        'endExon': endExon}
+    			        'donorExon': donorExon,
+    			        'acceptorExon': acceptorExon}
     		return $.extend(sj, spliceJunction)
     	})
 
     	let selectedExon = $.extend({
       		'type': 'exon', 
       		'click': options.click, 
-      		'spliceJunctionsExiting':  spliceJunctionsStarting,
-      		'spliceJunctionsEntering': spliceJunctionsEnding}, exon);
+      		'donorSpliceJunctions':    donorSpliceJunctions,
+      		'acceptorSpliceJunctions': acceptorSpliceJunctions}, exon);
 
 			self.$emit('object-selected', selectedExon)
 		},
@@ -713,8 +804,8 @@ export default {
 		
 		drawArcDiagram: function(container, edges, regionStart, regionEnd, options) {
 			let self = this;
-		  let maxScore = d3.max(edges, function(d) {
-		    return d.score;
+		  let maxReadCount = d3.max(edges, function(d) {
+		    return d.readCount;
 		  })
 
 		  // dimensions
@@ -741,7 +832,7 @@ export default {
 		            .range([height - margin.top - margin.bottom , 0]);
 
 		  var scaleArcWidth = d3.scaleLinear()
-		                    .domain([self.minUniquelyMappedReads, maxScore])
+		                    .domain([self.minUniquelyMappedReads, maxReadCount])
 		                    .range([2, 12])
 
 
@@ -766,10 +857,8 @@ export default {
 		      )       
 		  }
 
-		  var arcColor = null;
-		  let motifColors = ["#4e79a7","#f28e2c","#bcbd22","#76b7b2","#59a14f","#edc949","#af7aa1","#ff9da7","#9c755f","#bab0ab"]
-		  let strandColors = ["#1b9e77","#d95f02","#666666"]
-		  let exonSpanColors = ["#4e79a7","#f28e2c"]
+		  var arcColors = ['#80A1D4','#7F627A','#39A329','#FACB0F','#FD7049']
+		  let arcColor = null;
 
 		  if (self.colorBy == 'motif') {
 			  let motifMap = {};
@@ -778,7 +867,7 @@ export default {
 			  })
 			  arcColor = d3.scaleOrdinal()
 	                   .domain(Object.keys(motifMap))
-	                   .range(d3.schemeTableau10);
+	                   .range(arcColors);
 		  } else if (self.colorBy == 'strand') {
 				let strandMap = {};
 					edges.forEach(function(edge) {
@@ -786,69 +875,53 @@ export default {
 				})
 	      arcColor = d3.scaleOrdinal()
 	                   .domain(['+', '-', 'undefined'])
-	                   .range(d3.schemeTableau10);
+	                   .range(arcColors);
 		  } else if (self.colorBy == 'exon span') {
 			  arcColor = d3.scaleOrdinal()
 	                   .domain([true, false])
-	                   .range(d3.schemeTableau10);
+	                   .range(arcColors);
 
 		  } 
 
-		  let arc_old = function(d) {
-		    let start = x(d.fromPos);  // X position of start node on the X axis
-		    let end  = x(d.toPos);   // X position of end node
-		    let distance = Math.round(end - start)
-		    
-		    let inflectionRatio = 2;
-		    let inflectionPoint = Math.round(distance/inflectionRatio);
-		    let inflectionPoint2 = inflectionPoint*inflectionRatio;
-		    if (inflectionPoint2 > innerHeight-20) {
-		    	inflectionPoint = innerHeight-20;
-		      inflectionPoint2 = Math.round(inflectionPoint/2.5);
-		    } 
-
-		    d.arcYTop = innerHeight - Math.max(inflectionPoint, inflectionPoint2)
-		    d.arcXCenter = start + (distance/2)
-
-
-		    return ['M', start, innerHeight, // the arc starts at the coord x=start
-		      'A',                   // build an elliptical arc
-		      inflectionPoint, ',',  // Next 2 lines are the coordinates of the inflexion point. Height of this point is proportional with start - end distance
-		      inflectionPoint2, 0, 0, ',',
-		      start < end ? 1 : 0, end, ',', innerHeight] // We always want the arc on top. So if end is before start, putting 0 here turn the arc upside down.
-		      .join(' ');
-		  }
-
-			let arc = function(d) {
+			let arc = function(d, theInnerHeight) {
 				
 
-		    let start = x(d.fromPos);  // X position of start node on the X axis
-		    let end  = x(d.toPos);   // X position of end node
-		    let distance = Math.round(end - start)
+		    let start = x(d.donor.pos);  // X position of start node on the X axis
+		    let end   = x(d.acceptor.pos);   // X position of end node
+		    let distance = Math.abs(end - start)
+		    let currentArcHeight = (1/2*distance)
 
-		    let rx = null;
-		    let ry = null;
-		    let maxHeight = innerHeight - 10;
-		    
-		    if (distance/self.ARC_FACTOR <= self.MIN_ARC_HEIGHT) {
-		    	rx = distance/self.ARC_FACTOR;
-		    	ry = self.MIN_ARC_HEIGHT;
+		    let rx = 1;
+		    let ry = 1;
+		    let maxArcHeight = innerHeight - 10;
+		    let minArcHeight = theInnerHeight / 5;
 
-		    } else  {
-		    	if (distance/self.ARC_FACTOR <= maxHeight) {
-		    		rx = distance/self.ARC_FACTOR;
-		    		ry = distance/self.ARC_FACTOR;
-	    		} else {
-	    			rx = distance/self.ARC_FACTOR;
-	    			ry = maxHeight;
-	    		}
+		    // Arc is shorter than min arc height 
+		    // Need arc to be stretched on y axis
+		    if (currentArcHeight < minArcHeight) {
+		    	ry = minArcHeight/currentArcHeight;
+		    	rx = 1;
+		    	d.arcYTop = innerHeight - (currentArcHeight * ry)
+		    } else if (currentArcHeight >= maxArcHeight) {
+		    	// Arc is taller than chart
+		    	// Need arc to be stretched on x axis
+
+		    	// shuffle the height randomly by 20 pixels 
+		    	let rando = Math.floor(Math.random() * 31);
+		    	let newMaxArcHeight = maxArcHeight - rando;
+
+		    	rx = currentArcHeight/newMaxArcHeight
+		    	ry = 1;
+		    	d.arcYTop = innerHeight - (newMaxArcHeight)
+		    } else {
+		    	rx = 1;
+		    	ry = 1;
+		    	d.arcYTop = innerHeight - currentArcHeight;
 		    }
+		    d.arcXCenter = Math.min(start,end) + (Math.abs(distance)/2)
 
-				d.arcYTop = innerHeight - Math.max(rx, ry)
-				if (d.arcYTop < 0) {
-					d.arcYTop = 10;
-				}
-		    d.arcXCenter = start + (distance/self.ARC_FACTOR)
+
+
 
 		    return ['M', start, innerHeight, // the arc starts at the coord x=start
 		      'A',                   // build an elliptical arc
@@ -864,30 +937,31 @@ export default {
 		  }
 
 
-
 		  var arcs =  svg.insert("g", "*")
 		  .attr("class", "arcs")
 		  .selectAll("path.junction")
 		  .data(edges)
 		  .join("path")
-		    .attr("d", arc)
+		    .attr("d", function(d) {
+		    	return arc(d, innerHeight)
+		    })
 		    .attr("class", function(d) {
-		    	return "junction" + 
-		    	(d.exonSpanned ? " exon-spanned" : "") + 
+		    	return "junction" + " " + d.spliceKind + " " +
+		    	(d.skippedExons ? " exon-spanned" : "") + 
 		    	(d.strand == "undefined" || d.strand == self.selectedGene.strand ? " strand-matches" : " strand-mismatches");
 		    })
 		    .attr("stroke-width", function(d) {
-		      //return scaleArcWidth(d.score);
-		      return 2;
+		      return scaleArcWidth(d.readCount);
+		      //return 2;
 		    })
 		    .attr("stroke", function(d) {
-		    	if (self.colorBy == '') {
+		    	if (self.colorBy == '' || self.colorBy == 'none') {
 		    		return "#9f9f9f";
 
 		    	} else {
 			    	let colorField = null;
 			    	if (self.colorBy == 'exon span') {
-			    		colorField = 'exonSpanned'
+			    		colorField = 'skippedExons'
 			    	} else {
 			    		colorField = self.colorBy;
 			    	}
@@ -897,9 +971,6 @@ export default {
 		  .on("click", function(event,d) {
 		     let arcXCenter = d.arcXCenter;
 		     let arcYTop    = d.arcYTop;
-
-		     let startExon = self.locateExon(d.fromPos);
-		     let endExon = self.locateExon(d.toPos);
 
 		     d3.selectAll("#arc-diagram path.junction").classed("selected", false);
 		     d3.select(this).classed("selected", true)
@@ -916,6 +987,9 @@ export default {
 
 		     d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)
 
+
+		     let startExon = self.locateExon(d.fromPos);
+		     let endExon   = self.locateExon(d.toPos);
 		     if (startExon) {
 		      d3.selectAll('#transcript-diagram .transcript.selected .exon-' + startExon.number).classed("exon-highlight",true);
 		     }
@@ -939,9 +1013,6 @@ export default {
 		     let arcXCenter = d.arcXCenter;
 		     let arcYTop    = d.arcYTop;
 
-		     let startExon = self.locateExon(d.fromPos);
-		     let endExon = self.locateExon(d.toPos);
-
 		     d3.selectAll("#arc-diagram path.junction").classed("selected", false);
 		     d3.select(this).classed("selected", true)
 
@@ -957,19 +1028,22 @@ export default {
 
 		     d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)
 
-		     if (startExon) {
-		      d3.selectAll('#transcript-diagram .transcript.selected .exon-' + startExon.number).classed("exon-highlight",true);
+
+		     let donorExon = self.locateExon(d.donor.pos);
+		     let acceptorExon = self.locateExon(d.acceptor.pos);
+		     if (donorExon) {
+		      d3.selectAll('#transcript-diagram .transcript.selected .exon-' + donorExon.number).classed("exon-highlight",true);
 		     }
-		     if (endExon) {
-		       d3.selectAll('#transcript-diagram .transcript.selected .exon-' + endExon.number).classed("exon-highlight", true);
+		     if (acceptorExon) {
+		       d3.selectAll('#transcript-diagram .transcript.selected .exon-' + acceptorExon.number).classed("exon-highlight", true);
 		     }
 
 
 		     let spliceJunctionObject = $.extend({
 																     	'type': 'splice-junction', 
 																     	'clicked': false, 
-																     	'startExon': startExon,
-																     	'endExon': endExon
+																     	'donorExon': donorExon,
+																     	'acceptorExon': acceptorExon
 																     	}, d)
 		     self.$emit("object-selected", spliceJunctionObject)
 
@@ -995,7 +1069,12 @@ export default {
 			  .selectAll("text.junction")
 			  .data(edges)
 		    .join("text")
-		      .attr("class", "junction")
+		      .attr("class", function(d) {
+			    	return "junction" + " " + d.spliceKind + " " +
+			    	(d.skippedExons ? " exon-spanned" : "") + 
+			    	(d.strand == "undefined" || d.strand == self.selectedGene.strand ? " strand-matches" : " strand-mismatches");
+
+		    	})
 		      .attr("x", function(d) {
 		      	return d.arcXCenter
 		      })
@@ -1003,7 +1082,7 @@ export default {
 		      	return d.arcYTop - 2
 		      })
 		      .text(function(d) {
-		      	let counts = d.numUniqueReads;
+		      	let counts = d.readCount;
 		      	if ((counts / 1000000) >= 1)
 				      return Math.round(counts / 1000000) + "M";
 				    else if ((counts / 1000) >= 1)
@@ -1062,10 +1141,13 @@ export default {
       this.onSettingsChanged();
     },
     showLabels: function() {
-    	d3.select("#arc-diagram").classed("hide-labels", !this.showLabels)
+    	d3.selectAll("#arc-diagram").classed("hide-labels", !this.showLabels)
     },
     showSameStrandOnly: function() {
-    	d3.select("#arc-diagram").classed("hide-strand-mismatches", this.showSameStrandOnly)
+    	d3.selectAll("#arc-diagram").classed("hide-strand-mismatches", this.showSameStrandOnly)
+    },
+    showNonCanonicalOnly: function() {
+    	d3.selectAll("#arc-diagram").classed("hide-canonical", this.showNonCanonicalOnly)
     }
   }
 }
@@ -1077,16 +1159,15 @@ export default {
   border: thin solid #a7a3a3 !important;
   font-weight: 500;
   font-style: italic;
-  font-size: 13px;
+  font-size: 12px;
   padding-left: 10px;
   padding-right: 10px;
   display: flex;
   align-items: center;
-  padding-top: 5px;
-  padding-bottom: 5px;
   height: 40px;
-  width: 320px;
   justify-content: center;
+  margin-left: 10px;
+  width: 175px;
 }
 
 #brushable-axis  text{ 
@@ -1114,6 +1195,11 @@ svg rect.UTR, svg rect.CDS, svg rect.exon {
   stroke-width: 1;
 }
 
+.exon-label {
+	font-size: 10px;
+	text-anchor: middle;
+}
+
 svg path.junction {
   
   fill: transparent;
@@ -1125,8 +1211,23 @@ svg path.junction.selected {
 	stroke: red;
 }
 
+
 .hide-strand-mismatches svg path.junction.strand-mismatches {
+	display: none !important;
+}
+
+.hide-strand-mismatches svg .arc-labels .junction.strand-mismatches {
+	display: none !important;
+}
+
+.hide-canonical svg path.junction.canonical, 
+.hide-canonical svg .arc-labels .junction.canonical {
 	display: none;
+}
+
+.show-canonical svg path.junction.canonical, 
+.show-canonical svg .arc-labels .junction.canonical {
+	display: initial;
 }
 
 svg line.gene {
@@ -1219,13 +1320,13 @@ text.junction {
 	display: none;
 }
 
-#label-cb, #show-matching-strand-only-cb {
+#label-cb, #show-matching-strand-only-cb, #show-noncanonical-only-cb {
 	height: 45px;
 }
 #show-matching-strand-only-cb {
 	width: 190px;
 }
-#label-cb label, #show-matching-strand-only-cb label {
+#label-cb label, #show-matching-strand-only-cb label, #show-noncanonical-only-cb label  {
 	font-size: 13px !important;
   padding-top: 3px !important;
   line-height: 15px !important

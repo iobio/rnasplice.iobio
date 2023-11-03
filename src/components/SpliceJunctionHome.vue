@@ -41,7 +41,8 @@
             :tab="tab"
             :loadInProgress="loadInProgress"
             @reinit="$emit('reinit')"
-            @object-selected="onObjectSelected"/>
+            @object-selected="onObjectSelected"
+            @transcript-selected="onTranscriptSelected"/>
 
           </v-window-item>
         </v-window>      
@@ -114,7 +115,12 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       snackbarText: "",
       snackbarTimeout: 3000,
 
-      tab: 'tab-1'
+      tab: 'tab-1',
+
+      geneToSpliceJunctionRecords: {},
+      geneToSummary: {},
+
+      selectedTranscript: null
 
 
     }),
@@ -208,28 +214,72 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       },
       getSpliceJunctionRecords: function() {
         let self = this;
-        self.loadInProgress = true;
-        let region = {'refName': self.selectedGene.chr, 
-                       'start':   self.selectedGene.start,
-                       'end':     self.selectedGene.end };
-        self.endpoint.promiseGetBedRegion(self.loadInfo.bedURL, 
-                                          self.loadInfo.bedIndexURL, 
-                                          region)
-        .then(function(spliceJunctionRecords) {
-          self.loadInProgess = false;
-          let spliceJunctions = {'gene': self.selectedGene.gene_name, 
+        let spliceJunctionRecords = self.geneToSpliceJunctionRecords[self.selectedGene.gene_name];
+        if (spliceJunctionRecords) {
+          let spliceJunctions  = {'gene': self.selectedGene.gene_name, 
                                     'spliceJunctions': spliceJunctionRecords}
           self.$emit('splice-junctions-loaded', spliceJunctions)
-        })
-        .catch(function(error) {
-          self.loadInProgress = false;
-          self.$emit("add-alert", 'error', error.message, self.selectedGene.gene_name, error.details ? [error.details] : null)
-        })
+        } else {
+          self.loadInProgress = true;
+          let region = {'refName': self.selectedGene.chr, 
+                         'start':   self.selectedGene.start,
+                         'end':     self.selectedGene.end };
+          self.endpoint.promiseGetBedRegion(self.loadInfo.bedURL, 
+                                            self.loadInfo.bedIndexURL, 
+                                            region)
+          .then(function(spliceJunctionRecords) {
+            self.loadInProgess = false;
+            self.geneToSpliceJunctionRecords[self.selectedGene.gene_name] = spliceJunctionRecords;
+            let spliceJunctions  = {'gene': self.selectedGene.gene_name, 
+                                    'spliceJunctions': spliceJunctionRecords}
+            self.summarizeSpliceJunctions(self.selectedGene, self.selectedTranscript)
+            self.$emit('splice-junctions-loaded', spliceJunctions)
+          })
+          .catch(function(error) {
+            self.loadInProgress = false;
+            self.$emit("add-alert", 'error', error.message, self.selectedGene.gene_name, error.details ? [error.details] : null)
+          })
+
+        }
 
       },
       onObjectSelected: function(selectedObject) {
         this.$emit('object-selected', selectedObject)
+      },
+      onTranscriptSelected: function(transcript) {
+        this.selectedTranscript = transcript;
+      },
+      summarizeSpliceJunctions: function(geneObject, transcript) {
+        let self = this;
+        let summary = self.geneToSummary[geneObject.gene_name];
+        if (summary == null) {
+
+          let spliceJunctionRecords = self.geneToSpliceJunctionRecords[geneObject.gene_name];
+          if (spliceJunctionRecords) {
+            let spliceJunctionObjects = self.geneModel.createSpliceJunctions(
+              spliceJunctionRecords,
+              geneObject, 
+              transcript);
+            let nonCanonicalSplice = spliceJunctionObjects.filter(function(spliceJunction) {
+              return spliceJunction.isCanonicalSplice == false;
+            })
+            let alternateSplice = spliceJunctionObjects.filter(function(spliceJunction) {
+              return spliceJunction.isAlternateSplice == true;
+            })
+            self.geneToSummary[geneObject.gene_name] = {
+                'nonCanonicalSplice': nonCanonicalSplice, 
+                'alternateSplice': alternateSplice
+            };
+            summary = self.geneToSummary[geneObject.gene_name];
+          }
+          console.log(summary)
+          return summary;
+
+        } else {
+          return summary
+        }
       }
+
     },
     watch: {
       searchedGene: function() {
@@ -252,7 +302,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         }
 
       },
-      selectedGene: function() {
+      selectedTranscript: function() {
         let self = this;
         if (self.loadInfo && self.selectedGene) {
           self.getSpliceJunctionRecords()

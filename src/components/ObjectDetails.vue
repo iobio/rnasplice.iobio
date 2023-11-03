@@ -9,7 +9,7 @@
             Splice Junction
             <div class="d-flex flex-row ml-4" style="height:26px;">
               <v-chip color="red"  size="small" v-if="!selectedObject.isCanonicalSplice">Non-canonical splice</v-chip>
-              <v-chip color="primary"  size="small" v-if="selectedObject.isAlternateSplice">Alernate splice</v-chip>
+              <v-chip color="primary"  size="small" v-if="selectedObject.isAlternateSplice">Alternate splice</v-chip>
             </div>
           </div>
         </h2>
@@ -21,52 +21,77 @@
       </div>
       <div class="selected-details" v-if="selectedObject.type == 'splice-junction'">
         <div class="d-flex flex-row mb-5" >
-          <div style="width:140px;text-align:center">
-            {{ startValue(selectedObject, {'withLabel': true}) }}
-          </div>
-          <div style="width:16px;margin-left:2px;margin-right:2px">-></div>
-          <div style="width:140px;margin-right:5px;text-align:center">
-            {{ endValue(selectedObject,   {'withLabel': true}) }}
-          </div>
-          
+          {{ selectedObject.label }}
         </div>
 
 
         <div class="d-flex flex-row">
-          <div class="so-label">Junction start</div>
-          <div class="so-value">{{ selectedObject.fromPos }}</div>
+          <div class="so-label">
+            Donor
+            <v-chip size="x-small" color="red" v-if="selectedObject.donor.status == 'noncanonical'">{{ `noncanonical`}}
+             </v-chip>
+          </div>
+          <div class="so-value">
+             {{ selectedObject.donor.label }}
+             <span v-if="selectedObject.donor.exon && selectedObject.donor.status == 'noncanonical' "> 
+                 <span :style="selectedGene.strand == `-` ? `font-style:italic;color:red` : ``">                 
+                  {{ selectedObject.donor.exon.start }}
+                 </span>
+                 <span>-</span>
+                 <span :style="selectedGene.strand == `+` ? `font-style:italic;color:red` : ``">
+                  {{ selectedObject.donor.exon.end }}
+                 </span>
+             </span>
+          </div>
         </div>
-
-        <div class="d-flex flex-row">
+        <div v-if="selectedObject.donor.exon" class="d-flex flex-row">
           <div class="so-label"></div>
-          <div class="so-value" style="cursor:pointer"
-            v-tooltip.left="getStartExonCoords(selectedObject)">
-            {{ startLabel(selectedObject) }} {{ startValue(selectedObject) }}
+          <div class="so-value">{{ selectedObject.donor.pos }}</div>
+        </div>
+        <div v-if="selectedObject.donor.exonClosest" class="d-flex flex-row">
+          <div class="so-label"></div>
+          <div class="so-value">{{ selectedObject.donor.exonClosest }}</div>
+        </div>
+
+
+
+        <div class="d-flex flex-row">
+          <div class="so-label">
+             Acceptor
+             <v-chip size="x-small" color="red" v-if="selectedObject.acceptor.status == 'noncanonical'">{{ `noncanonical`}}
+             </v-chip>
+          </div>
+          <div class="so-value">
+             {{ selectedObject.acceptor.label }}
+             <span v-if="selectedObject.acceptor.exon && selectedObject.acceptor.status == 'noncanonical'"> 
+                 <span :style="selectedGene.strand == `+` ? `font-style:italic;color:red` : ``">                 
+                  {{ selectedObject.acceptor.exon.start }}
+                 </span>
+                 <span>-</span>
+                 <span :style="selectedGene.strand == `-` ? `font-style:italic;color:red` : ``">
+                  {{ selectedObject.acceptor.exon.end }}
+                 </span>
+             </span>
           </div>
         </div>
-        
-
-        <div class="d-flex flex-row">
-          <div class="so-label">Junction end</div>
-          <div class="so-value">{{ selectedObject.toPos }}</div>
-        </div>
-
-
-        <div class="d-flex flex-row">
+        <div v-if="selectedObject.acceptor.exon" class="d-flex flex-row">
           <div class="so-label"></div>
-          <div class="so-value" style="cursor:pointer" v-tooltip.left="getEndExonCoords(selectedObject)">
-            {{ endLabel(selectedObject) }} {{ endValue(selectedObject) }}</div>
+          <div class="so-value">{{ selectedObject.acceptor.pos }}</div>
+        </div>
+        <div v-if="selectedObject.acceptor.exonClosest" class="d-flex flex-row">
+          <div class="so-label"></div>
+          <div class="so-value">{{ selectedObject.acceptor.exonClosest }}</div>
         </div>
 
 
         <div class="d-flex flex-row">
           <div class="so-label">Number unique reads</div>
-          <div class="so-value">{{ selectedObject.numUniqueReads }}</div>
+          <div class="so-value">{{ selectedObject.readCount }}</div>
         </div>
 
         <div class="d-flex flex-row">
           <div class="so-label">Strand</div>
-          <div class="so-value">{{ selectedObject.strand == '-' ? 'Reverse' : 'Forward'}}</div>
+          <div class="so-value">{{ selectedObject.strand }}</div>
         </div>
 
         <div class="d-flex flex-row">
@@ -82,26 +107,17 @@
           <div class="so-value">{{ selectedObject.name }}</div>
         </div>
 
-        <div v-if="selectedObject.spliceJunctionsEntering && selectedObject.spliceJunctionsExiting.length > 0">
-          <h3 style="margin-top: 10px !important">Splice Junctions Entering</h3>
-          <div v-for="spliceJunction in selectedObject.spliceJunctionsEntering" :key="spliceJunction.key" class="d-flex flex-row" style="flex-wrap:nowrap;margin-bottom: 10px">
-
-              <div style="width:90px;">{{ startValue(spliceJunction, {'withLabel': true}) }}</div>
-              <div style="width:16px;margin-left:2px;margin-right:2px">-></div>
-              <div style="width:90px;margin-right:5px;">{{ endValue(spliceJunction,   {'withLabel': true}) }}</div>
-              <div style="width:90px">{{ spliceJunction.numUniqueReads }} reads</div>
+        <div v-if="selectedObject.donorSpliceJunctions && selectedObject.donorSpliceJunctions.length > 0">
+          <h3 style="margin-top: 10px !important">Donor Splice Junctions</h3>
+          <div v-for="spliceJunction in selectedObject.donorSpliceJunctions" :key="spliceJunction.key" class="d-flex flex-row" style="flex-wrap:nowrap;margin-bottom: 10px">
+             {{ spliceJunction.label }}
           </div>
         </div>
 
-        <div v-if="selectedObject.spliceJunctionsExiting && selectedObject.spliceJunctionsExiting.length > 0">
-          <h3 style="margin-top: 10px !important">Splice Junctions Exiting</h3>
-          <div v-for="spliceJunction in selectedObject.spliceJunctionsExiting" :key="spliceJunction.key" class="d-flex flex-row" style="flex-wrap:nowrap;margin-bottom: 10px">
-
-              <div style="width:94px;">{{ startValue(spliceJunction, {'withLabel': true}) }}</div>
-              <div style="width:16px;margin-left:2px;margin-right:2px">-></div>
-              <div style="width:94px">{{ endValue(spliceJunction,   {'withLabel': true}) }}</div>
-              <div style="width:94px">{{ spliceJunction.numUniqueReads }} reads</div>
-              <div >{{ spliceJunction.strand }}</div>
+        <div v-if="selectedObject.acceptorSpliceJunctions && selectedObject.acceptorSpliceJunctions.length > 0">
+          <h3 style="margin-top: 10px !important">Acceptor Splice Junctions</h3>
+          <div v-for="spliceJunction in selectedObject.acceptorSpliceJunctions" :key="spliceJunction.key" class="d-flex flex-row" style="flex-wrap:nowrap;margin-bottom: 10px">
+             {{ spliceJunction.label }}
           </div>
         </div>
 
@@ -129,64 +145,6 @@ export default {
   data: () => ({
   }),
   methods: {
-    startLabel: function(spliceJunction) {
-      if (spliceJunction) {
-        if (spliceJunction.startExon) {
-          return 'Start exon'
-        } else {
-          return 'Start pos'
-        }
-      } else {
-        return "";
-      }
-    },
-    startValue: function(spliceJunction, options={'withLabel': false}) {
-      if (spliceJunction) {
-        if (spliceJunction.startExon) {
-          return (options.withLabel ? 'Exon ' : '') + spliceJunction.startExon.number;
-        } else {
-          return (options.withLabel ? 'Pos  '  : '') + spliceJunction.fromPos;
-        }
-      } else {
-        return "";
-      }
-    },
-    endLabel: function(spliceJunction) {
-      if (spliceJunction) {
-        if (spliceJunction.endExon) {
-          return 'End exon'
-        } else {
-          return 'End pos'
-        }
-      } else {
-        return "";
-      }
-    },
-    endValue: function(spliceJunction, options={'withLabel': false}) {
-      if (spliceJunction) {
-        if (spliceJunction.endExon) {
-          return (options.withLabel ? 'Exon ' : '') + spliceJunction.endExon.number
-        } else {
-          return (options.withLabel ? 'Pos  ' : '') + spliceJunction.toPos;
-        }
-      } else {
-        return "";
-      }
-    },
-    getStartExonCoords: function(spliceJunction) {
-      let buf = "";
-      if (spliceJunction.startExon) {
-        buf +=  spliceJunction.startExon.start  + '-' + spliceJunction.startExon.end;
-      }
-      return buf;
-    },
-    getEndExonCoords: function(spliceJunction) {
-      let buf = "";
-      if (spliceJunction.endExon) {
-        buf +=  spliceJunction.endExon.start  + '-' + spliceJunction.endExon.end;
-      }
-      return buf;
-    }
   },
   computed: {
   }
@@ -201,9 +159,9 @@ export default {
     >div
       margin-bottom: 5px
   .so-label
-    width: 220px 
+    width: 170px 
   .so-value   
-    width: calc(100% - 220px)
+    width: calc(100% - 170px)
 </style>
 
 
