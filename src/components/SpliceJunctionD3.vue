@@ -149,6 +149,7 @@ export default {
 		xBrushable: null,
 		xTranscriptChart: null,
 		xTranscriptChartZoomed: null,
+		ySitePointer: null,
 		tooltip: null,
 
 		showLabels: false,
@@ -473,11 +474,14 @@ export default {
 		drawTranscriptDiagram: function(container, gene, regionStart, regionEnd, options) {
 			let self = this;
 		  // dimensions
-		  var margin = {top: 5, right: 170, bottom: 30, left: 0};
+		  var margin = {top: (options && options.selectedTranscriptOnly ? 0 : 5), 
+		  	            right: 170, 
+		  	            bottom: (options && options.selectedTranscriptOnly ? 50 : 30), 
+		  	            left: 0};
 		  var width = self.$el.offsetWidth - 20;
 
 		  var transcriptCount = options && options.selectedTranscriptOnly ? 1 : gene.transcripts.length;
-		  var transcriptPadding = 5;
+		  var transcriptPadding = options && options.selectedTranscriptOnly ? 0 : 5;
 		  var transcriptHeight = self.CDS_HEIGHT;
 
 		  var height = null;
@@ -489,6 +493,13 @@ export default {
 
 		  var innerWidth = width - margin.left - margin.right;
 		  var innerHeight = height - margin.top - margin.bottom;
+
+		  // Determine the starting y position for the site pointers, positioned on mouseover or 
+		  // click over arc or exon 
+		  if (options && options.selectedTranscriptOnly) {
+				self.ySitePointer = height - margin.top - transcriptHeight;		  	
+		  }
+
 
 
 		  // scales
@@ -529,7 +540,11 @@ export default {
 		        return "transcript" + (d.isSelected ? " selected" : "");
 		      })
 		      .attr("transform", function(d) {
-		        return `translate(${margin.left},${d.y = y(d) - transcriptHeight})`
+		      	if (options && options.selectedTranscriptOnly) {
+		      		return `translate(${margin.left},0)`
+		      	} else {
+			        return `translate(${margin.left},${d.y = y(d) - transcriptHeight})`
+		      	}
 		      })
 		     
 		  if (options && options.allowSelection) {
@@ -656,9 +671,10 @@ export default {
 		        self.tooltip.transition()
 		         .duration(500)
 		         .style("opacity", 0);
+		         svg.selectAll(this).classed("exon-highlight", false)
 		      });
 
-		  if (transcriptCount == 1) {
+		  if (options && options.selectedTranscriptOnly) {
 
 		  	let exons = self.selectedTranscript.features.filter(function(feature) {
           let matchesRegion = +feature.start >= +regionStart && +feature.end <= +regionEnd;
@@ -677,7 +693,7 @@ export default {
 
 		    let exonLabels = transcripts.insert("g", "*")
 				  .attr("class", "exon-labels")
-				  .attr("transform", "translate(0," + (height - margin.top - 10) + ")")
+				  .attr("transform", "translate(0," + (height - margin.top - transcriptHeight - 10) + ")")
 				  .selectAll("text.exon-label")
 					.data(function(d) 
 				     { 
@@ -716,7 +732,7 @@ export default {
 		  }
 
 		  // Draw draw triangles to point out donor and acceptor sites
-		  if (transcriptCount == 1) {
+		  if (options && options.selectedTranscriptOnly) {
 				 svg
 				 .append("polygon")
 				 .attr("class", "donor-pointer-small")
@@ -759,6 +775,64 @@ export default {
 				 		       + " 0,0"
 				 	})
 				 .style("opacity", "0")
+
+				 svg.selectAll(".donor-problem").remove();
+				 svg
+				 .append("text")
+				 .attr("class", "donor-problem")
+				 .attr("x", 0)
+				 .attr("y", 0)
+				 .style("opacity", "0")
+				 .text("x")
+
+				 svg.selectAll(".acceptor-problem").remove();
+				 svg
+				 .append("text")
+				 .attr("class", "acceptor-problem")
+				 .attr("x", 0)
+				 .attr("y", 0)
+				 .style("opacity", "0")
+				 .text("x")
+
+				 svg.selectAll(".donor-problem-small").remove();
+				 svg
+				 .append("text")
+				 .attr("class", "donor-problem-small")
+				 .attr("x", 0)
+				 .attr("y", 0)
+				 .style("opacity", "0")
+				 .text("x")
+
+				 svg.selectAll(".acceptor-problem-small").remove();
+				 svg
+				 .append("text")
+				 .attr("class", "acceptor-problem-small")
+				 .attr("x", 0)
+				 .attr("y", 0)
+				 .style("opacity", "0")
+				 .text("x")
+
+
+				 if (self.clickedObject && self.clickedObject.type == 'splice-junction') {
+
+			     let donorExon      = self.locateExon(self.clickedObject.donor.pos);
+			     let acceptorExon   = self.locateExon(self.clickedObject.acceptor.pos);
+			     if (donorExon) {
+			      	svg.selectAll('.exon-' + donorExon.number).classed("exon-highlight",true);
+			      	svg.selectAll('.exon-' + donorExon.number).classed("clicked",true);
+			     }
+			     if (acceptorExon) {
+			        svg.selectAll('.exon-' + acceptorExon.number).classed("exon-highlight", true);
+			        svg.selectAll('.exon-' + acceptorExon.number).classed("clicked", true);
+			     }
+
+  				 self.hideSitePointersOnTranscriptChart("select")
+  				 self.hideSitePointersOnTranscriptChart("click")
+			     self.showSitePointersOnTranscriptChart(self.clickedObject, 
+																						     	self.ySitePointer - 2,
+																						     	"click")
+
+				 }
 			}
 
 		},
@@ -768,8 +842,10 @@ export default {
 		onSelectExon: function(exon, options={'click': false}) {
 
 			let self = this;
-			d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)
+			d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight.selected').classed("exon-highlight", false)
     	d3.selectAll('#transcript-diagram .transcript.selected .exon-' + exon.number).classed("exon-highlight",true);
+    	d3.selectAll('#transcript-diagram .transcript.selected .exon-' + exon.number).classed("selected",true);
+    	d3.selectAll('#transcript-diagram .transcript.selected .exon-' + exon.number).classed("clicked",options.click);
 
     	let count = 0;
     	let donorSpliceJunctions = self.edgesForGene.filter(function(edge) {
@@ -808,8 +884,14 @@ export default {
       		'donorSpliceJunctions':    donorSpliceJunctions,
       		'acceptorSpliceJunctions': acceptorSpliceJunctions}, exon);
 
-			self.$emit('object-selected', selectedExon)
-		},
+    	if (options.click == true) {
+    		self.clickedObject = exon;
+				self.$emit('object-selected', selectedExon)
+    	} else if (self.clickedObject == null) {
+    		self.$emit('object-selected', selectedExon)
+    	}
+
+  	},
 
 		drawBrushableAxis: function(container, regionStart, regionEnd) {
 			let self = this;
@@ -1078,16 +1160,7 @@ export default {
 
 		     if (self.clickedObject && self.clickedObject.type == 'splice-junction') {
 		     	 if (self.clickedObject.label == d.label) {
-		     	 	  d3.selectAll("#arc-diagram path.junction").classed("selected", false);
-		     	 	  d3.selectAll("#arc-diagram path.junction").classed("clicked", false);
-		     	 	  d3.selectAll("#transcript-diagram .transcript.selected .exon-highlight")
-		     	 	    .classed("exon-highlight",false);
-		     	 	  svg.select(".arc-pointer")
-			           .style("opacity", 0)
-			        svg.select(".arc-pointer-small")
-			           .style("opacity", 0)
-		     	 	  self.clickedObject = false;
-		     	 	  self.hideSitePointersOnTranscriptChart("click")
+		     	 		self.unclickSpliceJunction()
 		     	 	  return;
 		     	 }
 		     }
@@ -1134,6 +1207,9 @@ export default {
 			      .style("opacity", .9); 
 			   svg.select(".arc-pointer-small")
 			      .style("opacity", 0)
+
+			   // If we are drawing the zoom chart and there is a selected splice junction,
+			   // set the arc pointer in the zoom chart to the counterpart splice junction
 			   if (junctionParentChart) {
 			     d3.select("#diagrams #arc-diagram .arc-pointer")
 			       .attr("transform", function(d) {
@@ -1153,15 +1229,17 @@ export default {
 		     let donorExon      = self.locateExon(d.donor.pos);
 		     let acceptorExon   = self.locateExon(d.acceptor.pos);
 		     if (donorExon) {
-		      	d3.selectAll('#transcript-diagram .transcript.selected .exon-' + donorExon.number).classed("exon-highlight",true);
-		      	d3.selectAll('#transcript-diagram .transcript.selected .exon-' + donorExon.number).classed("clicked",true);
+		      	d3.selectAll('#transcript-diagram .exon-' + donorExon.number).classed("exon-highlight",true);
+		      	d3.selectAll('#transcript-diagram .exon-' + donorExon.number).classed("clicked",true);
 		     }
 		     if (acceptorExon) {
-		        d3.selectAll('#transcript-diagram .transcript.selected .exon-' + acceptorExon.number).classed("exon-highlight", true);
-		        d3.selectAll('#transcript-diagram .transcript.selected .exon-' + acceptorExon.number).classed("clicked", true);
+		        d3.selectAll('#transcript-diagram .exon-' + acceptorExon.number).classed("exon-highlight", true);
+		        d3.selectAll('#transcript-diagram .exon-' + acceptorExon.number).classed("clicked", true);
 		     }
 
-		     self.showSitePointersOnTranscriptChart(d, "click")
+				 self.hideSitePointersOnTranscriptChart("select")
+				 self.hideSitePointersOnTranscriptChart("click")
+		     self.showSitePointersOnTranscriptChart(d, self.ySitePointer +2, "click")
 
 		     let spliceJunctionObject = $.extend({
 																     	'type': 'splice-junction', 
@@ -1177,14 +1255,35 @@ export default {
 		  })
 		  .on("mouseover", function(event,d) {
 
+		     // If this is the zoomed diagram, find the counterpart arc in the main chart
+		     let junctionParentChart = null;
+		     let nodeParentChart = null;
+		     
+		     if (options.allEdges) {
+		     	let matched = options.allEdges.filter(function(edge) {
+		     		return edge.label == d.label;
+		     	})
+		     	if (matched.length > 0) {
+		     		junctionParentChart = matched[0];
+		     		nodeParentChart = d3.selectAll("#diagrams #arc-diagram g.arcs path.junction")
+		     		                    .filter(function(spliceJunction) { 
+		     	                   		  return spliceJunction.label == d.label
+		     	                      })
+		     	}
+		     }
+		     
+
 		     let arcXCenter = d.arcXCenter;
 		     let arcYTop    = d.arcYTop;
 
 		     d3.selectAll("#arc-diagram path.junction").classed("selected", false);
-		     d3.selectAll("#arc-diagram path.junction.clicked").classed("selected", true);
-		     d3.select(this).classed("selected", true)
 
-		      svg.select(".arc-pointer-small")
+		     d3.select(this).classed("selected", true)
+		     if (nodeParentChart && !nodeParentChart.empty()) {
+	     	  	nodeParentChart.classed("selected", true)
+		     }
+
+		     svg.select(".arc-pointer-small")
 		        .attr("transform", function(d) {
 		        	return "translate(" + (arcXCenter - self.arcPointerSmallWidth/self.ARC_FACTOR) 
 		        	+ "," 
@@ -1194,27 +1293,47 @@ export default {
 			      .duration(200)
 			      .style("opacity", .9); 
 
-		      d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)
-		      d3.selectAll('#transcript-diagram .transcript.selected .clicked').classed("exon-highlight", true)
+			   // If we are drawing the zoom chart and there is a selected splice junction,
+			   // set the arc pointer in the zoom chart to the counterpart splice junction
+			   if (junctionParentChart) {
+			     d3.select("#diagrams #arc-diagram .arc-pointer-small")
+			       .attr("transform", function(d) {
+			        	return "translate(" + (junctionParentChart.arcXCenter - self.arcPointerSmallWidth/self.ARC_FACTOR) 
+			        	+ "," 
+			        	+ (junctionParentChart.arcYTop - self.arcPointerSmallHeight) + ")"
+			         })
+				     .transition()
+				     .duration(200)
+				     .style("opacity", .9); 
+			   }
+
+		     d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight.selected').classed("exon-highlight", false)
+		     d3.selectAll('#transcript-diagram .transcript.selected .selected').classed("selected", false)
 
 
-		      let donorExon = self.locateExon(d.donor.pos);
-		      let acceptorExon = self.locateExon(d.acceptor.pos);
-		      if (donorExon) {
-		      	d3.selectAll('#transcript-diagram .transcript.selected .exon-' + donorExon.number).classed("exon-highlight",true);
-		    	}
-		      if (acceptorExon) {
-		        d3.selectAll('#transcript-diagram .transcript.selected .exon-' + acceptorExon.number).classed("exon-highlight", true);
-		      }
-		      self.showSitePointersOnTranscriptChart(d, "select")
-		      let spliceJunctionObject = $.extend({
+		     let donorExon      = self.locateExon(d.donor.pos);
+		     let acceptorExon   = self.locateExon(d.acceptor.pos);
+		     if (donorExon) {
+		      	d3.selectAll('#transcript-diagram .exon-' + donorExon.number).classed("exon-highlight",true);
+		      	d3.selectAll('#transcript-diagram .exon-' + donorExon.number).classed("selected",true);
+		     }
+		     if (acceptorExon) {
+		        d3.selectAll('#transcript-diagram .exon-' + acceptorExon.number).classed("exon-highlight", true);
+		        d3.selectAll('#transcript-diagram .exon-' + acceptorExon.number).classed("selected", true);
+		     }
+
+		     self.showSitePointersOnTranscriptChart(d, self.ySitePointer, "select")
+
+		     let spliceJunctionObject = $.extend({
 																     	'type': 'splice-junction', 
 																     	'clicked': false, 
 																     	'donorExon': donorExon,
 																     	'acceptorExon': acceptorExon
 																     	}, d)
-		     
 
+		     if (!self.clickedObject) {
+			     self.$emit("object-selected", spliceJunctionObject)
+		     }
 
 		  })
 		 .on("mouseout", function(d) {
@@ -1282,18 +1401,7 @@ export default {
 		 	})
 		 .style("opacity", "0")
 		 .on('click', function(d) {
-   	 	  d3.selectAll("#arc-diagram path.junction").classed("selected", false);
-   	 	  d3.selectAll("#arc-diagram path.junction").classed("clicked", false);
-   	 	  d3.selectAll("#transcript-diagram .transcript.selected .exon-highlight")
-   	 	    .classed("exon-highlight",false);
-   	 	  svg.select(".arc-pointer")
-           .style("opacity", 0)
-        svg.select(".arc-pointer-small")
-           .style("opacity", 0)
-				self.hideSitePointersOnTranscriptChart("select")         
-				self.hideSitePointersOnTranscriptChart("click")         
-   	 	  self.clickedObject = null;
-
+		 	  self.unclickSpliceJunction()
 		 	}) 
 
 		 if (container == '#zoomed-diagrams' && self.clickedObject && self.clickedObject.type == 'splice-junction') {
@@ -1335,75 +1443,186 @@ export default {
 		 
 		},
 
-		showSitePointersOnTranscriptChart: function(d, action="select") {
+		unclickSpliceJunction: function() {
+			let self = this;
+	    d3.selectAll("#arc-diagram path.junction").classed("selected", false);
+ 	 	  d3.selectAll("#arc-diagram path.junction").classed("clicked", false);
+ 	 	  d3.selectAll("#transcript-diagram .transcript.selected .selected")
+ 	 	    .classed("selected",false);
+ 	 	  d3.selectAll("#transcript-diagram .transcript.selected .clicked")
+ 	 	    .classed("clicked",false);
+ 	 	  d3.selectAll("#transcript-diagram .transcript.selected .exon-highlight")
+ 	 	    .classed("exon-highlight",false);
+ 	 	  d3.selectAll(".arc-pointer")
+         .style("opacity", 0)
+      d3.selectAll(".arc-pointer-small")
+         .style("opacity", 0)
+			self.hideSitePointersOnTranscriptChart("select")         
+			self.hideSitePointersOnTranscriptChart("click")         
+      
+ 	 	  self.clickedObject = false;
+		},
+
+				 
+
+		showSitePointersOnTranscriptChart: function(d, ySitePointer, action="select") {
 			let self = this;
       // Show the pointers on the transcript chart
       if (action == "select") {
 	      if (self.xTranscriptChart) {
+	      	// Show a pointer below donor site
 	      	d3.selectAll("#diagrams #transcript-diagram .donor-pointer-small")
 	      	  .attr("transform", function(d1) {
 		        	return "translate(" + 
 		        	       (self.xTranscriptChart(d.donor.pos) - (self.sitePointerSmallWidth/2))  + 
-		        	       "," + "50" + ")"
+		        	       "," + ySitePointer + ")"
 		        })
 			      .transition()
 			      .duration(200)
 			      .style("opacity", .9); 
 
+		      // Show an * below donor pointer if donor site is noncanonical
+		      if (d.donor.status && d.donor.status == 'noncanonical') {
+		     		d3.selectAll("#diagrams #transcript-diagram .donor-problem-small")
+		     		  .attr("x", function(d1) {
+									return (self.xTranscriptChart(d.donor.pos) ) 
+		     		  })
+		     		  .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
+							.transition()
+		      		.duration(200)
+		      		.style("opacity", .9); 
+		      }
+
+			    // Show a pointer below acceptor site
 	      	d3.selectAll("#diagrams #transcript-diagram .acceptor-pointer-small")
 	      	  .attr("transform", function(d1) {
 		        	return "translate(" + 
 		        	       (self.xTranscriptChart(d.acceptor.pos) - (self.sitePointerSmallWidth/2))  + 
-		        	       "," + "50" + ")"
-		        })
-			      .transition()
-			      .duration(200)
-			      .style("opacity", .9); 
-	      }
-	      // Show the pointers on the zoomed transcript chart
-	      if (self.xTranscriptChartZoomed) {
-	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-pointer-small")
-	      	  .attr("transform", function(d1) {
-		        	return "translate(" + 
-		        	       (self.xTranscriptChartZoomed(d.donor.pos) - (self.sitePointerSmallWidth/2))  + 
-		        	       "," + "50" + ")"
+		        	       "," + ySitePointer + ")"
 		        })
 			      .transition()
 			      .duration(200)
 			      .style("opacity", .9); 
 
-	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-pointer-small")
+		      // Show an * below acceptor pointer if acceptor site is noncanonical
+		      if (d.acceptor.status && d.acceptor.status == 'noncanonical') {
+		     		d3.selectAll("#diagrams #transcript-diagram .acceptor-problem-small")
+		     		  .attr("x", function(d1) {
+									return (self.xTranscriptChart(d.acceptor.pos) ) 
+		     		  })
+		     		  .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
+							.transition()
+		      		.duration(200)
+		      		.style("opacity", .9); 
+		      }
+
+	      }
+	      // Now show the pointers on the zoomed transcript chart (if it is present)
+	      if (self.xTranscriptChartZoomed) {
+
+	      	// donor site pointer
+	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-pointer-small")
 	      	  .attr("transform", function(d1) {
 		        	return "translate(" + 
-		        	       (self.xTranscriptChartZoomed(d.acceptor.pos) - (self.sitePointerSmallWidth/2))  + 
-		        	       "," + "50" + ")"
+		        	       (self.xTranscriptChartZoomed(d.donor.pos) - (self.sitePointerSmallWidth/2))  + 
+		        	       "," + ySitePointer + ")"
 		        })
 			      .transition()
 			      .duration(200)
 			      .style("opacity", .9); 
+
+		      // Show an * below donor pointer if donor site is noncanonical
+		      if (d.donor.status && d.donor.status == 'noncanonical') {
+		     		d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-problem-small")
+		     		  .attr("x", function(d1) {
+									return (self.xTranscriptChartZoomed(d.donor.pos) ) 
+		     		  })
+		     		  .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
+							.transition()
+		      		.duration(200)
+		      		.style("opacity", .9); 
+		      }
+
+
+			    // acceptor site pointer
+	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-pointer-small")
+	      	  .attr("transform", function(d1) {
+		        	return "translate(" + 
+		        	       (self.xTranscriptChartZoomed(d.acceptor.pos) - (self.sitePointerSmallWidth/2))  + 
+		        	       "," + ySitePointer + ")"
+		        })
+			      .transition()
+			      .duration(200)
+			      .style("opacity", .9); 
+
+		      // Show an * below acceptor pointer if acceptor site is noncanonical
+		      if (d.acceptor.status && d.acceptor.status == 'noncanonical') {
+		     		d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-problem-small")
+		     		  .attr("x", function(d1) {
+									return (self.xTranscriptChartZoomed(d.acceptor.pos) ) 
+		     		  })
+		     		  .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
+							.transition()
+		      		.duration(200)
+		      		.style("opacity", .9); 
+		      }
+
 	      }
       	
       } else if (action == "click") {
+      	//
+      	// When a splice junction is clicked 
+      	//
+
+      	// Donor pointer
 	      if (self.xTranscriptChart) {
 	      	d3.selectAll("#diagrams #transcript-diagram .donor-pointer")
 	      	  .attr("transform", function(d1) {
 		        	return "translate(" + 
 		        	       (self.xTranscriptChart(d.donor.pos) - (self.sitePointerWidth/2))  + 
-		        	       "," + "50" + ")"
+		        	       "," + ySitePointer + ")"
 		        })
 			      .transition()
 			      .duration(200)
 			      .style("opacity", .9); 
 
+
+		      // Show an * below donor pointer if donor site is noncanonical
+		      if (d.donor.status && d.donor.status == 'noncanonical') {
+		     		d3.selectAll("#diagrams #transcript-diagram .donor-problem")
+		     		  .attr("x", function(d1) {
+									return (self.xTranscriptChart(d.donor.pos)) 
+		     		  })
+		     		  .attr("y", ySitePointer + self.sitePointerHeight + 5)
+							.transition()
+		      		.duration(200)
+		      		.style("opacity", .9); 
+		      }
+
+			    // Acceptor pointer
 	      	d3.selectAll("#diagrams #transcript-diagram .acceptor-pointer")
 	      	  .attr("transform", function(d1) {
 		        	return "translate(" + 
 		        	       (self.xTranscriptChart(d.acceptor.pos) - (self.sitePointerWidth/2))  + 
-		        	       "," + "50" + ")"
+		        	       "," + ySitePointer + ")"
 		        })
 			      .transition()
 			      .duration(200)
 			      .style("opacity", .9); 
+
+
+		      // Show an * below acceptor pointer if acceptor site is noncanonical
+		      if (d.acceptor.status && d.acceptor.status == 'noncanonical') {
+		     		d3.selectAll("#diagrams #transcript-diagram .acceptor-problem")
+		     		  .attr("x", function(d1) {
+									return (self.xTranscriptChart(d.acceptor.pos) ) 
+		     		  })
+		     		  .attr("y", ySitePointer + self.sitePointerHeight + 5)
+							.transition()
+		      		.duration(200)
+		      		.style("opacity", .9); 
+		      }
+
 	      }
 	      // Show the pointers on the zoomed transcript chart
 	      if (self.xTranscriptChartZoomed) {
@@ -1411,21 +1630,45 @@ export default {
 	      	  .attr("transform", function(d1) {
 		        	return "translate(" + 
 		        	       (self.xTranscriptChartZoomed(d.donor.pos) - (self.sitePointerWidth/2))  + 
-		        	       "," + "50" + ")"
+		        	       "," + ySitePointer + ")"
 		        })
 			      .transition()
 			      .duration(200)
 			      .style("opacity", .9); 
 
+		      // Show an * below donor pointer if donor site is noncanonical
+		      if (d.donor.status && d.donor.status == 'noncanonical') {
+		     		d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-problem")
+		     		  .attr("x", function(d1) {
+									return (self.xTranscriptChartZoomed(d.donor.pos) ) 
+		     		  })
+		     		  .attr("y", ySitePointer + self.sitePointerHeight + 5)
+							.transition()
+		      		.duration(200)
+		      		.style("opacity", .9); 
+		      }
+
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-pointer")
 	      	  .attr("transform", function(d1) {
 		        	return "translate(" + 
 		        	       (self.xTranscriptChartZoomed(d.acceptor.pos) - (self.sitePointerWidth/2))  + 
-		        	       "," + "50" + ")"
+		        	       "," + ySitePointer + ")"
 		        })
 			      .transition()
 			      .duration(200)
 			      .style("opacity", .9); 
+
+		      // Show an * below acceptor pointer if acceptor site is noncanonical
+		      if (d.acceptor.status && d.acceptor.status == 'noncanonical') {
+		     		d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-problem")
+		     		  .attr("x", function(d1) {
+									return (self.xTranscriptChartZoomed(d.acceptor.pos) ) 
+		     		  })
+		     		  .attr("y", ySitePointer + self.sitePointerHeight + 5)
+							.transition()
+		      		.duration(200)
+		      		.style("opacity", .9); 
+		      }
 	      }
 
       }
@@ -1440,11 +1683,18 @@ export default {
 			      .transition()
 			      .duration(200)
 			      .style("opacity", 0); 
-
 	      	d3.selectAll("#diagrams #transcript-diagram .acceptor-pointer-small")
 			      .transition()
 			      .duration(200)
 			      .style("opacity", 0); 
+					d3.selectAll("#diagrams #transcript-diagram .donor-problem-small")
+			      .transition()
+			      .duration(200)
+			      .style("opacity", 0); 			      
+					d3.selectAll("#diagrams #transcript-diagram .acceptor-problem-small")
+			      .transition()
+			      .duration(200)
+			      .style("opacity", 0); 			      
 	      }
 	      // Hide the pointers on the zoomed transcript chart
 	      if (self.xTranscriptChartZoomed) {
@@ -1452,8 +1702,15 @@ export default {
 			      .transition()
 			      .duration(200)
 			      .style("opacity", 0); 
-
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-pointer-small")
+			      .transition()
+			      .duration(200)
+			      .style("opacity", 0); 
+	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-problem-small")
+			      .transition()
+			      .duration(200)
+			      .style("opacity", 0); 
+	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-problem-small")
 			      .transition()
 			      .duration(200)
 			      .style("opacity", 0); 
@@ -1465,8 +1722,15 @@ export default {
 			      .transition()
 			      .duration(200)
 			      .style("opacity", 0); 
-
-	      	d3.selectAll("#diagrams #transcript-diagram .acceptor-pointer-small")
+	      	d3.selectAll("#diagrams #transcript-diagram .acceptor-pointer")
+			      .transition()
+			      .duration(200)
+			      .style("opacity", 0); 
+	      	d3.selectAll("#diagrams #transcript-diagram .donor-problem")
+			      .transition()
+			      .duration(200)
+			      .style("opacity", 0); 
+	      	d3.selectAll("#diagrams #transcript-diagram .acceptor-problem")
 			      .transition()
 			      .duration(200)
 			      .style("opacity", 0); 
@@ -1477,8 +1741,15 @@ export default {
 			      .transition()
 			      .duration(200)
 			      .style("opacity", 0); 
-
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-pointer")
+			      .transition()
+			      .duration(200)
+			      .style("opacity", .0); 
+	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-problem")
+			      .transition()
+			      .duration(200)
+			      .style("opacity", 0); 
+	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-problem")
 			      .transition()
 			      .duration(200)
 			      .style("opacity", .0); 
@@ -1586,6 +1857,9 @@ svg path.junction.selected {
 svg path.junction.selected.clicked {
 	stroke: #FE0101;
 }
+svg path.junction.clicked {
+	stroke: #FE0101;
+}
 
 
 .hide-strand-mismatches svg path.junction.strand-mismatches {
@@ -1641,7 +1915,11 @@ div.tooltip1 {
 }
 
 #transcript-diagram .exon-highlight {
-  stroke: #FE0101;
+  stroke: black;
+  fill: #f65b5b;
+}
+#transcript-diagram .exon-highlight.clicked {
+  stroke: black;
   fill: #FE0101;
 }
 #zoomed-diagrams svg {
@@ -1686,10 +1964,26 @@ div.tooltip1 {
 	stroke-width: 1;
 }
 
-.arc-pointer-small, .donor-pointer-small, .acceptor-pointer-small  {
+.arc-pointer-small, .acceptor-pointer-small, .donor-pointer-small {
 	fill: #FA8072;
 	stroke: black; 
 	stroke-width: 1;
+}
+
+
+
+.donor-problem, .acceptor-problem {
+	fill: #ca231d;
+	font-weight: 600;
+	font-size: 20px;
+	text-anchor: middle;
+}
+
+.donor-problem-small, .acceptor-problem-small {
+	fill: #ca231d;
+	font-weight: 600;
+	font-size: 16px;
+	text-anchor: middle;
 }
 
 text.junction {
