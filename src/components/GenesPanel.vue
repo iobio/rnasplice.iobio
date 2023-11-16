@@ -2,7 +2,6 @@
  
     <v-card id="genes-panel" style="padding-top:0px;padding-left:5px" >
 
-
       <div class="d-flex flex-row align-center">
         <h2>Genes
         </h2>
@@ -19,24 +18,40 @@
         </v-btn>
       </div>
 
-      <div v-if="geneModel && geneModel.sortedGeneNames.length > 0">
-        <div v-for="geneName in geneModel.geneNames"
-          class="gene-item mb-2"
-          :key="geneName" style="display: flex"
 
+      <v-expansion-panels v-if="geneModel && geneModel.sortedGeneNames.length > 0">
+        <v-expansion-panel v-for="geneName in geneModel.geneNames"  :key="geneName"
+          :title="geneName" style="min-height:10px;max-height:300px;overflow-y:scroll"
         >
-          <v-btn class="gene-button" @click="onGeneClicked(geneName)" size="medium" 
-          style="margin-left:0px;padding-left: 5px;padding-right:5px;padding-top: 1px;padding-bottom: 1px;font-size: 13px; width:110px" variant="outlined"  density="compact">{{ geneName }}</v-btn>
-          <div>
-            
-          </div>
-          
-          <v-btn  id="clear-gene-button" variant="text" @click="onClearGene(geneName)">
-            <v-icon icon="mdi-close"></v-icon>
-          </v-btn>
+          <template v-slot:title>
+            <v-btn class="gene-button" @click="onGeneClicked(geneName)" size="medium" 
+              style="margin-left:0px;padding-left: 5px;padding-right:5px;padding-top: 1px;padding-bottom: 1px;font-size: 13px; width:110px"  density="compact">{{ geneName }}</v-btn>
+           
+            <v-btn  id="clear-gene-button" variant="text" @click="onClearGene(geneName)">
+                <v-icon icon="mdi-close"></v-icon>
+              </v-btn>
+          </template>
+          <template v-slot:text>
+            <div v-if="getSummary(geneName)">
+              <div 
+                v-for="spliceJunction in getSummary(geneName).noncanonical"
+                :key="spliceJunction.key"
+                
+              >
+              <div class="d-flex" style="margin-bottom:10px;cursor:pointer;text-align: left"  @click="onSelectSpliceJunction(spliceJunction)" flat density="compact">
+                <div style="width: 310px;">{{ spliceJunction.label}}</div>
+                <div style="width: 50px">{{ spliceJunction.readCount }}</div>
+                <div>{{ (spliceJunction.strand && spliceJunction.strand != 'undefined' ? spliceJunction.strand : `?`)}}</div>  
+              </div>
+              </div>
+            </div>
+          </template>
 
-        </div>
-      </div>
+        </v-expansion-panel>
+      </v-expansion-panels>
+
+
+    
 
 
     </v-card>
@@ -57,7 +72,6 @@ export default {
   props: {
     geneModel: Object,
     show: Boolean,
-
     selectedObject: Object
   },
   data: () => ({
@@ -92,6 +106,12 @@ export default {
     },
     onGeneClicked: function(geneName) {
       this.$emit('gene-clicked', geneName)
+    },
+    getSummary: function(geneName) {
+      return this.geneModel.geneToSpliceJunctionSummary[geneName];
+    },
+    onSelectSpliceJunction: function(spliceJunction) {
+      this.$emit("select-splice-junction", spliceJunction)
     }
   },
   watch: {

@@ -29,6 +29,7 @@
               @clear-gene="onClearGene"
               @clear-all-genes="onClearAllGenes"
               @gene-clicked="onGeneClicked"
+              @select-splice-junction="selectSpliceJunction"
             />
 
             <ObjectDetails 
@@ -184,7 +185,7 @@ export default {
       }
       self.addAlert("info", "reloaded data")
     },
-    onSpliceJunctionsLoaded: function(spliceJunctionData) {
+    onSpliceJunctionsLoaded: function(spliceJunctionData, summary) {
       this.spliceJunctionsForGene = spliceJunctionData;
     },
     addAlert: function(type, message, genes=null, details=null) {
@@ -329,6 +330,14 @@ export default {
     onObjectSelected: function(selectedObject) {
       this.selectedObject = selectedObject;
 
+    },
+    selectSpliceJunction: function(spliceJunction) {
+      // this is called when the user clicked on a non-canonical
+      // splice junction in the genes panel. This should result in
+      // the splice junction being selected in the main arc diagram
+      if (this.$refs.ref_SpliceJunctionHome) {
+        this.$refs.ref_SpliceJunctionHome.selectSpliceJunction(spliceJunction)
+      }
     }
   }
 

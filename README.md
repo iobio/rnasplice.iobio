@@ -1,4 +1,4 @@
-# default
+# How to install
 
 
 ## Clone the repo:

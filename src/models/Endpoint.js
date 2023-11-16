@@ -6,8 +6,8 @@ export default class EndpointCmd {
     this.globalApp         = globalApp;
     this.genomeBuildHelper = genomeBuildHelper;
     //this.api = new Client(this.globalApp.IOBIO_SERVICES);
-    //this.api = new Client('https://mosaic.chpc.utah.edu/gru-dev-9002')
-    this.api = new Client('https://mosaic.chpc.utah.edu/gru/api/v1')
+    this.apiSandbox = new Client('https://mosaic.chpc.utah.edu/gru-dev-9002')
+    this.api        = new Client('https://mosaic.chpc.utah.edu/gru/api/v1')
   }
 
 
@@ -68,6 +68,46 @@ export default class EndpointCmd {
 
       cmd.on('error', function(error) {
         let msgObj = {'message': "Backend service bedRegion failed",
+                      'details': error.toString()}
+        reject(msgObj);
+      });
+
+      cmd.run();
+
+    })
+  }
+
+
+  promiseGetReferenceSequence(refName, region) {
+    const self = this;
+    return new Promise(function(resolve, reject) {
+      const refFastaFile = self.genomeBuildHelper.getFastaPath(refName);
+      let cmd = self.apiSandbox.streamCommand('getReferenceSequence', {'fastaPath': refFastaFile,  'region': region});
+
+      let buffer = "";
+      let success = false;
+      cmd.on('data', function(data) {
+        if (data != undefined) {
+          success = true;
+          buffer += data;
+        }
+      });
+
+      cmd.on('end', function() {
+        if (success == null) {
+          success = true;
+        }
+        if (success && buffer.length > 0) {
+          records = buffer.split("\n")
+
+          resolve(records);
+        } else if (buffer.length == 0) {
+          reject({'message': "No data returned from backend service getReferenceSequence"});
+        }
+      });
+
+      cmd.on('error', function(error) {
+        let msgObj = {'message': "Backend service getReferenceSequence failed",
                       'details': error.toString()}
         reject(msgObj);
       });

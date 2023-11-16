@@ -8,8 +8,8 @@
           <div class="d-flex flex-row align-center"> 
             Splice Junction
             <div class="d-flex flex-row ml-4" style="height:26px;">
-              <v-chip color="red"  size="small" v-if="!selectedObject.isCanonicalSplice">Non-canonical splice</v-chip>
-              <v-chip color="primary"  size="small" v-if="selectedObject.isAlternateSplice">Alternate splice</v-chip>
+              <v-chip color="red"  size="small" v-if="selectedObject.spliceKind == 'noncanonical'">Non-canonical splice</v-chip>
+              <v-chip color="primary"  size="small" v-if="selectedObject.spliceKind=='canonical' && selectedObject.countSkippedExons > 0">Alternate splice</v-chip>
             </div>
           </div>
         </h2>
@@ -33,7 +33,7 @@
           </div>
           <div class="so-value">
              {{ selectedObject.donor.label }}
-             <span v-if="selectedObject.donor.exon && selectedObject.donor.status == 'noncanonical' "> 
+             <span v-if="debug && selectedObject.donor.exon && selectedObject.donor.status == 'noncanonical' "> 
                  <span :style="selectedGene.strand == `-` ? `font-style:italic;color:red` : ``">                 
                   {{ selectedObject.donor.exon.start }}
                  </span>
@@ -46,14 +46,18 @@
         </div>
         <div v-if="selectedObject.donor.exon" class="d-flex flex-row">
           <div class="so-label"></div>
-          <div class="so-value">{{ selectedObject.donor.pos }}</div>
+          <div class="so-value">{{ selectedObject.donor.pos }} </div>
+        </div>
+        <div v-if="selectedObject.donor.delta && selectedObject.donor.delta != 0" class="d-flex flex-row">
+          <div class="so-label">Distance to canonical site</div>
+          <div class="so-value">{{ selectedObject.donor.delta * -1 > 0 ? '+': ''}}{{ selectedObject.donor.delta * -1 }} bp</div>
         </div>
         <div v-if="selectedObject.donor.exonClosest" class="d-flex flex-row">
-          <div class="so-label"></div>
-          <div class="so-value">{{ selectedObject.donor.exonClosest }}</div>
+          <div class="so-label">Closest exon to donor</div>
+          <div class="so-value">Exon {{ selectedObject.donor.exonClosest.number }}</div>
         </div>
 
-
+        <v-divider style="border-top-color:black"/>
 
         <div class="d-flex flex-row">
           <div class="so-label">
@@ -63,7 +67,7 @@
           </div>
           <div class="so-value">
              {{ selectedObject.acceptor.label }}
-             <span v-if="selectedObject.acceptor.exon && selectedObject.acceptor.status == 'noncanonical'"> 
+             <span v-if="debug && selectedObject.acceptor.exon && selectedObject.acceptor.status == 'noncanonical'"> 
                  <span :style="selectedGene.strand == `+` ? `font-style:italic;color:red` : ``">                 
                   {{ selectedObject.acceptor.exon.start }}
                  </span>
@@ -78,10 +82,17 @@
           <div class="so-label"></div>
           <div class="so-value">{{ selectedObject.acceptor.pos }}</div>
         </div>
-        <div v-if="selectedObject.acceptor.exonClosest" class="d-flex flex-row">
-          <div class="so-label"></div>
-          <div class="so-value">{{ selectedObject.acceptor.exonClosest }}</div>
+        <div v-if="selectedObject.acceptor.delta && selectedObject.acceptor.delta != 0" class="d-flex flex-row">
+          <div class="so-label">Distance to canonical site</div>
+          <div class="so-value">{{ selectedObject.acceptor.delta * -1 > 0 ? '+': ''}}{{ selectedObject.acceptor.delta * -1 }} bp</div>
         </div>
+
+        <div v-if="selectedObject.acceptor.exonClosest" class="d-flex flex-row">
+          <div class="so-label">Closest exon to acceptor</div>
+          <div class="so-value">Exon {{ selectedObject.acceptor.exonClosest.number }}</div>
+        </div>
+
+        <v-divider style="border-top-color:black"/>
 
 
         <div class="d-flex flex-row">
@@ -143,6 +154,7 @@ export default {
     selectedGene: Object
   },
   data: () => ({
+    debug: false
   }),
   methods: {
   },
@@ -159,7 +171,7 @@ export default {
     >div
       margin-bottom: 5px
   .so-label
-    width: 170px 
+    width: 200px 
   .so-value   
     width: calc(100% - 170px)
 </style>

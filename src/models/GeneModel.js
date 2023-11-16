@@ -65,6 +65,8 @@ class GeneModel {
     this.geneToLatestTranscript = {};
     this.geneToEnsemblId = {};
     this.geneToHPOTerms = {};
+    this.geneToSpliceJunctionRecords = {}
+    this.geneToSpliceJunctionSummary = {}
 
 
     this.allKnownGenes = [];
@@ -795,153 +797,334 @@ class GeneModel {
     return unionedTranscript;
   }
 
-  createSpliceJunctions(bedRecords, geneObject, transcript) {
+  createSpliceJunctions(bedRecords, geneObject, transcript, options={'allTranscripts': true}) {
     let self = this;
     let spliceJunctions = bedRecords.map(function(bedRow) {
 
       let donorPos      =  geneObject.strand == "+" ? +bedRow.start : +bedRow.end;
       let acceptorPos   =  geneObject.strand == "+" ? +bedRow.end   : +bedRow.start;
 
-      let exonDonor       = self.locateExon(transcript, +donorPos); 
-      let exonAcceptor    = self.locateExon(transcript, +acceptorPos);
+      let matchedExons = self.locateExons(geneObject, transcript, donorPos, acceptorPos, options)
 
-      let junctionKind         = "canonical"
+      let exonMatchDonor            = matchedExons.donor;
+      let exonMatchAcceptor         = matchedExons.acceptor;
+      let matchesOnOtherTranscripts = matchedExons.matchesOnOtherTranscripts;
+
+
+      let spliceKind           = "canonical"
       let donor                = null
       let acceptor             = null
       let countSkippedExons    = 0;
 
-      if (exonDonor && exonAcceptor) {
-        countSkippedExons = Math.abs(+exonAcceptor.number - +exonDonor.number)
-        donor    = {'exon': exonDonor,      pos: +donorPos,      'status': null}
-        acceptor = {'exon': exonAcceptor,   pos: +acceptorPos,   'status': null}
+      if (exonMatchDonor && exonMatchAcceptor) {
+        countSkippedExons = Math.abs(+exonMatchAcceptor.exon.number - +exonMatchDonor.exon.number) - 1;
+        donor    = {'exon': exonMatchDonor.exon,    pos: +donorPos,    'transcript': exonMatchDonor.transcript,    'delta': exonMatchDonor.delta,    'status': exonMatchDonor.status}
+        acceptor = {'exon': exonMatchAcceptor.exon, pos: +acceptorPos, 'transcript': exonMatchAcceptor.transcript, 'delta': exonMatchAcceptor.delta, 'status': exonMatchAcceptor.status}
       } else {
-        if (exonDonor == null && exonAcceptor == null) {
-          let donorClosest      = self.locateExonsBetween(transcript, +donorPos); 
-          let acceptorClosest   = self.locateExonsBetween(transcript, +acceptorPos);
+        if (exonMatchDonor == null && exonMatchAcceptor == null) {
+          let donorClosest     = self.locateExonsBetween(transcript, +donorPos, 'donor'); 
+          let acceptorClosest  = self.locateExonsBetween(transcript, +acceptorPos, 'acceptor');
           if (donorClosest && donorClosest.closestExon && acceptorClosest && acceptorClosest.closestExon) {
-            countSkippedExons = Math.abs(+donorClosest.closestExon.number - +acceptorClosest.closestExon.number)
+            countSkippedExons = Math.abs(+donorClosest.closestExon.number - +acceptorClosest.closestExon.number) - 1;
           }
-          donor    = {'exonClosest': donorClosest.closestExon,      pos: +donorPos,    'status': null}
-          acceptor = {'exonClosest': acceptorClosest.closestExon,   pos: +acceptorPos, 'status': null}
-        } else if (exonDonor == null) {
-          let donorClosest = self.locateExonsBetween(transcript, +donorPos);
+          donor    = {'exonClosest': donorClosest.closestExon,      pos: +donorPos,    'transcript': donorClosest.transcript,    'delta': donorClosest.delta,   'status': donorClosest.status}
+          acceptor = {'exonClosest': acceptorClosest.closestExon,   pos: +acceptorPos, 'transcript': acceptorClosest.transcript, 'delta': acceptorClosest.delta,'status': acceptorClosest.status}
+        } else if (exonMatchDonor == null) {
+          let donorClosest = self.locateExonsBetween(transcript, +donorPos, 'donor');
           if (donorClosest && donorClosest.closestExon) {
-            countSkippedExons = Math.abs(+donorClosest.closestExon.number - +exonAcceptor.number)
+            countSkippedExons = Math.abs(+donorClosest.closestExon.number - +exonMatchAcceptor.exon.number) - 1
           }
-          donor    = {'exonClosest': donorClosest.closestExon, pos: +donorPos,    'status': ''}
-          acceptor = {'exon':        exonAcceptor,             pos: +acceptorPos, 'status': ''}
+          donor    = {'exonClosest': donorClosest.closestExon, pos: +donorPos,    'transcript': donorClosest.transcript,      'delta': donorClosest.delta,     'status': donorClosest.status}
+          acceptor = {'exon':        exonMatchAcceptor.exon,   pos: +acceptorPos, 'transcript': exonMatchAcceptor.transcript, 'delta': exonMatchAcceptor.delta,'status': exonMatchAcceptor.status}
 
-        } else if (exonAcceptor == null) {
-          let acceptorClosest   = self.locateExonsBetween(transcript, +acceptorPos);
+        } else if (exonMatchAcceptor == null) {
+          let acceptorClosest   = self.locateExonsBetween(transcript, +acceptorPos, 'acceptor');
           if (acceptorClosest && acceptorClosest.closestExon) {
-            countSkippedExons = Math.abs(+exonDonor.number - +acceptorClosest.closestExon.number)
+            countSkippedExons = Math.abs(+exonMatchDonor.exon.number - +acceptorClosest.closestExon.number) - 1
           }
-          donor    = {'exon': exonDonor,                          pos: +donorPos,    'status': null}
-          acceptor = {'exonClosest': acceptorClosest.closestExon, pos: +acceptorPos, 'status': null}
+          donor    = {'exon': exonMatchDonor.exon,                pos: +donorPos,    'transcript': exonMatchDonor.transcript, 'delta': exonMatchDonor.delta, 'status': exonMatchDonor.status }
+          acceptor = {'exonClosest': acceptorClosest.closestExon, pos: +acceptorPos, 'transcript': acceptorClosest.transcript,'delta': acceptorClosest.delta, 'status': acceptorClosest.status}
         } 
       }
-      
 
-      let spliceKind = 'canonical';
-      if (geneObject.strand == '+') {
-        if (donor.exon && Math.abs(donor.exon.end - donor.pos) > 1) {
-          donor.status = 'noncanonical'
-        } else if (!donor.exon) {
-          donor.status = 'noncanonical'
-        } 
-
-        if (acceptor.exon && Math.abs(acceptor.exon.start - acceptor.pos) > 1) {
-          acceptor.status = 'noncanonical'
-        } else if (!acceptor.exon) {
-          acceptor.status = 'noncanonical'
-        }
-      } else {
-        if (donor.exon && Math.abs(donor.exon.start - donor.pos) > 1) {
-          donor.status = 'noncanonical'
-        } else if (!donor.exon) {
-          donor.status = 'noncanonical'
-        }
-
-        if (acceptor.exon && Math.abs(acceptor.exon.end - acceptor.pos) > 1) {
-          acceptor.status = 'noncanonical'
-        } else if (!acceptor.exon) {
-          acceptor.status = 'noncanonical'
-        }
-      }
       if (donor.status == 'noncanonical' || acceptor.status == 'noncanonical') {
         spliceKind = 'noncanonical'
       }
 
       let donorLabel = "";
       if (donor.exon) {
-        donorLabel =  ' Exon ' + donor.exon.number 
+        donorLabel =  
+        
+        'Exon ' + donor.exon.number 
+        //+
+        //(donor.delta && donor.delta > 0 ? ' +' : ' ') +
+        //(donor.delta && donor.delta != 0 ? donor.delta + ' bp' : '')
       } else  {
-        donorLabel = ' Intronic ' + donor.pos;
+        donorLabel = 'Intronic '  + geneObject.chr + ":" +  d3.format(",")(donor.pos);
       }
       let acceptorLabel = "";
       if (acceptor.exon) {
-        acceptorLabel =  ' Exon ' + acceptor.exon.number 
+        acceptorLabel =  
+        'Exon ' + acceptor.exon.number 
+        //+ 
+        //(acceptor.delta && acceptor.delta > 0 ? ' +' : ' ') +
+        //(acceptor.delta && acceptor.delta != 0 ? acceptor.delta + ' bp' : '')
       } else  {
-        acceptorLabel = ' Intronic ' + acceptor.pos;
+        acceptorLabel = 'Intronic ' + geneObject.chr + ":" + d3.format(",")(acceptor.pos);
       }
       donor.label = donorLabel;
       acceptor.label = acceptorLabel;
-      let label = donorLabel + " -> " + acceptorLabel
+      let label = (donor.delta && donor.delta != 0 ? '~' : '') +
+                  donorLabel + 
+                  " -> " + 
+                  (acceptor.delta && acceptor.delta != 0 ? '~' : '') +
+                  acceptorLabel
 
       return {
-        donor:             donor,
-        acceptor:          acceptor,
-        label:             label,
+        'key':               donor.pos + ">" + acceptor.pos + "(" + bedRow.strand + ")",
+        'donor':             donor,
+        'acceptor':          acceptor,
+        'label':             label,
 
-        skippedExons:      countSkippedExons > 0 ? true : false,
-        countSkippedExons: countSkippedExons,
+        'countSkippedExons': countSkippedExons,
 
-        spliceKind:        spliceKind,
+        'spliceKind':        spliceKind,
 
-        motif:             bedRow.annots.motif,
-        strand:            bedRow.strand,
-        readCount:        +bedRow.score,
+        'motif':             bedRow.annots ? bedRow.annots.motif : null,
+        'strand':            bedRow.strand,
+        'readCount':        +bedRow.score,
+
+        'matchesOnOtherTranscripts': matchesOnOtherTranscripts
       }
     })
+
+    self.geneToSpliceJunctionRecords[geneObject.gene_name] = spliceJunctions;
+    self.summarizeSpliceJunctions(geneObject, transcript)
     return spliceJunctions;
 
   }
 
+  summarizeSpliceJunctions(geneObject, transcript) {
+    let self = this;
+    let summary = null;
+    let spliceJunctions = self.geneToSpliceJunctionRecords[geneObject.gene_name];
+    if (spliceJunctions) {
+      
+      let nonCanonicalSplice = spliceJunctions.filter(function(spliceJunction) {
+        return spliceJunction.spliceKind == 'noncanonical';
+      })
+      .filter(function(spliceJunction) {
+        if(spliceJunction.strand == null || spliceJunction.strand == 'undefined') {
+          return true;
+        } else if (spliceJunction.strand == geneObject.strand) {
+          return true;
+        }
+      })
+      .sort(function(a,b) {
+        return b.readCount - a.readCount;
+      })
 
-  locateExon(transcript, position) {
-    var matched = transcript.exons.filter(function(exon) {
-      let exonStart = +exon.start - 1;
-      let exonEnd   = +exon.end;
-      return exonStart <= +position && exonEnd >= +position;
-    })
-    if (matched.length > 0) {
-      return matched[0];
+      let alternateSplice = spliceJunctions.filter(function(spliceJunction) {
+        return spliceJunction.spliceKind == 'canonical' && spliceJunction.countSkippedExons > 0;
+      })
+      let canonicalSplice = spliceJunctions.filter(function(spliceJunction) {
+        return spliceJunction.spliceKind == 'canonical' && spliceJunction.countSkippedExons == 0;
+      })
+      summary = {
+          'canonical':          canonicalSplice,
+          'noncanonical':       nonCanonicalSplice, 
+          'alternateSplice':    alternateSplice
+      }
+      self.geneToSpliceJunctionSummary[geneObject.gene_name] = summary;
+    }
+    return summary;
+  }
+
+ 
+  locateExons(geneObject, preferredTranscript, donorPos, acceptorPos, options) {
+    let self = this;
+
+    let exonMatchDonor = null;
+    let exonMatchAcceptor = null;
+
+    // Check for matching exons on donor and acceptor site on preferred (MANE SELECT)
+    // transcript first. Site must be positioned on exon boundary (isExact=true)
+    let exonDonorPreferred    = self._locateExon(preferredTranscript, +donorPos,    'donor',    true); 
+    let exonAcceptorPreferred = self._locateExon(preferredTranscript, +acceptorPos, 'acceptor', true);
+
+
+    let matchesOnOtherTranscripts = [];
+
+    // If both the donor and acceptor site are found on exons on the preferred transcript,
+    // continue on with these identified exons
+    if (exonDonorPreferred && exonAcceptorPreferred) {
+      exonMatchDonor   = exonDonorPreferred;
+      exonMatchAcceptor = exonAcceptorPreferred;
+    } else if (options && options.allTranscripts) {
+        
+      // Loop through all of the transcripts, trying to find a matching
+      // exon for the donor and acceptor site
+      let transcripts = geneObject.transcripts.filter(function(transcript) {
+        return transcript.transcript_id != preferredTranscript.transcript_id
+      })
+
+      let idx = 0;
+      for (idx = 0; idx < transcripts.length; idx++) {
+        let transcript = transcripts[idx]
+        let exonDonor    = self._locateExon(transcript, +donorPos,    'donor',    true); 
+        let exonAcceptor = self._locateExon(transcript, +acceptorPos, 'acceptor', true);
+        if (exonDonor && exonAcceptor) {
+          // If we match on the donor and acceptor exon on the same transcript,
+          // we have match. Keep the first match and keep a list of
+          // all of the transcripts with matches.
+          if (!exonMatchDonor) {
+            exonMatchDonor    = exonDonor;
+          } 
+          if (!exonMatchAcceptor) {
+            exonMatchAcceptor = exonAcceptor;
+          }
+          exonMatchAcceptor = exonAcceptor;
+          matchesOnOtherTranscripts.push({'matchDonor': exonMatchDonor, 
+                                          'matchAcceptor': exonMatchAcceptor})
+        } 
+      }
+    } 
+
+    // If we found an exact match on the donor and acceptor site for a transcript,
+    // use those; otherwise, fuzzy match on preferred transcript
+    if (exonMatchDonor && exonMatchAcceptor) {
+
+    } else if (exonDonorPreferred) {
+      exonMatchDonor = exonDonorPreferred
+      exonMatchAcceptor = self._locateExon(preferredTranscript, +acceptorPos, 'acceptor', false);
+
+    } else if (exonAcceptorPreferred) {
+      exonMatchAcceptor = exonAcceptorPreferred;
+      exonMatchDonor    = self._locateExon(preferredTranscript, +donorPos,    'donor',    false); 
+    } else {
+      exonMatchAcceptor = self._locateExon(preferredTranscript, +acceptorPos, 'acceptor', false);
+      exonMatchDonor    = self._locateExon(preferredTranscript, +donorPos,    'donor',    false); 
+
+    }
+
+    return {'donor': exonMatchDonor, 
+            'acceptor': exonMatchAcceptor, 
+            'matchesOnOtherTranscripts': matchesOnOtherTranscripts}
+
+  }
+
+
+  _locateExon(transcript, position, site, isExact) {
+    if (transcript.exons) {
+
+      // The position provided in the bed has an offset.
+      //   For plus strand: 
+      //     donor site    is stated as position at exon end
+      //     acceptor site is stated as position at exon start - 1
+      //   For minus strand
+      //     donor site    is stated as position at exon start - 1
+      //     acceptor site is stated as position at exon end
+      let thePosition = position;
+      if (site == 'acceptor') {
+        if (transcript.strand == '-') {
+          // The acceptor position is stated as the exon end.
+          // Adjust it to the correct coordinates, which is 1 bp after
+          // the exon end
+          thePosition = thePosition + 1;
+        } else {
+          // The acceptor position is stated as 1 bp before the exon start.
+          // Adjust it to the correct coordinates (subtract 1), which is 2 bp 
+          // before the exon start (considering the splice site is 2 bp long)
+          thePosition = thePosition - 1;
+        }
+      } else if (site == 'donor') {
+        if (transcript.strand == '-') {
+          // The donor position is stated as 1 bp before the exon start.
+          // Adjust it to the correct coordinates (subtract 1), which is 2 bp 
+          // before the exon start (considering the splice site is 2 bp long)
+          thePosition = thePosition - 1;
+        } else {
+          // The donor position is stated as the exon end.
+          // Adjust it to the correct coordinates, which is 1 bp after
+          // the exon end
+          thePosition = thePosition + 1;
+        }
+      }
+      var matched = transcript.exons.map(function(exon) {
+        let start = null;
+        let end = null;
+        let delta = null;
+        if (site == 'acceptor') {
+          if (transcript.strand == '-') {
+            // The acceptor site is 1 bp after the exon end.
+            start = isExact ? +exon.end + 1 : +exon.start;
+            end   = isExact ? +exon.end + 1 : +exon.end; 
+            delta = thePosition - end;
+          } else {
+            // The acceptor site is 2 bp before the exon start
+            start = isExact ? +exon.start - 2 : +exon.start;
+            end   = isExact ? +exon.start - 2 : +exon.end;
+            delta = thePosition - start;
+          }
+        } else if (site == 'donor') {
+          if (transcript.strand == '-') {
+            // The donor site is 2 bp before the exon start
+            start = isExact ? +exon.start - 2 : +exon.start;
+            end   = isExact ? +exon.start - 2 : +exon.end;
+            delta = thePosition - start;
+          } else {
+            // The donor site is 1 bp after the exon end
+            start = isExact ? +exon.end + 1 : +exon.start;
+            end   = isExact ? +exon.end + 1 : +exon.end; 
+            delta = thePosition - end;
+          }
+        }
+        return {'start': start, 'end': end, 'exon': exon, 'delta': delta}
+      })
+      .filter(function(boundary) {
+        return boundary.start <= thePosition && boundary.end >= thePosition;
+      })
+      if (matched.length > 0) {
+        return {'transcript': transcript, 
+                'exon': matched[0].exon, 
+                'delta': matched[0].delta,
+                'boundaryStart': matched[0].start, 
+                'boundaryEnd': matched[0].end, 
+                'status': isExact ? 'canonical' : 'noncanonical' };
+      } else {
+        return null;
+      }      
     } else {
       return null;
     }
   }
 
+  
 
 
-  locateExonsBetween(transcript, position) {
+
+  locateExonsBetween(transcript, position, spliceSite) {
     let betweenExons = null;
-    let closestExon = null;
-    let matchExon = null;
+    let exonClosest = null;
     if (transcript.strand == '-') {
-      for (var i = 1; i < transcript.exons.length; i++) {
+      for (var i = transcript.exonsOnly.length-1; i >= 1; i--) {
         let exon     = transcript.exons[i]
-        let prevExon = transcript.exons[i-1]
+        let nextExon = transcript.exons[i-1]
 
-        let exonStart   = +exon.start - 1;
-        let prevExonEnd = +prevExon.end;
-        if (position <= exonStart && position >= prevExonEnd) {
-          betweenExons = [prevExon, exon];
-          matchExon = prevExon;
+        let exonEnd         = +exon.end;
+        let nextExonStart   = +nextExon.start - 1;
+        if (position >= exonEnd && position <= nextExonStart) {
+          betweenExons = [exon, nextExon];
+          if (spliceSite == 'donor') {
+            exonClosest = nextExon;
+          } else {
+            exonClosest = exon;
+          }
           break;
         }
       }
     } else {
-      for (var i = 0; i < transcript.exons.length-1; i++) {
+      for (var i = 0; i < transcript.exonsOnly.length-1; i++) {
         let exon     = transcript.exons[i]
         let nextExon = transcript.exons[i+1]
 
@@ -949,12 +1132,19 @@ class GeneModel {
         let nextExonStart = +nextExon.start - 1;
         if (position >= exonEnd && position <= nextExonStart) {
           betweenExons = [exon, nextExon];
-          matchExon = nextExon;
+          if (spliceSite == 'donor') {
+            exonClosest = exon;
+          } else {
+            exonClosest = nextExon;
+          }
           break;
         }
       } 
     } 
-    return {'closestExon': matchExon, 'betweenExons': betweenExons};
+    return {'transcript': transcript, 
+            'closestExon': exonClosest, 
+            'betweenExons': betweenExons,
+            'status': 'noncanonical'};
   }
 
   getCanonicalTranscriptOld(theGeneObject) {
@@ -1349,6 +1539,7 @@ class GeneModel {
 
   }
 
+
   promiseGetHPOTermsPublicAPI(geneName) {
     let self = this;
     return new Promise(function(resolve, reject) {
@@ -1516,6 +1707,13 @@ class GeneModel {
 
     if (self.geneToHPOTerms && self.geneToHPOTerms.hasOwnProperty(geneName)) {
       delete self.geneToHPOTerms[geneName]
+    }
+
+    if (self.geneToSpliceJunctionRecords && self.geneToSpliceJunctionRecords.hasOwnProperty(geneName)) {
+      delete self.geneToSpliceJunctionRecords[geneName];
+    }
+    if (self.geneToSpliceJunctionSummary && self.geneToSpliceJunctionSummary.hasOwnProperty(geneName)) {
+      delete self.geneToSpliceJunctionSummary[geneName];
     }
 
     if (self.geneObjects && self.geneObjects.hasOwnProperty(geneName)) {

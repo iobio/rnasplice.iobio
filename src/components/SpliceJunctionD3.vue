@@ -48,7 +48,7 @@
               hide-details="auto"
               label="Color by"
               density="compact"
-              :items="['none', 'strand', 'motif', 'exon span']"
+              :items="['none', 'strand', 'motif']"
             ></v-select>
           </div>
           
@@ -164,14 +164,14 @@ export default {
     minUniquelyMappedReads: 1,
     colorBy: 'strand',
 
-    arcPointerWidth: 16,
-    arcPointerHeight: 16,
+    arcPointerWidth: 13,
+    arcPointerHeight: 13,
 
     arcPointerSmallWidth: 8,
     arcPointerSmallHeight: 8,
 
-    sitePointerWidth: 12,
-    sitePointerHeight: 12,
+    sitePointerWidth: 13,
+    sitePointerHeight: 13,
 
     sitePointerSmallWidth: 8,
     sitePointerSmallHeight: 8,
@@ -350,6 +350,7 @@ export default {
 
 
 		    transcript.exons = exonicFeatures;
+		    transcript.exonsOnly = exons;
 
 		  })
 		  return gene;
@@ -668,10 +669,8 @@ export default {
 		      	self.onSelectExon(d, {'click': false});
 		      })
 		     .on("mouseout", function(d) {
-		        self.tooltip.transition()
-		         .duration(500)
-		         .style("opacity", 0);
-		         svg.selectAll(this).classed("exon-highlight", false)
+
+		     		d3.selectAll('#transcript-diagram .transcript.selected .exon-' + d.number).classed("exon-highlight",false);
 		      });
 
 		  if (options && options.selectedTranscriptOnly) {
@@ -775,6 +774,9 @@ export default {
 				 		       + " 0,0"
 				 	})
 				 .style("opacity", "0")
+				 .on("click", function(d) {
+				 		self.showAcceptorDetails()
+				 	})
 
 				 svg.selectAll(".donor-problem").remove();
 				 svg
@@ -837,6 +839,12 @@ export default {
 
 		},
 
+    showAcceptorDetails: function() {
+    	let self = this;
+    	if (self.selectedObject && self.selectedObject.type == 'splice-junction') {
+    		
+    	}
+    },
 
 
 		onSelectExon: function(exon, options={'click': false}) {
@@ -1010,7 +1018,7 @@ export default {
 
 		  var scaleArcWidth = d3.scaleLinear()
 		                    .domain([self.minUniquelyMappedReads, maxReadCount])
-		                    .range([2, 15])
+		                    .range([2.5, 15])
 
 
 		           
@@ -1023,9 +1031,7 @@ export default {
 		  .append("g")
 		    .attr("transform",
 		          "translate(" + margin.left + "," + margin.top + ")")
-
-
-
+		    
 		  if (options && options.createBrush) {
 		    svg
 		      .call( self.brush = d3.brushX()                  
@@ -1083,7 +1089,7 @@ export default {
 		    	// Arc is taller than chart
 		    	// Need arc to be stretched on x axis
 
-		    	// shuffle the height randomly by 20 pixels 
+		    	// shuffle the height randomly by 30 pixels 
 		    	let rando = Math.floor(Math.random() * 31);
 		    	let newMaxArcHeight = maxArcHeight - rando;
 
@@ -1119,7 +1125,7 @@ export default {
 		  .selectAll("path.junction")
 		  .data(edges,function(d) {
 		  	// The key to edges is the label
-		  	return d.label;
+		  	return d.key;
 		  })
 		  .join("path")
 		    .attr("d", function(d) {
@@ -1127,14 +1133,14 @@ export default {
 		    })
 		    .attr("class", function(d) {
 		    	let clazz = "junction" + " " + d.spliceKind + " " +
-		    	(d.skippedExons ? " exon-spanned" : "") + 
+		    	(d.countSkippedExons > 0 ? " exon-spanned" : "") + 
 		    	(d.strand == "undefined" || d.strand == self.selectedGene.strand ? " strand-matches" : " strand-mismatches");
 
 		    
 		    	if (container == '#zoomed-diagrams' && 
 		    		self.clickedObject && 
 		    		self.clickedObject.type == 'splice-junction' && 
-		    		self.clickedObject.label == d.label) {
+		    		self.clickedObject.key == d.key) {
 		    		clazz += " selected clicked"
 		    	}
 		    	return clazz;
@@ -1145,25 +1151,28 @@ export default {
 		    .attr("stroke", function(d) {
 		    	if (self.colorBy == '' || self.colorBy == 'none') {
 		    		return "#9f9f9f";
-
 		    	} else {
-			    	let colorField = null;
-			    	if (self.colorBy == 'exon span') {
-			    		colorField = 'skippedExons'
-			    	} else {
-			    		colorField = self.colorBy;
-			    	}
-			    	return arcColor(d[colorField]);		    		
+			    	return arcColor(d[self.colorBy]);		    		
 		    	}
 		    })
 		    .on("click", function(event,d) {
 
 		     if (self.clickedObject && self.clickedObject.type == 'splice-junction') {
-		     	 if (self.clickedObject.label == d.label) {
+		     	 if (self.clickedObject.key == d.key) {
 		     	 		self.unclickSpliceJunction()
 		     	 	  return;
 		     	 }
 		     }
+
+				 d3.selectAll("text.junction.selected").classed("selected", false)
+				 d3.selectAll("text.junction.clicked").classed("clicked", false)
+		     let matchedLabelNode = d3.selectAll("text.junction").filter(function(edge) {
+		     		return edge.key == d.key;
+		     })
+		     if (matchedLabelNode && !matchedLabelNode.empty()) {
+		       matchedLabelNode.classed("clicked", true)
+		     }
+
 
 		     // If this is the zoomed diagram, find the counterpart arc in the main chart
 		     let junctionParentChart = null;
@@ -1171,13 +1180,13 @@ export default {
 		     
 		     if (options.allEdges) {
 		     	let matched = options.allEdges.filter(function(edge) {
-		     		return edge.label == d.label;
+		     		return edge.key == d.key;
 		     	})
 		     	if (matched.length > 0) {
 		     		junctionParentChart = matched[0];
 		     		nodeParentChart = d3.selectAll("#diagrams #arc-diagram g.arcs path.junction")
 		     		                    .filter(function(spliceJunction) { 
-		     	                   		  return spliceJunction.label == d.label
+		     	                   		  return spliceJunction.key == d.key
 		     	                      })
 		     	}
 		     }
@@ -1220,6 +1229,8 @@ export default {
 				     .transition()
 				     .duration(200)
 				     .style("opacity", .9); 
+				    d3.select("#diagrams #arc-diagram .arc-pointer-small")
+				      .style("opacity", 0)
 			   }
 
 		     d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)
@@ -1251,9 +1262,16 @@ export default {
 		     self.$emit("object-selected", spliceJunctionObject)
 		     self.clickedObject = spliceJunctionObject;
 
+		     self.selectSpliceJunction(d)
 
 		  })
 		  .on("mouseover", function(event,d) {
+
+				 if (self.clickedObject && self.clickedObject.type == 'splice-junction') {
+		     	 if (self.clickedObject.key == d.key) {
+		     	 	  return;
+		     	 }
+		     }
 
 		     // If this is the zoomed diagram, find the counterpart arc in the main chart
 		     let junctionParentChart = null;
@@ -1261,17 +1279,26 @@ export default {
 		     
 		     if (options.allEdges) {
 		     	let matched = options.allEdges.filter(function(edge) {
-		     		return edge.label == d.label;
+		     		return edge.key == d.key;
 		     	})
 		     	if (matched.length > 0) {
 		     		junctionParentChart = matched[0];
 		     		nodeParentChart = d3.selectAll("#diagrams #arc-diagram g.arcs path.junction")
 		     		                    .filter(function(spliceJunction) { 
-		     	                   		  return spliceJunction.label == d.label
+		     	                   		  return spliceJunction.key == d.key
 		     	                      })
 		     	}
 		     }
-		     
+
+
+		     d3.selectAll("text.junction.selected").classed("selected", false)
+		     let matchedLabelNode = d3.selectAll("text.junction").filter(function(edge) {
+		     		return edge.key == d.key;
+		     })
+		     if (matchedLabelNode && !matchedLabelNode.empty()) {
+		       matchedLabelNode.classed("selected", true)
+		     }
+
 
 		     let arcXCenter = d.arcXCenter;
 		     let arcYTop    = d.arcYTop;
@@ -1337,21 +1364,21 @@ export default {
 
 		  })
 		 .on("mouseout", function(d) {
+
+		 	/*
 		    d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)    
 		    d3.selectAll('#transcript-diagram .transcript.selected .clicked').classed("exon-highlight", true)    
 
-		     d3.selectAll("#arc-diagram path.junction.selected").classed("selected", false);
-		     d3.selectAll("#arc-diagram path.junction.clicked").classed("selected", true);
-
-		    self.tooltip.transition()
-		     .duration(500)
-		     .style("opacity", 0);
+		    d3.selectAll("#arc-diagram path.junction.selected").classed("selected", false);
+		    d3.selectAll("#arc-diagram path.junction.clicked").classed("selected", true);
 
 		    svg.select(".arc-pointer-small")
 			      .transition()
 			      .duration(500)
 			      .style("opacity", 0); 
+
 			  self.hideSitePointersOnTranscriptChart("select")
+			  */
 		  });
 
 	   let arcLabels = svg.insert("g", "*")
@@ -1360,16 +1387,27 @@ export default {
 			  .data(edges)
 		    .join("text")
 		      .attr("class", function(d) {
-			    	return "junction" + " " + d.spliceKind + " " +
-			    	(d.skippedExons ? " exon-spanned" : "") + 
+			    	let clazz = "junction" + " " + d.spliceKind + " " +
+			    	(d.countSkippedExons > 0 ? " exon-spanned" : "") + 
 			    	(d.strand == "undefined" || d.strand == self.selectedGene.strand ? " strand-matches" : " strand-mismatches");
+
+			    	if (container == '#zoomed-diagrams' && 
+		    			self.clickedObject && 
+		    			self.clickedObject.type == 'splice-junction' && 
+		    			self.clickedObject.key == d.key) {
+		    			clazz += " clicked"
+		    		}
+		    		return clazz;
+
 
 		    	})
 		      .attr("x", function(d) {
 		      	return d.arcXCenter
 		      })
 		      .attr("y", function(d) {
-		      	return d.arcYTop - 2
+		      	let rando = Math.floor(Math.random() * 31);
+		      	let position = d.arcYTop - 20 - rando;
+		      	return position < 5 ? 5 : position;
 		      })
 		      .text(function(d) {
 		      	let counts = d.readCount;
@@ -1407,7 +1445,7 @@ export default {
 		 if (container == '#zoomed-diagrams' && self.clickedObject && self.clickedObject.type == 'splice-junction') {
 		 	// find the coinciding arc 
 		 	let matched = edges.filter(function(d) {
-		 		return d.label == self.clickedObject.label;
+		 		return d.key == self.clickedObject.key;
 		 	})
 		 	// position to arc-pointer and set opacity to 9
 		 	if (matched.length > 0) {
@@ -1447,6 +1485,8 @@ export default {
 			let self = this;
 	    d3.selectAll("#arc-diagram path.junction").classed("selected", false);
  	 	  d3.selectAll("#arc-diagram path.junction").classed("clicked", false);
+	    d3.selectAll("#arc-diagram text.junction").classed("selected", false);
+ 	 	  d3.selectAll("#arc-diagram text.junction").classed("clicked", false);
  	 	  d3.selectAll("#transcript-diagram .transcript.selected .selected")
  	 	    .classed("selected",false);
  	 	  d3.selectAll("#transcript-diagram .transcript.selected .clicked")
@@ -1463,6 +1503,127 @@ export default {
  	 	  self.clickedObject = false;
 		},
 
+
+		/*
+		 * This method is called when the user clicks on a splice junction 
+		 * from main sashimi plot or the genes panel (left side panel)
+		 */
+    selectSpliceJunction: function(d) {
+    	let self = this;
+
+
+      // If this is the zoomed diagram, find the counterpart arc in the main chart
+      let junctionMainChart = null;
+      let nodeMainChart = null;
+     
+      let theSpliceJunctions = self.geneModel.geneToSpliceJunctionRecords[self.selectedGene.gene_name]
+      if (theSpliceJunctions) {
+     	  let matched = theSpliceJunctions.filter(function(edge) {
+     		  return edge.key == d.key;
+     	  })
+     	  if (matched.length > 0) {
+     		  junctionMainChart = matched[0];
+     		  nodeMainChart = d3.selectAll("#diagrams #arc-diagram g.arcs path.junction")
+     		                    .filter(function(spliceJunction) { 
+     	                   		  return spliceJunction.key == d.key
+     	                      })
+     	  }
+      }
+     
+     	if (nodeMainChart && !nodeMainChart.empty()) {
+        d3.selectAll("#arc-diagram path.junction").classed("selected", false);
+        d3.selectAll("#arc-diagram path.junction").classed("clicked", false);
+	  
+	      let arcXCenter = junctionMainChart.arcXCenter;
+	      let arcYTop    = junctionMainChart.arcYTop;
+
+   	  	nodeMainChart.classed("selected", true)
+   	  	nodeMainChart.classed("clicked", true)
+
+
+				 d3.selectAll("text.junction.selected").classed("selected", false)
+				 d3.selectAll("text.junction.clicked").classed("clicked", false)
+		     let matchedLabelNode = d3.selectAll("text.junction").filter(function(edge) {
+		     		return edge.key == d.key;
+		     })
+		     if (matchedLabelNode && !matchedLabelNode.empty()) {
+		       matchedLabelNode.classed("clicked", true)
+		     }
+
+
+			  d3.selectAll("#diagrams #arc-diagram").select(".arc-pointer")
+          .attr("transform", function(d) {
+        	  return "translate(" + (arcXCenter - self.arcPointerWidth/self.ARC_FACTOR) 
+        	  + "," 
+        	  + (arcYTop - self.arcPointerHeight) + ")"
+          })
+	      .transition()
+	      .duration(200)
+	      .style("opacity", .9); 
+
+	   	  d3.selectAll("#diagrams #arc-diagram").select(".arc-pointer-small")
+	         .style("opacity", 0)   
+
+	      d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)
+	      d3.selectAll('#transcript-diagram .transcript.selected .clicked').classed("clicked", false)
+
+	      if (d.donor.exon) {
+	      	d3.selectAll('#transcript-diagram .exon-' + d.donor.exon.number).classed("exon-highlight",true);
+	      	d3.selectAll('#transcript-diagram .exon-' + d.donor.exon.number).classed("clicked",true);
+	      }
+	      if (d.acceptor.exon) {
+	        d3.selectAll('#transcript-diagram .exon-' + d.acceptor.exon.number).classed("exon-highlight", true);
+	        d3.selectAll('#transcript-diagram .exon-' + d.acceptor.exon.number).classed("clicked", true);
+	      }	     
+			  self.hideSitePointersOnTranscriptChart("select")
+			  self.hideSitePointersOnTranscriptChart("click")
+	      self.showSitePointersOnTranscriptChart(d, self.ySitePointer +2, "click")
+
+	      let spliceJunctionObject = $.extend({
+															     	'type': 'splice-junction', 
+															     	'clicked': true, 
+															     	'donorExon': d.donor.exon,
+															     	'acceptorExon': d.acceptor.exon
+															     	}, d)
+
+	      self.$emit("object-selected", spliceJunctionObject)
+	      self.clickedObject = spliceJunctionObject;
+
+	      let regionStart = null;
+	      let regionEnd = null;
+	      if (self.selectedGene.strand == '-') {
+	      	regionStart = d.acceptor.pos - 1000;
+	      	regionEnd = d.donor.pos + 1000;
+      	} else {
+	      	regionStart = d.donor.pos - 1000;
+	      	regionEnd = d.acceptor.pos + 1000;
+      	}
+	      self.selectZoomedSpliceJunction(d, theSpliceJunctions, regionStart, regionEnd)
+      }
+
+    },
+
+    selectZoomedSpliceJunction: function(d, theSpliceJunctions, regionStart, regionEnd) {
+    	let self = this;
+
+			let filteredEdges = theSpliceJunctions.filter(function(edge) {
+	      if (edge.donor.pos < edge.acceptor.pos) {
+	        return edge.donor.pos >= regionStart || edge.acceptor.pos <= regionEnd;
+	      } else {
+	        return edge.acceptor.pos >= regionStart || edge.donor.pos <= regionEnd;
+	      }
+	    })
+	    let filteredEdgesClone = [];
+	    filteredEdges.forEach(function(d) {
+	    	let edge = $.extend({}, d)
+	    	filteredEdgesClone.push(edge);
+	    })
+	    d3.selectAll("#zoomed-diagrams svg").remove()
+	    self.drawArcDiagram("#zoomed-diagrams", filteredEdgesClone, regionStart, regionEnd, {'createBrush': false, 'allEdges': self.edgesForGene})
+
+	    self.drawTranscriptDiagram("#zoomed-diagrams", self.selectedGene, regionStart, regionEnd, 
+	      {'selectedTranscriptOnly': true, 'allowSelection': false})
+		},
 				 
 
 		showSitePointersOnTranscriptChart: function(d, ySitePointer, action="select") {
@@ -1846,7 +2007,7 @@ svg rect.UTR, svg rect.CDS, svg rect.exon {
 
 svg path.junction {
   
-  fill: transparent;
+  fill: none;
 }
 
 
@@ -1859,6 +2020,16 @@ svg path.junction.selected.clicked {
 }
 svg path.junction.clicked {
 	stroke: #FE0101;
+}
+svg text.junction.selected {
+	font-weight: 600;
+	fill: #f65b5b;
+	font-size: 12px;
+}
+svg text.junction.clicked {
+	font-weight: 600;
+	fill: #FE0101;
+	font-size: 13px;
 }
 
 
