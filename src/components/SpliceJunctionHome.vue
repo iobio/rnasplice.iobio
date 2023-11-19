@@ -246,16 +246,16 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         let promises = [];
         let p = self.promiseGetReferenceSequence('donor', 
           self.selectedGene.chr, 
-          spliceJunction.donor.pos - 5, 
-          spliceJunction.donor.pos + 5)
+          spliceJunction.donor.pos - self.globalApp.JUNCTION_SITE_SEQ_RANGE, 
+          spliceJunction.donor.pos + self.globalApp.JUNCTION_SITE_SEQ_RANGE)
         .then(function(sequenceData) {
           self.donorReferenceSequence = sequenceData;
         })
         promises.push(p)
         p = self.promiseGetReferenceSequence('acceptor', 
           self.selectedGene.chr, 
-          spliceJunction.acceptor.pos - 5, 
-          spliceJunction.acceptor.pos + 5)
+          spliceJunction.acceptor.pos - self.globalApp.JUNCTION_SITE_SEQ_RANGE, 
+          spliceJunction.acceptor.pos + self.globalApp.JUNCTION_SITE_SEQ_RANGE)
         .then(function(sequenceData) {
           self.acceptorReferenceSequence = sequenceData;
         })

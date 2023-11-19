@@ -16,6 +16,8 @@ class GlobalApp {
 
     this.isDirty               = false;
 
+    this.JUNCTION_SITE_SEQ_RANGE      = 15;
+
   }
 
   initBackendSource(iobioSource) {

@@ -121,22 +121,12 @@
    v-if="selectedGene && selectedGene.strand == '+'" >
   	<div class="donor-site" v-if="showDonorPanel" style="width:50%">
   		<h3>Donor site</h3>
-  		<div id="axis">
-	      <svg/>
-	    </div>
-		  <div id="transcript-diagram">
-  	  </div>
 		  <div id="sequence">
         <svg/>
   	  </div>
   	</div>
   	<div class="acceptor-site" v-if="showAcceptorPanel">
 	  	<h3>Acceptor site</h3>
-	  	<div id="axis">
-	      <svg/>
-	    </div>
-		  <div id="transcript-diagram">
-  	  </div>
 		  <div id="sequence">
         <svg/>
   	  </div>
@@ -145,22 +135,12 @@
   <div id="site-diagrams" class="d-flex minus" v-if="selectedGene && selectedGene.strand == '-'" >
   	<div class="acceptor-site" v-if="showAcceptorPanel" style="width:50%">
 	  	<h3>Acceptor site</h3>
-		  <div id="axis">
-        <svg/>
-  	  </div>
-		  <div id="transcript-diagram">
-  	  </div>
 		  <div id="sequence">
         <svg/>
   	  </div>
   	</div>
   	<div class="donor-site" style="width:50%" v-if="showDonorPanel" >
   		<h3>Donor site</h3>
-		  <div id="axis">
-        <svg/>
-  	  </div>
-		  <div id="transcript-diagram">
-  	  </div>
 		  <div id="sequence">
         <svg/>
   	  </div>
@@ -578,7 +558,7 @@ export default {
 		  // Keep track of x according to container (e.g. diagrams and zoomed-diagrams)
 		  if (container == '#zoomed-diagrams') {
 		  	self.xTranscriptChartZoomed = x;
-		  } else if (container == '#diagrams') {
+		  } else {
 		  	self.xTranscriptChart = x;
 		  }
 
@@ -654,48 +634,47 @@ export default {
      	}
 
 
-     	if (!options || !options.exonsOnly) {
-	      transcripts.selectAll("line.gene").remove();
-	      transcripts.selectAll("line.gene")
-	      .data(function(d) {
-	        return [{'start': d.start, 'end': d.end}]
-	      })
-	      .enter()
-	      .append('line')
-	      .attr("class", "gene")
-	      .attr("x1", function(d) {
-	        return x(Math.min(regionStart, d.start))
-	      })
-	      .attr("x2", function(d) {
-	        return x(Math.min(regionEnd, d.end))
-	      })
-	      .attr("y1", self.CDS_HEIGHT)
-	      .attr("y2", self.CDS_HEIGHT)
+      transcripts.selectAll("line.gene").remove();
+      transcripts.selectAll("line.gene")
+      .data(function(d) {
+        return [{'start': d.start, 'end': d.end}]
+      })
+      .enter()
+      .append('line')
+      .attr("class", "gene")
+      .attr("x1", function(d) {
+        return x(Math.min(regionStart, d.start))
+      })
+      .attr("x2", function(d) {
+        return x(Math.min(regionEnd, d.end))
+      })
+      .attr("y1", self.CDS_HEIGHT)
+      .attr("y2", self.CDS_HEIGHT)
 
-	      transcripts.selectAll(".transcript-label").remove();
-	      transcripts.selectAll(".transcript-label")
-	      .data(function(d) {
-		       return [d];
-	      })
-	      .enter()
-	      .append('text')
-				.attr("class", "transcript-label")
-				.attr("text-anchor", 'start')
-				.attr("x", width - margin.right)
-				.attr("y", self.CDS_HEIGHT)
-				.attr("dy", "0.35em")
-				.text(function(d) {
-				  return d.transcript_id + (d.is_mane_select ? " MANE" : "");
-				})
+      transcripts.selectAll(".transcript-label").remove();
+      transcripts.selectAll(".transcript-label")
+      .data(function(d) {
+	       return [d];
+      })
+      .enter()
+      .append('text')
+			.attr("class", "transcript-label")
+			.attr("text-anchor", 'start')
+			.attr("x", width - margin.right)
+			.attr("y", self.CDS_HEIGHT)
+			.attr("dy", "0.35em")
+			.text(function(d) {
+			  return d.transcript_id + (d.is_mane_select ? " MANE" : "");
+			})
 
-     	}
+
 
 		 
 		  var nodes = transcripts
 		    .selectAll("rect.exon")
 		    .data(function(d) { 
 		        return d['exons'].filter(function(exon) {
-		          return +exon.start >= +regionStart || +exon.end <= +regionEnd
+		          return +exon.start >= +regionStart && +exon.end <= +regionEnd
 		        })
 		    }, 
 		          function(d) {return d.feature_type + "-" + d.seq_id + "-" + d.start + "-" + d.end;}
@@ -711,7 +690,7 @@ export default {
 		        }
 		      })
 		      .attr("width", function(d) { 
-		        return Math.max(1, Math.round(x(d.end) - x(d.start)))
+		        return Math.max(1, Math.round(x(d.end) - x(d.start))+1)
 		      })
 		      .attr("height", function(d) { 
 		        if (d.feature_type.toLowerCase() == 'utr') {
@@ -741,7 +720,7 @@ export default {
 		  if (options && options.selectedTranscriptOnly) {
 
 		  	let exons = self.selectedTranscript.features.filter(function(feature) {
-          let matchesRegion = +feature.start >= +regionStart || +feature.end <= +regionEnd;
+          let matchesRegion = +feature.start >= +regionStart && +feature.end <= +regionEnd;
         	return feature.feature_type.toLowerCase() == 'exon' && matchesRegion;
 		  	})
 		  	let factor = exons.length / 50 > 1 ? Math.round(exons.length/25) : 1
@@ -754,31 +733,29 @@ export default {
 		  			return false;
 		  		}
 		  	})
-				if (!options || !options.exonsOnly) {
-			    let exonLabels = transcripts.insert("g", "*")
-					  .attr("class", "exon-labels")
-					  .attr("transform", "translate(0," + (height - margin.top - transcriptHeight - 10) + ")")
-					  .selectAll("text.exon-label")
-						.data(function(d) 
-					     { 
-					        return exonsToLabel;
-			    		 }, 
-				       function(d) {
-				        	return d.feature_type + "-" + d.seq_id + "-" + d.start + "-" + d.end;
-				       }
-				    )
-				    .join("text")
-				      .attr("class", "exon-label")
-				      .attr("x", function(d) {
-				      	return x(d.start) + ( Math.abs((x(d.start) - x(d.end))) / 2 )
-				      })
-				      .attr("y", function(d) {
-				      	return 0;
-				      })
-				      .text(function(d,i) {
-				      	return d.number;
-				      })
-			    }
+		    let exonLabels = transcripts.insert("g", "*")
+				  .attr("class", "exon-labels")
+				  .attr("transform", "translate(0," + (height - margin.top - transcriptHeight - 10) + ")")
+				  .selectAll("text.exon-label")
+					.data(function(d) 
+				     { 
+				        return exonsToLabel;
+		    		 }, 
+			       function(d) {
+			        	return d.feature_type + "-" + d.seq_id + "-" + d.start + "-" + d.end;
+			       }
+			    )
+			    .join("text")
+			      .attr("class", "exon-label")
+			      .attr("x", function(d) {
+			      	return x(d.start) + ( Math.abs((x(d.start) - x(d.end))) / 2 )
+			      })
+			      .attr("y", function(d) {
+			      	return 0;
+			      })
+			      .text(function(d,i) {
+			      	return d.number;
+			      })
 
 		  }
 
@@ -965,60 +942,6 @@ export default {
     	}
 
   	},
-
-  	drawSiteAxis: function(container, regionStart, regionEnd) {
-			let self = this;
-
-		  // dimensions
-			var width =  self.$el.offsetWidth/2;
-		  var height = 60;
-		  var margin = {top: 40, right: 10, bottom: 0, left: 10};
-
-		  var innerWidth  = width - margin.left - margin.right;
-		  var innerHeight = height - margin.top - margin.bottom;
-
-		  var center = innerWidth / 2;
-
-		  // scales
-		  var x = d3.scaleLinear()
-		            .domain([regionStart, regionEnd])
-		            .range([margin.left, innerWidth+margin.left]);
-		  
-		  var tickFormatter = function(d) {
-		  	return d3.format(",")(d)
-		  }
-
-		  // axis
-		  var xAxis = d3.axisTop(x)
-		                .tickFormat(tickFormatter);		                   
-
-		  // append the svg object to the body of the page
-		  d3.select(container).select("svg").remove();
-		  var svg = d3.select(container)
-		  .append("svg")
-		    .attr("width", innerWidth)
-		    .attr("height", height)
-		  .append("g")
-		    .attr("class", "site")
-		    .attr("transform",
-		          "translate(" + margin.left + "," + margin.top + ")")
-		  .call(xAxis);
-
-		  
-      svg.selectAll(".arrow").remove();
-      svg.selectAll('.arrow').data([
-      	{'gene': self.selectedGene, 'x': center - center/2},
-      	{'gene': self.selectedGene, 'x': center},
-      	{'gene': self.selectedGene, 'x': center + center/2},
-      ])
-          .enter().append('path')
-          .attr('class', 'arrow')
-          .attr('d', function(d) {
-            return self.centerArrow(d, innerHeight, 15)
-          })
-          .style('transform', 'translate(-10px, -8px)')
-		},
-
 
 		drawBrushableAxis: function(container, regionStart, regionEnd) {
 			let self = this;
@@ -1723,8 +1646,6 @@ export default {
     		self.showAcceptorPanel = true;
 	     	
 	     	self.$nextTick(function() {
-		     	self.drawSiteDiagram('donor',    d, d.donor.pos)
-		     	self.drawSiteDiagram('acceptor', d, d.acceptor.pos)
 		     	self.$emit("splice-junction-selected", d)
 	     	})
 
@@ -1733,31 +1654,7 @@ export default {
 
     },
 
-    drawSiteDiagram: function(junctionEnd, spliceJunction, position) {
-    	let self = this;
-      let strandStr = self.selectedGene.strand == "+" ? 'plus' : 'minus'
-      let siteContainer = "#site-diagrams." + strandStr + " ." + junctionEnd + "-site"
-      let siteStart = position - 5;
-      let siteEnd   = position + 5;
-
-      self.drawSiteAxis(siteContainer + " #axis", siteStart, siteEnd)
-      if (!d3.select(siteContainer + " #transcript-diagram svg").empty()) {
-	      d3.select(siteContainer + " #transcript-diagram svg").remove();
-      }
-      self.drawTranscriptDiagram(siteContainer, 
-      	self.selectedGene, 
-      	siteStart, 
-      	siteEnd, 
-	      {'width': self.$el.offsetWidth/2, 
-	       'margin': {top: 0, right: 10, bottom: 0, left: 0},
-	       'exonsOnly': true,
-	       'selectedTranscriptOnly': true, 
-	       'allowSelection': false})
-      d3.selectAll(siteContainer + " #transcript-diagram svg rect.transcript-feature").classed("selected", true)
-      d3.selectAll(siteContainer + " #transcript-diagram svg rect.transcript-feature").classed("exon-highlight", true)
-
-
-    },
+   
 
     drawSiteSequences: function(donorSequence, acceptorSequence) {
     	let self = this;
@@ -1765,28 +1662,52 @@ export default {
       let donorSiteContainer    = "#site-diagrams." + strandStr + " .donor-site #sequence"
       let acceptorSiteContainer = "#site-diagrams." + strandStr + " .acceptor-site #sequence"
       
+
+      let regionStart = self.clickedObject.donor.pos - self.globalApp.JUNCTION_SITE_SEQ_RANGE;
+      let regionEnd   = self.clickedObject.donor.pos + self.globalApp.JUNCTION_SITE_SEQ_RANGE;
+			let donorExons  = self.selectedTranscript.exons.filter(function(exon) {
+      	if (self.selectedGene.strand == "+") {
+      		return regionStart <= exon.end && regionEnd >= exon.end;
+      	} else {
+      		return regionStart <= exon.start && regionEnd >= exon.start;
+      	}
+      })
+
       self.drawSiteSequence(donorSiteContainer, 
       	donorSequence, 
-      	self.clickedObject.donor.pos -5, 
-      	self.clickedObject.donor.pos+5,
+      	self.clickedObject.donor.pos - self.globalApp.JUNCTION_SITE_SEQ_RANGE, 
+      	self.clickedObject.donor.pos + self.globalApp.JUNCTION_SITE_SEQ_RANGE,
       	self.selectedGene.strand == "+" ? self.clickedObject.donor.pos+1 : self.clickedObject.donor.pos,
-      	self.selectedGene.strand == "+" ? self.clickedObject.donor.pos+2 : self.clickedObject.donor.pos-1)
+      	self.selectedGene.strand == "+" ? self.clickedObject.donor.pos+2 : self.clickedObject.donor.pos-1,
+      	donorExons)
+
+      regionStart = self.clickedObject.acceptor.pos - self.globalApp.JUNCTION_SITE_SEQ_RANGE;
+      regionEnd = self.clickedObject.acceptor.pos + self.globalApp.JUNCTION_SITE_SEQ_RANGE;
+			let acceptorExons = self.selectedTranscript.exons.filter(function(exon) {
+      	if (self.selectedGene.strand == "+") {
+      		return regionStart <= exon.start && regionEnd >= exon.start;
+      	} else {
+      		return regionStart <= exon.end && regionEnd >= exon.end;
+      	}
+      })
+
       self.drawSiteSequence(acceptorSiteContainer, 
       	acceptorSequence, 
-      	self.clickedObject.acceptor.pos -5, 
-      	self.clickedObject.acceptor.pos+5,
+      	self.clickedObject.acceptor.pos - self.globalApp.JUNCTION_SITE_SEQ_RANGE,
+      	self.clickedObject.acceptor.pos + self.globalApp.JUNCTION_SITE_SEQ_RANGE,
       	self.selectedGene.strand == "+" ? self.clickedObject.acceptor.pos-1 : self.clickedObject.acceptor.pos+1,
-      	self.selectedGene.strand == "+" ? self.clickedObject.acceptor.pos : self.clickedObject.acceptor.pos+2)
+      	self.selectedGene.strand == "+" ? self.clickedObject.acceptor.pos : self.clickedObject.acceptor.pos+2,
+      	acceptorExons)
 
     },
 
-    drawSiteSequence: function(container, sequence, regionStart, regionEnd, siteStart, siteEnd) {
+    drawSiteSequence: function(container, sequence, regionStart, regionEnd, siteStart, siteEnd, exons) {
 			let self = this;
 
 		  // dimensions
 			var width =  self.$el.offsetWidth/2;
-		  var height = 20;
-		  var margin = {top: 10, right: 10, bottom: 0, left: 10};
+		  var height = 70;
+		  var margin = {top: 20, right: 10, bottom: 0, left: 15};
 
 		  var innerWidth  = width - margin.left - margin.right;
 		  var innerHeight = height - margin.top - margin.bottom;
@@ -1798,19 +1719,49 @@ export default {
 		            .domain([regionStart, regionEnd])
 		            .range([margin.left, innerWidth+margin.left]);
 		  
-		             
+
+      var tickFormatter = function(d,i) {
+        if (i == 0 ) {
+          return d3.format(",")(d)
+        } else {
+          let tokens = d3.format(",")(d).split(",");
+          return tokens[tokens.length-1]
+        }
+      }
+
+      // x axis
+      var xAxis = d3.axisTop(x)
+                    .tickFormat(tickFormatter);                      
+
 
 		  // append the svg object to the body of the page
 		  d3.select(container).select("svg").remove();
-		  var svg = d3.select(container)
-		  .append("svg")
-		    .attr("width", innerWidth)
-		    .attr("height", height)
-		  .append("g")
-		    .attr("class", "site")
-		    .attr("transform",
-		          "translate(" + margin.left + "," + margin.top + ")")
+      var svg = d3.select(container)
+                  .append("svg")
+                  .attr("width", innerWidth)
+                  .attr("height", height)
+                  .append("g")
+                         .attr("class", "axis")
+                         .attr("transform",
+                               "translate(" + margin.left + "," + margin.top + ")")
+                         .call(xAxis);
 
+      // Strand arrow
+      svg.selectAll(".arrow").remove();
+      svg.selectAll('.arrow')
+          .data([
+              {'gene': self.selectedGene, 'x': center - center/2},
+              {'gene': self.selectedGene, 'x': center},
+              {'gene': self.selectedGene, 'x': center + center/2},
+          ])
+          .enter().append('path')
+          .attr('class', 'arrow')
+          .attr('d', function(d) {
+            return self.centerArrow(d, innerHeight, 15)
+          })
+          .style('transform', 'translate(-10px, -18px)')                
+
+      // Nucleotide sequence
       svg.selectAll("text.seq")
       .data(Array.from(sequence))
       .enter()
@@ -1827,10 +1778,45 @@ export default {
       .attr("x", function(d,i) {
       	return x(regionStart+i)
       })
-      .attr("y", "0")
+      .attr("y", "30")
       .text(function(d) {
       	return d;
       })
+
+      // Exon on or near donor/acceptor site
+      svg
+		    .selectAll("rect.exon")
+		    .data(function(d) { 
+		        return exons
+		    }, 
+		        function(d) {return d.feature_type + "-" + d.seq_id + "-" + d.start + "-" + d.end;}
+		    )
+		    .enter()
+		    .append("rect")
+		      .attr("x", function(d){ return(x(d.start))})
+		      .attr("y", function(d,i) {
+		        if (d.feature_type.toLowerCase() == 'utr') {
+		          return 30 + 7;
+		        } else {
+		          return 30 + 5;
+		        }
+		      })
+		      .attr("width", function(d) { 
+		        return Math.max(1, Math.round(x(d.end) - x(d.start))+1)
+		      })
+		      .attr("height", function(d) { 
+		        if (d.feature_type.toLowerCase() == 'utr') {
+		          return 7;
+		        } else {
+		          return 10;
+		        }
+		      })
+		      .attr("class", function(d) {
+		        return 'transcript-feature ' +
+		               d.feature_type + 
+		               (" exon-" + d.number) + 
+		               " no-pointer selected exon-highlight";
+		      })
 
     },
 
@@ -2207,7 +2193,7 @@ export default {
   width: 175px;
 }
 
-#brushable-axis  text{ 
+#brushable-axis  text { 
 	font-size: 13px; 
 	font-family: 'Poppins';
 }
@@ -2317,7 +2303,8 @@ div.tooltip1 {
 	max-height: 150px;
 }
 
-#transcript-diagram .exon-highlight {
+#transcript-diagram .exon-highlight,
+#sequence .exon-highlight {
   stroke: black;
   fill: #f65b5b;
 }
@@ -2429,6 +2416,10 @@ text.junction {
 #sequence text.site {
 	fill: red;
 	font-weight: 600;
+}
+
+#sequence .tick text {
+  font-size: 11px;
 }
 
 
