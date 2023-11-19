@@ -21,10 +21,10 @@
           
             <GenesPanel 
               class="d-flex flex-column" 
-              style="flex-grow: 1;height: calc(100% - 410px);"
               :show="showLeftNavDrawer"
               :geneModel="geneModel"
               :selectedObject="selectedObject"
+              :selectedGene="selectedGene"
               @close-genes-panel="onCloseLeftNavDrawer"
               @clear-gene="onClearGene"
               @clear-all-genes="onClearAllGenes"
@@ -34,7 +34,6 @@
 
             <ObjectDetails 
               class="d-flex flex-column" 
-              style="flex-grow: 0;height: 400px;overflow-y:scroll"
               :selectedObject="selectedObject"
               :selectedGene="selectedGene"
             />
@@ -119,7 +118,10 @@ export default {
     showLeftNavDrawer: false,
 
 
-    selectedObject: null
+    selectedObject: null,
+    donorReferenceSequence: null,
+    acceptorReferenceSequence: null
+
 
     
   }),
@@ -161,19 +163,16 @@ export default {
     onGeneSelected: function(gene) {
       this.selectedGene = gene;
       this.addAlert("info", "gene <pre>" + gene.gene_name + "</pre> loaded", gene.gene_name)
-
-      if (this.geneModel.geneNames.length > 1) {
-        this.onShowLeftNavDrawer();
-      }
+      this.showLeftNavDrawer = true;
     },
     onLoadData: function(loadInfo) {
       let self = this;
       this.loadInfo = loadInfo;
 
       // TODO: Remove. Temporary demo code
-      setTimeout(function() {
-        self.onGeneClicked('NEB')
-      }, 1000)
+      //setTimeout(function() {
+      //  self.onGeneClicked('NEB')
+      //}, 1000)
     },
     onReinit: function() {
       let self = this;
@@ -187,6 +186,12 @@ export default {
     },
     onSpliceJunctionsLoaded: function(spliceJunctionData, summary) {
       this.spliceJunctionsForGene = spliceJunctionData;
+    },
+    onDonorReferenceSequenceLoaded: function(referenceSequenceData) {
+      this.donorReferenceSequence = referenceSequenceData;
+    },
+    onAcceptorReferenceSequenceLoaded: function(referenceSequenceData) {
+      this.acceptorReferenceSequence = referenceSequenceData;
     },
     addAlert: function(type, message, genes=null, details=null) {
       let self = this;

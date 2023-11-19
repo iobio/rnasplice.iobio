@@ -43,7 +43,8 @@
             :loadInProgress="loadInProgress"
             @reinit="$emit('reinit')"
             @object-selected="onObjectSelected"
-            @transcript-selected="onTranscriptSelected"/>
+            @transcript-selected="onTranscriptSelected"
+            @splice-junction-selected="onSpliceJunctionSelected"/>
 
           </v-window-item>
         </v-window>      
@@ -116,7 +117,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       snackbarText: "",
       snackbarTimeout: 3000,
 
-      tab: 'tab-1',
+      tab: 'tab-2',
 
       selectedTranscript: null
 
@@ -213,7 +214,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       getSpliceJunctionRecords: function() {
         let self = this;
         let spliceJunctionRecords = self.geneModel.geneToSpliceJunctionRecords[self.selectedGene.gene_name];
-        if (spliceJunctionRecords) {
+        if (spliceJunctionRecords && spliceJunctionRecords.length > 0) {
           let spliceJunctions  = {'gene': self.selectedGene.gene_name, 
                                   'spliceJunctions': spliceJunctionRecords}
           self.$emit('splice-junctions-loaded', spliceJunctions)
@@ -240,24 +241,59 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         }
 
       },
-      getReferenceSequence: function(refName, start, end) {
+      onSpliceJunctionSelected: function(spliceJunction) {
         let self = this;
-        self.loadInProgress = true;
-        let region = {'refName': refName, 
-                       'start':  start,
-                       'end':    end };
-        const refFastaFile = self.genomeBuildHelper.getFastaPath(refName);
-        self.endpoint.promiseGetReferenceSequence(refFastaFile, 
-                                                  region)
-        .then(function(fastaRecords) {
-          self.loadInProgess = false;
-          let sequence  = fastaRecords.length > 1 ? fastaRecords[1] : "";
-          console.log(sequence)
-          //self.$emit('ref-sequence-loaded', sequence )
+        let promises = [];
+        let p = self.promiseGetReferenceSequence('donor', 
+          self.selectedGene.chr, 
+          spliceJunction.donor.pos - 5, 
+          spliceJunction.donor.pos + 5)
+        .then(function(sequenceData) {
+          self.donorReferenceSequence = sequenceData;
+        })
+        promises.push(p)
+        p = self.promiseGetReferenceSequence('acceptor', 
+          self.selectedGene.chr, 
+          spliceJunction.acceptor.pos - 5, 
+          spliceJunction.acceptor.pos + 5)
+        .then(function(sequenceData) {
+          self.acceptorReferenceSequence = sequenceData;
+        })
+
+        promises.push(p)
+        Promise.all(promises)
+        .then(function() {
+          if (self.$refs.ref_SpliceJunctionD3) {
+            self.$refs.ref_SpliceJunctionD3.drawSiteSequences(self.donorReferenceSequence, 
+              self.acceptorReferenceSequence)
+          }
         })
         .catch(function(error) {
-          self.loadInProgress = false;
-          self.$emit("add-alert", 'error', error.message, self.selectedGene.gene_name, error.details ? [error.details] : null)
+
+        })
+
+
+      },
+      promiseGetReferenceSequence: function(junctionEnd, refName, start, end) {
+        let self = this;
+        return new Promise(function(resolve, reject) {
+          self.loadInProgress = true;
+          let region = {'refName': refName, 
+                         'start':  start,
+                         'end':    end };
+          self.endpoint.promiseGetReferenceSequence(refName, 
+                                                    region)
+          .then(function(fastaRecords) {
+            self.loadInProgess = false;
+            let sequence  = fastaRecords.length > 1 ? fastaRecords[1] : "";
+            resolve(sequence)
+          })
+          .catch(function(error) {
+            self.loadInProgress = false;
+            self.$emit("add-alert", 'error', error.message, self.selectedGene.gene_name, error.details ? [error.details] : null)
+            reject(error)
+          })
+
         })
       },
       onObjectSelected: function(selectedObject) {
@@ -289,10 +325,10 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
 
         // TODO Remove. This is temporary code while we are flushing 
         // out the data flow, etc.
-        ['NEB', 'MTHFR', 'TTN'].forEach(function(geneName) {
-          self.loadGene(geneName)
-        })
-        if (self.loadInfo != null && self.searchedGene == null) {
+        //['NEB', 'MTHFR', 'TTN'].forEach(function(geneName) {
+        //  self.loadGene(geneName)
+        //})
+        if (self.loadInfo != null ) {
           self.snackbarText = "Type in a gene name to display splice junctions."
           self.snackbar = true;
         }

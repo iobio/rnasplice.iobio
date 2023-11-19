@@ -86,6 +86,7 @@ export default class EndpointCmd {
 
       let buffer = "";
       let success = false;
+      let records = null;
       cmd.on('data', function(data) {
         if (data != undefined) {
           success = true;

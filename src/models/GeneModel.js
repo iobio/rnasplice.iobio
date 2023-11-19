@@ -66,6 +66,7 @@ class GeneModel {
     this.geneToEnsemblId = {};
     this.geneToHPOTerms = {};
     this.geneToSpliceJunctionRecords = {}
+    this.geneToSpliceJunctionObjects = {}
     this.geneToSpliceJunctionSummary = {}
 
 
@@ -874,11 +875,24 @@ class GeneModel {
       }
       donor.label = donorLabel;
       acceptor.label = acceptorLabel;
+
+      let junctionTranscript = null;
+      let isPreferredTranscript = true;
+      if (donor.transcript) {
+        junctionTranscript = donor.transcript;
+      } else if (acceptor.transcript) {
+        junctionTranscript = acceptor.transcript;
+      }
+      if (junctionTranscript && junctionTranscript.transcript_id != transcript.transcript_id) {
+        isPreferredTranscript = false;
+      }
+
       let label = (donor.delta && donor.delta != 0 ? '~' : '') +
                   donorLabel + 
-                  " -> " + 
+                  "      >      " + 
                   (acceptor.delta && acceptor.delta != 0 ? '~' : '') +
-                  acceptorLabel
+                  acceptorLabel +
+                  (isPreferredTranscript == false ? '      (' + junctionTranscript.transcript_id + ')' : '');
 
       return {
         'key':               donor.pos + ">" + acceptor.pos + "(" + bedRow.strand + ")",
@@ -894,11 +908,13 @@ class GeneModel {
         'strand':            bedRow.strand,
         'readCount':        +bedRow.score,
 
-        'matchesOnOtherTranscripts': matchesOnOtherTranscripts
+        'matchesOnOtherTranscripts': matchesOnOtherTranscripts,
+        'junctionTranscript':        junctionTranscript,
+        'isPreferredTranscript':     isPreferredTranscript
       }
     })
 
-    self.geneToSpliceJunctionRecords[geneObject.gene_name] = spliceJunctions;
+    self.geneToSpliceJunctionObjects[geneObject.gene_name] = spliceJunctions;
     self.summarizeSpliceJunctions(geneObject, transcript)
     return spliceJunctions;
 
@@ -907,7 +923,7 @@ class GeneModel {
   summarizeSpliceJunctions(geneObject, transcript) {
     let self = this;
     let summary = null;
-    let spliceJunctions = self.geneToSpliceJunctionRecords[geneObject.gene_name];
+    let spliceJunctions = self.geneToSpliceJunctionObjects[geneObject.gene_name];
     if (spliceJunctions) {
       
       let nonCanonicalSplice = spliceJunctions.filter(function(spliceJunction) {
@@ -977,15 +993,12 @@ class GeneModel {
           // If we match on the donor and acceptor exon on the same transcript,
           // we have match. Keep the first match and keep a list of
           // all of the transcripts with matches.
-          if (!exonMatchDonor) {
+          if (!exonMatchDonor && !exonMatchAcceptor) {
             exonMatchDonor    = exonDonor;
-          } 
-          if (!exonMatchAcceptor) {
             exonMatchAcceptor = exonAcceptor;
           }
-          exonMatchAcceptor = exonAcceptor;
-          matchesOnOtherTranscripts.push({'matchDonor': exonMatchDonor, 
-                                          'matchAcceptor': exonMatchAcceptor})
+          matchesOnOtherTranscripts.push({'matchDonor': exonDonor, 
+                                          'matchAcceptor': exonAcceptor})
         } 
       }
     } 
@@ -1711,6 +1724,9 @@ class GeneModel {
 
     if (self.geneToSpliceJunctionRecords && self.geneToSpliceJunctionRecords.hasOwnProperty(geneName)) {
       delete self.geneToSpliceJunctionRecords[geneName];
+    }
+    if (self.geneToSpliceJunctionObjects && self.geneToSpliceJunctionObjects.hasOwnProperty(geneName)) {
+      delete self.geneToSpliceJunctionObjects[geneName];
     }
     if (self.geneToSpliceJunctionSummary && self.geneToSpliceJunctionSummary.hasOwnProperty(geneName)) {
       delete self.geneToSpliceJunctionSummary[geneName];

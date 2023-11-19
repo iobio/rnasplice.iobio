@@ -115,6 +115,58 @@
 	  </div>
 
 	</div>
+
+
+ <div id="site-diagrams" class="d-flex plus" 
+   v-if="selectedGene && selectedGene.strand == '+'" >
+  	<div class="donor-site" v-if="showDonorPanel" style="width:50%">
+  		<h3>Donor site</h3>
+  		<div id="axis">
+	      <svg/>
+	    </div>
+		  <div id="transcript-diagram">
+  	  </div>
+		  <div id="sequence">
+        <svg/>
+  	  </div>
+  	</div>
+  	<div class="acceptor-site" v-if="showAcceptorPanel">
+	  	<h3>Acceptor site</h3>
+	  	<div id="axis">
+	      <svg/>
+	    </div>
+		  <div id="transcript-diagram">
+  	  </div>
+		  <div id="sequence">
+        <svg/>
+  	  </div>
+  	</div>
+  </div>
+  <div id="site-diagrams" class="d-flex minus" v-if="selectedGene && selectedGene.strand == '-'" >
+  	<div class="acceptor-site" v-if="showAcceptorPanel" style="width:50%">
+	  	<h3>Acceptor site</h3>
+		  <div id="axis">
+        <svg/>
+  	  </div>
+		  <div id="transcript-diagram">
+  	  </div>
+		  <div id="sequence">
+        <svg/>
+  	  </div>
+  	</div>
+  	<div class="donor-site" style="width:50%" v-if="showDonorPanel" >
+  		<h3>Donor site</h3>
+		  <div id="axis">
+        <svg/>
+  	  </div>
+		  <div id="transcript-diagram">
+  	  </div>
+		  <div id="sequence">
+        <svg/>
+  	  </div>
+  	</div>
+  </div>
+
   
 </div>
 
@@ -177,7 +229,10 @@ export default {
     sitePointerSmallHeight: 8,
 
     MIN_ARC_HEIGHT: 50,
-    ARC_FACTOR:     2
+    ARC_FACTOR:     2,
+
+    showDonorPanel: false,
+    showAcceptorPanel: false
 
 
 	}),
@@ -267,7 +322,9 @@ export default {
 
 		    d3.selectAll("#transcript-menu-panel #transcript-diagram svg").remove();
 		    self.drawTranscriptDiagram('#transcript-menu-panel', self.selectedGene, geneStart, geneEnd, 
-		    	{'selectedTranscriptOnly': false, 'allowSelection': true});			
+		    	{'selectedTranscriptOnly': false, 'allowSelection': true});	
+
+
   		} else {
   			console.log("Problem encountered. Splice junctions gene does not match selected gene.")
   		}
@@ -479,7 +536,13 @@ export default {
 		  	            right: 170, 
 		  	            bottom: (options && options.selectedTranscriptOnly ? 50 : 30), 
 		  	            left: 0};
+		  if (options.margin) {
+		  	margin = options.margin;
+		  }
 		  var width = self.$el.offsetWidth - 20;
+		  if (options.width) {
+		  	width = options.width;
+		  }
 
 		  var transcriptCount = options && options.selectedTranscriptOnly ? 1 : gene.transcripts.length;
 		  var transcriptPadding = options && options.selectedTranscriptOnly ? 0 : 5;
@@ -515,7 +578,7 @@ export default {
 		  // Keep track of x according to container (e.g. diagrams and zoomed-diagrams)
 		  if (container == '#zoomed-diagrams') {
 		  	self.xTranscriptChartZoomed = x;
-		  } else {
+		  } else if (container == '#diagrams') {
 		  	self.xTranscriptChart = x;
 		  }
 
@@ -591,46 +654,48 @@ export default {
      	}
 
 
+     	if (!options || !options.exonsOnly) {
+	      transcripts.selectAll("line.gene").remove();
+	      transcripts.selectAll("line.gene")
+	      .data(function(d) {
+	        return [{'start': d.start, 'end': d.end}]
+	      })
+	      .enter()
+	      .append('line')
+	      .attr("class", "gene")
+	      .attr("x1", function(d) {
+	        return x(Math.min(regionStart, d.start))
+	      })
+	      .attr("x2", function(d) {
+	        return x(Math.min(regionEnd, d.end))
+	      })
+	      .attr("y1", self.CDS_HEIGHT)
+	      .attr("y2", self.CDS_HEIGHT)
 
-      transcripts.selectAll("line.gene").remove();
-      transcripts.selectAll("line.gene")
-      .data(function(d) {
-        return [{'start': d.start, 'end': d.end}]
-      })
-      .enter()
-      .append('line')
-      .attr("class", "gene")
-      .attr("x1", function(d) {
-        return x(Math.min(regionStart, d.start))
-      })
-      .attr("x2", function(d) {
-        return x(Math.min(regionEnd, d.end))
-      })
-      .attr("y1", self.CDS_HEIGHT)
-      .attr("y2", self.CDS_HEIGHT)
+	      transcripts.selectAll(".transcript-label").remove();
+	      transcripts.selectAll(".transcript-label")
+	      .data(function(d) {
+		       return [d];
+	      })
+	      .enter()
+	      .append('text')
+				.attr("class", "transcript-label")
+				.attr("text-anchor", 'start')
+				.attr("x", width - margin.right)
+				.attr("y", self.CDS_HEIGHT)
+				.attr("dy", "0.35em")
+				.text(function(d) {
+				  return d.transcript_id + (d.is_mane_select ? " MANE" : "");
+				})
 
-      transcripts.selectAll(".transcript-label").remove();
-      transcripts.selectAll(".transcript-label")
-      .data(function(d) {
-	       return [d];
-      })
-      .enter()
-      .append('text')
-			.attr("class", "transcript-label")
-			.attr("text-anchor", 'start')
-			.attr("x", width - margin.right)
-			.attr("y", self.CDS_HEIGHT)
-			.attr("dy", "0.35em")
-			.text(function(d) {
-			  return d.transcript_id + (d.is_mane_select ? " MANE" : "");
-			})
+     	}
 
 		 
 		  var nodes = transcripts
 		    .selectAll("rect.exon")
 		    .data(function(d) { 
 		        return d['exons'].filter(function(exon) {
-		          return +exon.start >= +regionStart && +exon.end <= +regionEnd
+		          return +exon.start >= +regionStart || +exon.end <= +regionEnd
 		        })
 		    }, 
 		          function(d) {return d.feature_type + "-" + d.seq_id + "-" + d.start + "-" + d.end;}
@@ -676,7 +741,7 @@ export default {
 		  if (options && options.selectedTranscriptOnly) {
 
 		  	let exons = self.selectedTranscript.features.filter(function(feature) {
-          let matchesRegion = +feature.start >= +regionStart && +feature.end <= +regionEnd;
+          let matchesRegion = +feature.start >= +regionStart || +feature.end <= +regionEnd;
         	return feature.feature_type.toLowerCase() == 'exon' && matchesRegion;
 		  	})
 		  	let factor = exons.length / 50 > 1 ? Math.round(exons.length/25) : 1
@@ -689,30 +754,31 @@ export default {
 		  			return false;
 		  		}
 		  	})
-
-		    let exonLabels = transcripts.insert("g", "*")
-				  .attr("class", "exon-labels")
-				  .attr("transform", "translate(0," + (height - margin.top - transcriptHeight - 10) + ")")
-				  .selectAll("text.exon-label")
-					.data(function(d) 
-				     { 
-				        return exonsToLabel;
-		    		 }, 
-			       function(d) {
-			        	return d.feature_type + "-" + d.seq_id + "-" + d.start + "-" + d.end;
-			       }
-			    )
-			    .join("text")
-			      .attr("class", "exon-label")
-			      .attr("x", function(d) {
-			      	return x(d.start) + ( Math.abs((x(d.start) - x(d.end))) / 2 )
-			      })
-			      .attr("y", function(d) {
-			      	return 0;
-			      })
-			      .text(function(d,i) {
-			      	return d.number;
-			      })
+				if (!options || !options.exonsOnly) {
+			    let exonLabels = transcripts.insert("g", "*")
+					  .attr("class", "exon-labels")
+					  .attr("transform", "translate(0," + (height - margin.top - transcriptHeight - 10) + ")")
+					  .selectAll("text.exon-label")
+						.data(function(d) 
+					     { 
+					        return exonsToLabel;
+			    		 }, 
+				       function(d) {
+				        	return d.feature_type + "-" + d.seq_id + "-" + d.start + "-" + d.end;
+				       }
+				    )
+				    .join("text")
+				      .attr("class", "exon-label")
+				      .attr("x", function(d) {
+				      	return x(d.start) + ( Math.abs((x(d.start) - x(d.end))) / 2 )
+				      })
+				      .attr("y", function(d) {
+				      	return 0;
+				      })
+				      .text(function(d,i) {
+				      	return d.number;
+				      })
+			    }
 
 		  }
 
@@ -732,6 +798,7 @@ export default {
 
 		  // Draw draw triangles to point out donor and acceptor sites
 		  if (options && options.selectedTranscriptOnly) {
+		  	if (!options || !options.exonsOnly) {
 				 svg
 				 .append("polygon")
 				 .attr("class", "donor-pointer-small")
@@ -763,6 +830,9 @@ export default {
 				 		       + " 0,0"
 				 	})
 				 .style("opacity", "0")
+				 .on("click", function(d) {
+		      	
+		      })
 
 		  	 svg.selectAll(".acceptor-pointer").remove();
 				 svg
@@ -777,6 +847,7 @@ export default {
 				 .on("click", function(d) {
 				 		self.showAcceptorDetails()
 				 	})
+
 
 				 svg.selectAll(".donor-problem").remove();
 				 svg
@@ -835,16 +906,10 @@ export default {
 																						     	"click")
 
 				 }
+				}
 			}
 
 		},
-
-    showAcceptorDetails: function() {
-    	let self = this;
-    	if (self.selectedObject && self.selectedObject.type == 'splice-junction') {
-    		
-    	}
-    },
 
 
 		onSelectExon: function(exon, options={'click': false}) {
@@ -900,6 +965,60 @@ export default {
     	}
 
   	},
+
+  	drawSiteAxis: function(container, regionStart, regionEnd) {
+			let self = this;
+
+		  // dimensions
+			var width =  self.$el.offsetWidth/2;
+		  var height = 60;
+		  var margin = {top: 40, right: 10, bottom: 0, left: 10};
+
+		  var innerWidth  = width - margin.left - margin.right;
+		  var innerHeight = height - margin.top - margin.bottom;
+
+		  var center = innerWidth / 2;
+
+		  // scales
+		  var x = d3.scaleLinear()
+		            .domain([regionStart, regionEnd])
+		            .range([margin.left, innerWidth+margin.left]);
+		  
+		  var tickFormatter = function(d) {
+		  	return d3.format(",")(d)
+		  }
+
+		  // axis
+		  var xAxis = d3.axisTop(x)
+		                .tickFormat(tickFormatter);		                   
+
+		  // append the svg object to the body of the page
+		  d3.select(container).select("svg").remove();
+		  var svg = d3.select(container)
+		  .append("svg")
+		    .attr("width", innerWidth)
+		    .attr("height", height)
+		  .append("g")
+		    .attr("class", "site")
+		    .attr("transform",
+		          "translate(" + margin.left + "," + margin.top + ")")
+		  .call(xAxis);
+
+		  
+      svg.selectAll(".arrow").remove();
+      svg.selectAll('.arrow').data([
+      	{'gene': self.selectedGene, 'x': center - center/2},
+      	{'gene': self.selectedGene, 'x': center},
+      	{'gene': self.selectedGene, 'x': center + center/2},
+      ])
+          .enter().append('path')
+          .attr('class', 'arrow')
+          .attr('d', function(d) {
+            return self.centerArrow(d, innerHeight, 15)
+          })
+          .style('transform', 'translate(-10px, -8px)')
+		},
+
 
 		drawBrushableAxis: function(container, regionStart, regionEnd) {
 			let self = this;
@@ -996,7 +1115,7 @@ export default {
 		  // dimensions
 		  var margin = {top: 5, right: 170, bottom: 5, left: 0};
 		  var width = self.$el.offsetWidth - 20,
-		      height = 150;
+		      height = 100;
 
 		  var innerWidth = width - margin.left - margin.right;
 		  var innerHeight = height - margin.top - margin.bottom;
@@ -1365,7 +1484,7 @@ export default {
 		  })
 		 .on("mouseout", function(d) {
 
-		 	/*
+		 	
 		    d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)    
 		    d3.selectAll('#transcript-diagram .transcript.selected .clicked').classed("exon-highlight", true)    
 
@@ -1378,7 +1497,7 @@ export default {
 			      .style("opacity", 0); 
 
 			  self.hideSitePointersOnTranscriptChart("select")
-			  */
+			  
 		  });
 
 	   let arcLabels = svg.insert("g", "*")
@@ -1516,7 +1635,7 @@ export default {
       let junctionMainChart = null;
       let nodeMainChart = null;
      
-      let theSpliceJunctions = self.geneModel.geneToSpliceJunctionRecords[self.selectedGene.gene_name]
+      let theSpliceJunctions = self.geneModel.geneToSpliceJunctionObjects[self.selectedGene.gene_name]
       if (theSpliceJunctions) {
      	  let matched = theSpliceJunctions.filter(function(edge) {
      		  return edge.key == d.key;
@@ -1599,7 +1718,119 @@ export default {
 	      	regionEnd = d.acceptor.pos + 1000;
       	}
 	      self.selectZoomedSpliceJunction(d, theSpliceJunctions, regionStart, regionEnd)
+
+    		self.showDonorPanel = true;
+    		self.showAcceptorPanel = true;
+	     	
+	     	self.$nextTick(function() {
+		     	self.drawSiteDiagram('donor',    d, d.donor.pos)
+		     	self.drawSiteDiagram('acceptor', d, d.acceptor.pos)
+		     	self.$emit("splice-junction-selected", d)
+	     	})
+
+
       }
+
+    },
+
+    drawSiteDiagram: function(junctionEnd, spliceJunction, position) {
+    	let self = this;
+      let strandStr = self.selectedGene.strand == "+" ? 'plus' : 'minus'
+      let siteContainer = "#site-diagrams." + strandStr + " ." + junctionEnd + "-site"
+      let siteStart = position - 5;
+      let siteEnd   = position + 5;
+
+      self.drawSiteAxis(siteContainer + " #axis", siteStart, siteEnd)
+      if (!d3.select(siteContainer + " #transcript-diagram svg").empty()) {
+	      d3.select(siteContainer + " #transcript-diagram svg").remove();
+      }
+      self.drawTranscriptDiagram(siteContainer, 
+      	self.selectedGene, 
+      	siteStart, 
+      	siteEnd, 
+	      {'width': self.$el.offsetWidth/2, 
+	       'margin': {top: 0, right: 10, bottom: 0, left: 0},
+	       'exonsOnly': true,
+	       'selectedTranscriptOnly': true, 
+	       'allowSelection': false})
+      d3.selectAll(siteContainer + " #transcript-diagram svg rect.transcript-feature").classed("selected", true)
+      d3.selectAll(siteContainer + " #transcript-diagram svg rect.transcript-feature").classed("exon-highlight", true)
+
+
+    },
+
+    drawSiteSequences: function(donorSequence, acceptorSequence) {
+    	let self = this;
+      let strandStr = self.selectedGene.strand == "+" ? 'plus' : 'minus'
+      let donorSiteContainer    = "#site-diagrams." + strandStr + " .donor-site #sequence"
+      let acceptorSiteContainer = "#site-diagrams." + strandStr + " .acceptor-site #sequence"
+      
+      self.drawSiteSequence(donorSiteContainer, 
+      	donorSequence, 
+      	self.clickedObject.donor.pos -5, 
+      	self.clickedObject.donor.pos+5,
+      	self.selectedGene.strand == "+" ? self.clickedObject.donor.pos+1 : self.clickedObject.donor.pos,
+      	self.selectedGene.strand == "+" ? self.clickedObject.donor.pos+2 : self.clickedObject.donor.pos-1)
+      self.drawSiteSequence(acceptorSiteContainer, 
+      	acceptorSequence, 
+      	self.clickedObject.acceptor.pos -5, 
+      	self.clickedObject.acceptor.pos+5,
+      	self.selectedGene.strand == "+" ? self.clickedObject.acceptor.pos-1 : self.clickedObject.acceptor.pos+1,
+      	self.selectedGene.strand == "+" ? self.clickedObject.acceptor.pos : self.clickedObject.acceptor.pos+2)
+
+    },
+
+    drawSiteSequence: function(container, sequence, regionStart, regionEnd, siteStart, siteEnd) {
+			let self = this;
+
+		  // dimensions
+			var width =  self.$el.offsetWidth/2;
+		  var height = 20;
+		  var margin = {top: 10, right: 10, bottom: 0, left: 10};
+
+		  var innerWidth  = width - margin.left - margin.right;
+		  var innerHeight = height - margin.top - margin.bottom;
+
+		  var center = innerWidth / 2;
+
+		  // scales
+		  var x = d3.scaleLinear()
+		            .domain([regionStart, regionEnd])
+		            .range([margin.left, innerWidth+margin.left]);
+		  
+		             
+
+		  // append the svg object to the body of the page
+		  d3.select(container).select("svg").remove();
+		  var svg = d3.select(container)
+		  .append("svg")
+		    .attr("width", innerWidth)
+		    .attr("height", height)
+		  .append("g")
+		    .attr("class", "site")
+		    .attr("transform",
+		          "translate(" + margin.left + "," + margin.top + ")")
+
+      svg.selectAll("text.seq")
+      .data(Array.from(sequence))
+      .enter()
+      .append("text")
+      .attr("class", function(d,i) {
+      	if (regionStart+i == siteStart) { 
+      		return "seq site " 
+      	} else if (regionStart+i == siteEnd) {
+      		return "seq site "
+      	} else {
+      		return "seq"
+      	}
+      })
+      .attr("x", function(d,i) {
+      	return x(regionStart+i)
+      })
+      .attr("y", "0")
+      .text(function(d) {
+      	return d;
+      })
 
     },
 
@@ -1757,7 +1988,8 @@ export default {
 		     		  .attr("y", ySitePointer + self.sitePointerHeight + 5)
 							.transition()
 		      		.duration(200)
-		      		.style("opacity", .9); 
+		      		.style("opacity", .9) 
+		      	
 		      }
 
 			    // Acceptor pointer
@@ -1937,7 +2169,7 @@ export default {
   		this.onDataChanged();
   	},
   	loadInProgress: function() {
-  		//this.showLoading = this.loadInProgress;
+  		this.showLoading = this.loadInProgress;
   	},
     minUniquelyMappedReads: function() {
       this.onSettingsChanged();
@@ -2183,4 +2415,21 @@ text.junction {
 #list-for-transcript-menu .v-list-item {
 	padding: 0;
 }
+
+#axis {
+	display: flex;
+	justify-content: flex-start;
+}
+
+#sequence text {
+	fill: black;
+	font-size: 13px;
+}
+
+#sequence text.site {
+	fill: red;
+	font-weight: 600;
+}
+
+
 </style>
