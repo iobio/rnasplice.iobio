@@ -58,12 +58,14 @@
           :alertCounts="appAlertCounts"
           :geneToAlerts="geneToAppAlerts"
           :spliceJunctionsForGene="spliceJunctionsForGene"
+          :junctionSiteSeqRange="junctionSiteSeqRange"
           @add-alert="addAlert"
           @gene-selected="onGeneSelected"
           @reinit="onReinit"
           @gene-model-initialized="onGeneModelInitialized"
           @splice-junctions-loaded="onSpliceJunctionsLoaded"
-          @object-selected="onObjectSelected"/>
+          @object-selected="onObjectSelected"
+          @set-site-zoom-factor="onSetSiteZoomFactor"/>
 
 
       </v-main>
@@ -120,7 +122,11 @@ export default {
 
     selectedObject: null,
     donorReferenceSequence: null,
-    acceptorReferenceSequence: null
+    acceptorReferenceSequence: null,
+
+
+    junctionSiteSeqRange:      15
+
 
 
     
@@ -192,6 +198,9 @@ export default {
     },
     onAcceptorReferenceSequenceLoaded: function(referenceSequenceData) {
       this.acceptorReferenceSequence = referenceSequenceData;
+    },
+    onSetSiteZoomFactor: function(factor) {
+      this.junctionSiteSeqRange = this.junctionSiteSeqRange + factor;
     },
     addAlert: function(type, message, genes=null, details=null) {
       let self = this;

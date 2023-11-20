@@ -101,7 +101,17 @@ export default class EndpointCmd {
         if (success && buffer.length > 0) {
           records = buffer.split("\n")
 
-          resolve(records);
+          let finalRecords = [];
+          if (records.length >= 1) {
+            finalRecords.push(records[0])
+            let sequence = ""
+            for (let idx = 1; idx < records.length; idx++) {
+              sequence += records[idx]
+            }
+            finalRecords.push(sequence)
+          }
+
+          resolve(finalRecords);
         } else if (buffer.length == 0) {
           reject({'message': "No data returned from backend service getReferenceSequence"});
         }

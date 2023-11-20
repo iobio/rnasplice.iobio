@@ -41,10 +41,12 @@
             :spliceJunctionsForGene="spliceJunctionsForGene"
             :tab="tab"
             :loadInProgress="loadInProgress"
+            :junctionSiteSeqRange="junctionSiteSeqRange"
             @reinit="$emit('reinit')"
             @object-selected="onObjectSelected"
             @transcript-selected="onTranscriptSelected"
-            @splice-junction-selected="onSpliceJunctionSelected"/>
+            @splice-junction-selected="onSpliceJunctionSelected"
+            @set-site-zoom-factor="onSetSiteZoomFactor"/>
 
           </v-window-item>
         </v-window>      
@@ -105,6 +107,8 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       alerts: Array,
       alertCounts: Object,
       geneToAlerts: Object,
+
+      junctionSiteSeqRange: Number
     },
     data: () => ({
       urlParams: null,
@@ -192,6 +196,9 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         self.geneModel.geneRegionBuffer = theGeneRegionBuffer;
         self.geneModel.adjustGeneRegion(self.selectedGene);
       },
+      onSetSiteZoomFactor: function(factor) {
+        this.$emit("set-site-zoom-factor", factor)
+      },
       clearAndReload: function(geneNameToLoad) {
         let self = this;
 
@@ -246,16 +253,16 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         let promises = [];
         let p = self.promiseGetReferenceSequence('donor', 
           self.selectedGene.chr, 
-          spliceJunction.donor.pos - self.globalApp.JUNCTION_SITE_SEQ_RANGE, 
-          spliceJunction.donor.pos + self.globalApp.JUNCTION_SITE_SEQ_RANGE)
+          spliceJunction.donor.pos - self.junctionSiteSeqRange, 
+          spliceJunction.donor.pos + self.junctionSiteSeqRange)
         .then(function(sequenceData) {
           self.donorReferenceSequence = sequenceData;
         })
         promises.push(p)
         p = self.promiseGetReferenceSequence('acceptor', 
           self.selectedGene.chr, 
-          spliceJunction.acceptor.pos - self.globalApp.JUNCTION_SITE_SEQ_RANGE, 
-          spliceJunction.acceptor.pos + self.globalApp.JUNCTION_SITE_SEQ_RANGE)
+          spliceJunction.acceptor.pos - self.junctionSiteSeqRange, 
+          spliceJunction.acceptor.pos + self.junctionSiteSeqRange)
         .then(function(sequenceData) {
           self.acceptorReferenceSequence = sequenceData;
         })

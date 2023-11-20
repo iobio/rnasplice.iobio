@@ -14,11 +14,8 @@ class GlobalApp {
     this.geneInfoServer        = null;
     this.genomeBuildServer     = null;
 
-    this.isDirty               = false;
-
-    this.JUNCTION_SITE_SEQ_RANGE      = 15;
-
   }
+
 
   initBackendSource(iobioSource) {
       this.IOBIO_SERVICES = (this.useSSL ? "https://" : "http://") + iobioSource;

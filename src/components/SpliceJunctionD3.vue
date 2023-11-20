@@ -82,15 +82,16 @@
 		    <svg/>
 		  </div>
 	  </div>
-	  <div class="d-flex" v-show="selectedGene && !showLoading" style="padding-right:20px">
+	  <div class="d-flex" v-show="selectedGene && !showLoading" style="padding-right:30px">
 	    <v-spacer/>
-		  <v-btn variant="tonal" color="primary" density="compact">
+		  <v-btn variant="tonal" style="margin-top: -45px;margin-left: -5px !important;" 
+      color="#094792" density="compact">
 	     Select a transcript
 	      <v-menu eager bottom activator="parent">
 	         <v-list id="list-for-transcript-menu">
 	          <v-list-item>
 	            <div id="transcript-menu-panel">
-		        		<div id="transcript-diagram" class="multiple">
+		        		<div id="transcript-diagram" class="multiple" style="margin-right:-10px;">
 		        			<svg/>
 		        	  </div>
 		        	</div>
@@ -120,13 +121,16 @@
  <div id="site-diagrams" class="d-flex plus" 
    v-if="selectedGene && selectedGene.strand == '+'" >
   	<div class="donor-site" v-if="showDonorPanel" style="width:50%">
-  		<h3>Donor site</h3>
+      <div class="d-flex">
+  		  <h2 style="margin-bottom: 20px !important">Donor site</h2>
+        <btn @click="zoomOutSite" style="margin-left:20px;" density="compact" size="x-small" variant="tonal">-</btn>
+      </div>
 		  <div id="sequence">
         <svg/>
   	  </div>
   	</div>
   	<div class="acceptor-site" v-if="showAcceptorPanel">
-	  	<h3>Acceptor site</h3>
+	  	<h2 style="margin-bottom: 20px !important">Acceptor site</h2>
 		  <div id="sequence">
         <svg/>
   	  </div>
@@ -134,13 +138,13 @@
   </div>
   <div id="site-diagrams" class="d-flex minus" v-if="selectedGene && selectedGene.strand == '-'" >
   	<div class="acceptor-site" v-if="showAcceptorPanel" style="width:50%">
-	  	<h3>Acceptor site</h3>
+	  	<h2 style="margin-bottom: 20px !important">Acceptor site</h2>
 		  <div id="sequence">
         <svg/>
   	  </div>
   	</div>
   	<div class="donor-site" style="width:50%" v-if="showDonorPanel" >
-  		<h3>Donor site</h3>
+  		<h2 style="margin-bottom: 20px !important">Donor site</h2>
 		  <div id="sequence">
         <svg/>
   	  </div>
@@ -162,7 +166,8 @@ export default {
     genomeBuildHelper: Object,
     geneModel: Object,
     tab: String,
-    loadInProgress: Boolean
+    loadInProgress: Boolean,
+    junctionSiteSeqRange: Number
   },
   data: () => ({
 		// GLOBALS
@@ -212,7 +217,9 @@ export default {
     ARC_FACTOR:     2,
 
     showDonorPanel: false,
-    showAcceptorPanel: false
+    showAcceptorPanel: false,
+
+    zoomFactor: 1
 
 
 	}),
@@ -222,6 +229,8 @@ export default {
   		let self = this;
   		if (this.tab == 'tab-2' && this.selectedGene) {
   			self.$nextTick(function() {
+          self.showDonorPanel = false;
+          self.showAcceptorPanel = false;
 	  			self.onGeneSelected();
 	  			if (self.spliceJunctionsForGene && self.spliceJunctionsForGene.gene == self.selectedGene.gene_name) {
 	  				self.showLoading = false;
@@ -229,6 +238,7 @@ export default {
 	  			} else {
 	  				d3.selectAll('#diagrams svg').remove();
 				    d3.selectAll('#zoomed-diagrams svg').remove();
+            d3.selectAll('#site-diagrams svg').remove();
 				    self.showLoading = true;
 
 	  			}
@@ -1654,6 +1664,14 @@ export default {
 
     },
 
+    zoomOutSite: function() {
+      let self = this;
+      self.zoomFactor = self.zoomFactor + 10
+      self.$emit("set-site-zoom-factor", self.zoomFactor)
+      self.$nextTick(function() {
+        self.$emit("splice-junction-selected", self.clickedObject)
+      })
+    },
    
 
     drawSiteSequences: function(donorSequence, acceptorSequence) {
@@ -1663,38 +1681,42 @@ export default {
       let acceptorSiteContainer = "#site-diagrams." + strandStr + " .acceptor-site #sequence"
       
 
-      let regionStart = self.clickedObject.donor.pos - self.globalApp.JUNCTION_SITE_SEQ_RANGE;
-      let regionEnd   = self.clickedObject.donor.pos + self.globalApp.JUNCTION_SITE_SEQ_RANGE;
+      let regionStart = self.clickedObject.donor.pos - self.junctionSiteSeqRange;
+      let regionEnd   = self.clickedObject.donor.pos + self.junctionSiteSeqRange;
 			let donorExons  = self.selectedTranscript.exons.filter(function(exon) {
       	if (self.selectedGene.strand == "+") {
-      		return regionStart <= exon.end && regionEnd >= exon.end;
+      		return regionStart <= exon.end && regionEnd >= exon.end ||
+                 (exon.start <= regionStart && exon.end >= regionEnd);
       	} else {
-      		return regionStart <= exon.start && regionEnd >= exon.start;
+      		return regionStart <= exon.start && regionEnd >= exon.start ||
+                 (exon.start <= regionStart && exon.end >= regionEnd);
       	}
       })
 
       self.drawSiteSequence(donorSiteContainer, 
       	donorSequence, 
-      	self.clickedObject.donor.pos - self.globalApp.JUNCTION_SITE_SEQ_RANGE, 
-      	self.clickedObject.donor.pos + self.globalApp.JUNCTION_SITE_SEQ_RANGE,
+      	self.clickedObject.donor.pos - self.junctionSiteSeqRange, 
+      	self.clickedObject.donor.pos + self.junctionSiteSeqRange,
       	self.selectedGene.strand == "+" ? self.clickedObject.donor.pos+1 : self.clickedObject.donor.pos,
       	self.selectedGene.strand == "+" ? self.clickedObject.donor.pos+2 : self.clickedObject.donor.pos-1,
       	donorExons)
 
-      regionStart = self.clickedObject.acceptor.pos - self.globalApp.JUNCTION_SITE_SEQ_RANGE;
-      regionEnd = self.clickedObject.acceptor.pos + self.globalApp.JUNCTION_SITE_SEQ_RANGE;
+      regionStart = self.clickedObject.acceptor.pos - self.junctionSiteSeqRange;
+      regionEnd = self.clickedObject.acceptor.pos + self.junctionSiteSeqRange;
 			let acceptorExons = self.selectedTranscript.exons.filter(function(exon) {
       	if (self.selectedGene.strand == "+") {
-      		return regionStart <= exon.start && regionEnd >= exon.start;
+      		return regionStart <= exon.start && regionEnd >= exon.start ||
+                 (exon.start <= regionStart && exon.end >= regionEnd);
       	} else {
-      		return regionStart <= exon.end && regionEnd >= exon.end;
+      		return regionStart <= exon.end && regionEnd >= exon.end ||
+                 (exon.start <= regionStart && exon.end >= regionEnd);
       	}
       })
 
       self.drawSiteSequence(acceptorSiteContainer, 
       	acceptorSequence, 
-      	self.clickedObject.acceptor.pos - self.globalApp.JUNCTION_SITE_SEQ_RANGE,
-      	self.clickedObject.acceptor.pos + self.globalApp.JUNCTION_SITE_SEQ_RANGE,
+      	self.clickedObject.acceptor.pos - self.junctionSiteSeqRange,
+      	self.clickedObject.acceptor.pos + self.junctionSiteSeqRange,
       	self.selectedGene.strand == "+" ? self.clickedObject.acceptor.pos-1 : self.clickedObject.acceptor.pos+1,
       	self.selectedGene.strand == "+" ? self.clickedObject.acceptor.pos : self.clickedObject.acceptor.pos+2,
       	acceptorExons)
@@ -1706,7 +1728,7 @@ export default {
 
 		  // dimensions
 			var width =  self.$el.offsetWidth/2;
-		  var height = 70;
+		  var height = 90;
 		  var margin = {top: 20, right: 10, bottom: 0, left: 15};
 
 		  var innerWidth  = width - margin.left - margin.right;
@@ -1759,7 +1781,7 @@ export default {
           .attr('d', function(d) {
             return self.centerArrow(d, innerHeight, 15)
           })
-          .style('transform', 'translate(-10px, -18px)')                
+          .style('transform', 'translate(-10px, -36px)')                
 
       // Nucleotide sequence
       svg.selectAll("text.seq")
@@ -1818,6 +1840,38 @@ export default {
 		               " no-pointer selected exon-highlight";
 		      })
 
+      // Exon label
+      svg
+        .selectAll("text.exon-label")
+        .data(function(d) { 
+            return exons
+        }, 
+            function(d) {return d.feature_type + "-" + d.seq_id + "-" + d.start + "-" + d.end;}
+        )
+        .enter()
+        .append("text")
+        .attr("class", "exon-label")
+        .attr("x", function(d) { 
+          if (x(d.start) >= 0) {
+            return x(d.start)
+          } else if (x(d.end) >= 0) {
+            return x(d.end)
+          }
+        })
+        .attr("y", function(d,i) {
+          return 60;
+        })  
+        .style("text-anchor", function(d) {
+          if (x(d.start) >= 0) {
+            return "start"
+          } else if (x(d.end) >= 0) {
+            return "end"
+          }
+        })
+        .text(function(d) {
+          return 'Exon ' + d.number;
+        })
+         
     },
 
     selectZoomedSpliceJunction: function(d, theSpliceJunctions, regionStart, regionEnd) {
@@ -2420,6 +2474,10 @@ text.junction {
 
 #sequence .tick text {
   font-size: 11px;
+}
+
+#zoomed-diagrams .transcript-label {
+  display: none;
 }
 
 
