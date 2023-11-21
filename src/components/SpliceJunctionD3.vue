@@ -108,7 +108,7 @@
 	</div>
 
 	<div id="zoomed-diagrams"  style="z-index:1000;border-top: solid thin lightgray">
-    <h2 v-show="showZoomPanel" style="padding-top: 10px" >Zoomed in region</h2>
+    
 	  <div id="arc-diagram" class="hide-labels">
 	    <svg/>
 	  </div>
@@ -1737,13 +1737,9 @@ export default {
       let regionStart = self.clickedObject.donor.pos - self.junctionSiteSeqRange;
       let regionEnd   = self.clickedObject.donor.pos + self.junctionSiteSeqRange;
 			let donorExons  = self.selectedTranscript.exons.filter(function(exon) {
-      	if (self.selectedGene.strand == "+") {
-      		return regionStart <= exon.end && regionEnd >= exon.end ||
-                 (exon.start <= regionStart && exon.end >= regionEnd);
-      	} else {
-      		return regionStart <= exon.start && regionEnd >= exon.start ||
-                 (exon.start <= regionStart && exon.end >= regionEnd);
-      	}
+      	return (regionStart <= exon.end && regionEnd >= exon.end) ||
+               (regionStart <= exon.start && regionEnd >= exon.start) ||
+              (exon.start <= regionStart && exon.end >= regionEnd);
       })
 
       self.drawSiteSequence(
@@ -1759,13 +1755,9 @@ export default {
       regionStart = self.clickedObject.acceptor.pos - self.junctionSiteSeqRange;
       regionEnd = self.clickedObject.acceptor.pos + self.junctionSiteSeqRange;
 			let acceptorExons = self.selectedTranscript.exons.filter(function(exon) {
-      	if (self.selectedGene.strand == "+") {
-      		return regionStart <= exon.start && regionEnd >= exon.start ||
-                 (exon.start <= regionStart && exon.end >= regionEnd);
-      	} else {
-      		return regionStart <= exon.end && regionEnd >= exon.end ||
-                 (exon.start <= regionStart && exon.end >= regionEnd);
-      	}
+      	return (regionStart <= exon.end && regionEnd >= exon.end) ||
+               (regionStart <= exon.start && regionEnd >= exon.start) ||
+              (exon.start <= regionStart && exon.end >= regionEnd);
       })
 
       self.drawSiteSequence(
@@ -1898,6 +1890,9 @@ export default {
                " no-pointer selected exon-highlight";
       })
 
+      let sitePos = siteStart + ((siteEnd-siteStart)/2);
+
+
       // Exon label
       svg
       .selectAll("text.exon-label")
@@ -1910,10 +1905,12 @@ export default {
       .append("text")
       .attr("class", "exon-label")
       .attr("x", function(d) { 
-        if (x(d.start) >= 0) {
+        if (x(d.start) >= 0 && (x(d.start) < innerWidth - 20) ) {
           return x(d.start) + 20
-        } else if (x(d.end) >= 0) {
+        } else if (x(d.end) >= 0 && (x(d.end) < innerWidth - 20) ) {
           return x(d.end) - 20
+        } else {
+          return x(sitePos) - 20;
         }
       })
       .attr("y", function(d,i) {
@@ -1932,7 +1929,6 @@ export default {
 
       // Site pointers 
       let ySitePointer = 65;
-      let sitePos = siteStart + ((siteEnd-siteStart)/2);
       if (junctionSite == 'donor') {
         svg.selectAll(".donor-pointer").remove();
         svg
@@ -1970,7 +1966,7 @@ export default {
           svg
           .select(".donor-problem")
           .attr("x", function(d1) {
-              return (x(self.clickedObject.donor.pos) ) 
+              return (x(sitePos) ) 
           })
           .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
           .transition()
@@ -2017,7 +2013,7 @@ export default {
           svg
           .select(".acceptor-problem")
           .attr("x", function(d1) {
-              return (x(self.clickedObject.acceptor.pos) ) 
+              return (x(sitePos) ) 
           })
           .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
           .transition()
@@ -2408,7 +2404,7 @@ export default {
 }
 
 #brushable-axis  text { 
-	font-size: 13px; 
+	font-size: 11px; 
 	font-family: 'Poppins';
 }
 #arc-diagram, #transcript-diagram {
@@ -2654,7 +2650,7 @@ text.seq {
 }
 
 
-#sequence .donor-problem, #sequence.acceptor-problem {
+#sequence .donor-problem, #sequence .acceptor-problem {
   font-weight: 500;
 }
 
