@@ -21,6 +21,7 @@
 
             <SpliceJunctionViz 
             :loadInfo="loadInfo"
+            :tab="tab"
             :selectedGene="selectedGene"
             :geneSource="geneModel.geneSource"
             :genomeBuildHelper="genomeBuildHelper"
@@ -330,11 +331,6 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       loadInfo: function() {
         let self = this;
 
-        // TODO Remove. This is temporary code while we are flushing 
-        // out the data flow, etc.
-        //['NEB', 'MTHFR', 'TTN'].forEach(function(geneName) {
-        //  self.loadGene(geneName)
-        //})
         if (self.loadInfo != null ) {
           self.snackbarText = "Type in a gene name to display splice junctions."
           self.snackbar = true;

@@ -54,7 +54,8 @@ import RNASeqIGV   from './RNASeqIGV.vue'
       genomeBuildHelper: Object,
       geneModel: Object,
       loadInfo: Object,
-      geneSource: String
+      geneSource: String,
+      tab: String
     },
     data() {
       let self = this;
@@ -141,13 +142,42 @@ import RNASeqIGV   from './RNASeqIGV.vue'
     },
     watch: {
       selectedGene: function() {
+        let self = this;
+        if (this.bedURL == null && this.loadInfo) {
+          this.initTrackURLs();
+        }
         if (this.selectedGene && this.selectedGene.gene_name) {
           this.coord = this.selectedGene.chr + ":" + this.selectedGene.start + "-" + this.selectedGene.end;
 
         } 
       },
-
       loadInfo: function() {
+        let self = this;
+        self.initTrackURLs();
+      },
+      minUniquelyMappedReads: function() {
+        this.tracksSpliceJunctions[0].tracks[1].minUniquelyMappedReads = this.minUniquelyMappedReads;
+        this.onSettingsChange();
+      },
+      colorBy: function() {
+        this.tracksSpliceJunctions[0].tracks[1].colorBy = this.colorBy;
+        this.onSettingsChange();
+      },
+      geneSource: function() {
+        if (this.geneModel) {
+          this.setGeneAnnotationsTrack();
+          this.$refs.ref_RNASeqIGV.reinit();
+        }
+      },
+      tab: function() {
+        if (this.bedURL == null && this.loadInfo) {
+          this.initTrackURLs();
+        }
+        this.onSettingsChange()
+      }
+    },
+    methods: {
+      initTrackURLs: function() {
         let self = this;
         if (this.loadInfo.hasOwnProperty("buildName")) {
           if (this.buildMap[this.loadInfo.buildName]) {
@@ -186,25 +216,9 @@ import RNASeqIGV   from './RNASeqIGV.vue'
               this.$emit("reinit")
             }
           }
+        }
 
-        }
       },
-      minUniquelyMappedReads: function() {
-        this.tracksSpliceJunctions[0].tracks[1].minUniquelyMappedReads = this.minUniquelyMappedReads;
-        this.onSettingsChange();
-      },
-      colorBy: function() {
-        this.tracksSpliceJunctions[0].tracks[1].colorBy = this.colorBy;
-        this.onSettingsChange();
-      },
-      geneSource: function() {
-        if (this.geneModel) {
-          this.setGeneAnnotationsTrack();
-          this.$refs.ref_RNASeqIGV.reinit();
-        }
-      }
-    },
-    methods: {
       onSettingsChange: function() {
         let firstTime = false;
         if (this.tracksSpliceJunctions[0].tracks[1].url == null) {

@@ -174,11 +174,6 @@ export default {
     onLoadData: function(loadInfo) {
       let self = this;
       this.loadInfo = loadInfo;
-
-      // TODO: Remove. Temporary demo code
-      //setTimeout(function() {
-      //  self.onGeneClicked('NEB')
-      //}, 1000)
     },
     onReinit: function() {
       let self = this;
@@ -201,6 +196,9 @@ export default {
     },
     onSetSiteZoomFactor: function(factor) {
       this.junctionSiteSeqRange = this.junctionSiteSeqRange + factor;
+      if (this.junctionSiteSeqRange <= 0) {
+        this.junctionSiteSeqRange = 1;
+      }
     },
     addAlert: function(type, message, genes=null, details=null) {
       let self = this;
