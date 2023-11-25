@@ -9,7 +9,7 @@
 
   webFontLoader.load({
     google: {
-      families: ['Poppins', 'Roboto:100,300,400,500,700,900&display=swap'],
+      families: ['Poppins:100,200,300,400,500,600,700,900&display=swap', 'Roboto:100,300,400,500,700,900&display=swap'],
     },
   })
 }

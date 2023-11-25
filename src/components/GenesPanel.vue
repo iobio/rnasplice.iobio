@@ -45,7 +45,7 @@
               <h3>Non-canonical splice junctions                     
               </h3>
 
-              <div class="d-flex flex-column" style="max-height:160px;overflow-y:scroll">
+              <div class="d-flex flex-column" style="max-height:167px;overflow-y:scroll">
                 <div  v-for="spliceJunction, idx in getSummary(geneName).noncanonical"
                   :key="spliceJunction.key" 
                   :class="`d-flex splice-junction-entry` + (selectedObject && selectedObject.key == spliceJunction.key ? ` selected` : ``)"
