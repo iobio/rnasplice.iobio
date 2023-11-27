@@ -177,7 +177,7 @@ export default {
   .gene-expansion-title
     justify-content: space-between
     &.selected
-      border: thin solid #094792
+      border: 2px solid #08a9f4
 
   .v-expansion-panel--active:not(:first-child)
     margin-top: 4px !important
@@ -197,7 +197,7 @@ export default {
     text-align:    left
     padding-left: 4px
     &.selected
-      border: thin solid #094792
+      border: 2px solid #08a9f4
 
 
   .gene-button

@@ -72,7 +72,7 @@
     	</div>      
     </div>
 
-    <div id="variant-diagram"  v-if="variants" style="margin-top: -11px">
+    <div id="variant-diagram"  v-if="false && variants" style="margin-top: -11px">
       <VariantViz id="variant-viz"
             ref="ref_variantViz"
             :data="variants"
@@ -96,15 +96,15 @@
 	  <div id="arc-diagram" class="hide-labels" style="margin-top:-11px">
 	  </div>
 
-    <div id="selected-transcript-panel" style="margin-top:-11px">
+    <div id="selected-transcript-panel" v-show="showTranscriptMenu" style="margin-top:-11px">
 
 		  <div id="transcript-diagram" >
 		    <svg/>
 		  </div>
 	  </div>
-	  <div class="d-flex" v-show="selectedGene && !showLoading" style="padding-right:30px">
+	  <div class="d-flex" style="padding-right:30px">
 	    <v-spacer/>
-		  <v-btn variant="tonal" style="margin-top: -45px;margin-left: -5px !important;" 
+		  <v-btn variant="tonal" v-if="showTranscriptMenu" style="margin-top: -45px;margin-left: -5px !important;" 
       color="#094792" density="compact">
 	     Select a transcript
 	      <v-menu eager bottom activator="parent">
@@ -127,8 +127,8 @@
 
 	</div>
 
-	<div id="zoomed-diagrams"  style="z-index:1000;border-top: solid thin lightgray">
-    
+	<div id="zoomed-diagrams"  style="margin-top:20px;z-index:1000;border-top: solid 4px #e7e7e7">
+    <h2 v-if="clickedObject || regionIsSelected" style="margin-bottom:20px !important;margin-top:10px !important">Selected Region</h2>
 	  <div id="arc-diagram" class="hide-labels">
 	    <svg/>
 	  </div>
@@ -139,7 +139,7 @@
 	</div>
 
  
- <div class="d-flex" v-if="showDonorPanel || showAcceptorPanel" style="justify-content: center;padding:10px;border-top: solid thin lightgray">
+ <div class="d-flex" v-if="showDonorPanel || showAcceptorPanel" style="justify-content: center;padding:10px;border-top: solid 4px #e7e7e7;margin-top:20px">
    <v-btn class="zoom-button" @click="zoomOutSite" density="compact" size="medium" variant="tonal" color="#094792" >Zoom out
           </v-btn>
   <v-btn class="zoom-button" @click="zoomInSite" density="compact" size="medium" variant="tonal" color="#094792" >Zoom in
@@ -230,6 +230,7 @@ export default {
 		showSameStrandOnly: false, 
 		junctionsToShow: null,
 		showNonCanonicalOnly: false,
+    showTranscriptMenu: false,
 
     geneStart: null,
     geneEnd: null,
@@ -335,6 +336,7 @@ export default {
   	loadDiagram: function() {
   		let self = this;
       self.showZoomPanel = false;
+      self.showTranscriptMenu = false;
   		if (self.spliceJunctionsForGene.gene == self.selectedGene.gene_name) {
 
 				self.edgesForGene = self.createEdges(self.spliceJunctionsForGene.spliceJunctions)
@@ -359,7 +361,7 @@ export default {
 		    d3.selectAll("#transcript-menu-panel #transcript-menu-diagram svg").remove();
 		    self.drawTranscriptDiagram('#transcript-menu-panel #transcript-menu-diagram', self.selectedGene, self.geneStart, self.geneEnd, 
 		    	{'selectedTranscriptOnly': false, 'allowSelection': true});	
-
+        self.showTranscriptMenu = true;
 
   		} else {
   			console.log("Problem encountered. Splice junctions gene does not match selected gene.")
@@ -898,7 +900,7 @@ export default {
 				 .attr("x", 0)
 				 .attr("y", 0)
 				 .style("opacity", "0")
-				 .text("x")
+				 .text("!")
 
 				 svg.selectAll(".acceptor-problem").remove();
 				 svg
@@ -907,7 +909,7 @@ export default {
 				 .attr("x", 0)
 				 .attr("y", 0)
 				 .style("opacity", "0")
-				 .text("x")
+				 .text("!")
 
 				 svg.selectAll(".donor-problem-small").remove();
 				 svg
@@ -916,7 +918,7 @@ export default {
 				 .attr("x", 0)
 				 .attr("y", 0)
 				 .style("opacity", "0")
-				 .text("x")
+				 .text("!")
 
 				 svg.selectAll(".acceptor-problem-small").remove();
 				 svg
@@ -925,7 +927,7 @@ export default {
 				 .attr("x", 0)
 				 .attr("y", 0)
 				 .style("opacity", "0")
-				 .text("x")
+				 .text("!")
 
 
 				 if (self.clickedObject && self.clickedObject.type == 'splice-junction') {
@@ -1160,7 +1162,7 @@ export default {
             .attr('d', function(d) {
               return self.centerArrow(d, innerHeight, 15)
             })
-            .style('transform', 'translate(-10px, -33px)') 
+            .style('transform', 'translate(-10px, -36px)') 
       }
 
 		  if (options && options.createBrush) {
@@ -1173,7 +1175,7 @@ export default {
 
 
 		  //var arcColors = ['#80A1D4','#7F627A','#39A329','#FACB0F','']
-      var arcColors = ['#b0384e', '#59749e', '#7ba852', '#b09b46', '#FD7049' ]
+      var arcColors = ['#6491cb', '#59749e', '#7ba852', '#b09b46', '#FD7049' ]
 		  let arcColor = null;
 
 		  if (self.colorBy == 'motif') {
@@ -1870,7 +1872,7 @@ export default {
       .attr('d', function(d) {
         return self.centerArrow(d, innerHeight, 15)
       })
-      .style('transform', 'translate(-10px, -36px)')                
+      .style('transform', 'translate(-10px, -39px)')                
 
       let seqWidth = x(regionStart+1) - x(regionStart)
       if (seqWidth > 6) {
@@ -2016,7 +2018,9 @@ export default {
         .attr("x", 0)
         .attr("y", 0)
         .style("opacity", "0")
-        .text("x")
+        .text(function(d1) {
+          return self.clickedObject.donor.delta ? self.clickedObject.donor.delta : "!"
+        })
 
         // position the donor pointers
         svg.select(".donor-pointer")
@@ -2040,6 +2044,8 @@ export default {
           .transition()
           .duration(200)
           .style("opacity", .9); 
+
+
         }       
 
       }
@@ -2063,7 +2069,9 @@ export default {
         .attr("x", 0)
         .attr("y", 0)
         .style("opacity", "0")
-        .text("x")
+        .text(function(d1) {
+          return self.clickedObject.acceptor.delta ? self.clickedObject.acceptor.delta : "!"
+        })
 
         // position the acceptor pointers
         svg.select(".acceptor-pointer")
@@ -2141,6 +2149,9 @@ export default {
 									return (self.xTranscriptChart(d.donor.pos) ) 
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
+              .text(function(d1) {
+                return d.donor.delta && d.donor.delta != 0 ? d.donor.delta : "!";
+              })
 							.transition()
 		      		.duration(200)
 		      		.style("opacity", .9); 
@@ -2164,6 +2175,9 @@ export default {
 									return (self.xTranscriptChart(d.acceptor.pos) ) 
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
+              .text(function(d1) {
+                return d.acceptor.delta && d.acceptor.delta != 0 ? d.acceptor.delta : "!";
+              })
 							.transition()
 		      		.duration(200)
 		      		.style("opacity", .9); 
@@ -2191,7 +2205,10 @@ export default {
 									return (self.xTranscriptChartZoomed(d.donor.pos) ) 
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
-							.transition()
+              .text(function(d1) {
+                return d.donor.delta && d.donor.delta != 0 ? d.donor.delta : "!";
+              })							
+              .transition()
 		      		.duration(200)
 		      		.style("opacity", .9); 
 		      }
@@ -2215,7 +2232,9 @@ export default {
 									return (self.xTranscriptChartZoomed(d.acceptor.pos) ) 
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
-							.transition()
+              .text(function(d1) {
+                return d.acceptor.delta && d.acceptor.delta != 0 ? d.acceptor.delta : "!";
+              })							.transition()
 		      		.duration(200)
 		      		.style("opacity", .9); 
 		      }
@@ -2246,7 +2265,10 @@ export default {
 		     		  .attr("x", function(d1) {
 									return (self.xTranscriptChart(d.donor.pos)) 
 		     		  })
-		     		  .attr("y", ySitePointer + self.sitePointerHeight + 5)
+		     		  .attr("y", ySitePointer + self.sitePointerHeight + 2)
+              .text(function(d1) {
+                return d.donor.delta && d.donor.delta != 0 ? d.donor.delta : "!";
+              })
 							.transition()
 		      		.duration(200)
 		      		.style("opacity", .9) 
@@ -2271,7 +2293,10 @@ export default {
 		     		  .attr("x", function(d1) {
 									return (self.xTranscriptChart(d.acceptor.pos) ) 
 		     		  })
-		     		  .attr("y", ySitePointer + self.sitePointerHeight + 5)
+		     		  .attr("y", ySitePointer + self.sitePointerHeight + 2)
+              .text(function(d1) {
+                return d.acceptor.delta && d.acceptor.delta != 0 ? d.acceptor.delta : "!";
+              })
 							.transition()
 		      		.duration(200)
 		      		.style("opacity", .9); 
@@ -2288,7 +2313,8 @@ export default {
 		        })
 			      .transition()
 			      .duration(200)
-			      .style("opacity", .9); 
+			      .style("opacity", .9);
+
 
 		      // Show an * below donor pointer if donor site is noncanonical
 		      if (d.donor.status && d.donor.status == 'noncanonical') {
@@ -2296,10 +2322,14 @@ export default {
 		     		  .attr("x", function(d1) {
 									return (self.xTranscriptChartZoomed(d.donor.pos) ) 
 		     		  })
-		     		  .attr("y", ySitePointer + self.sitePointerHeight + 5)
+		     		  .attr("y", ySitePointer + self.sitePointerHeight + 2)
 							.transition()
 		      		.duration(200)
 		      		.style("opacity", .9); 
+            d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-problem") 
+              .text(function(d1) {
+                return d.donor.delta && d.donor.delta != 0 ? d.donor.delta : "!";
+              })
 		      }
 
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-pointer")
@@ -2318,10 +2348,15 @@ export default {
 		     		  .attr("x", function(d1) {
 									return (self.xTranscriptChartZoomed(d.acceptor.pos) ) 
 		     		  })
-		     		  .attr("y", ySitePointer + self.sitePointerHeight + 5)
+		     		  .attr("y", ySitePointer + self.sitePointerHeight + 2)
 							.transition()
 		      		.duration(200)
 		      		.style("opacity", .9); 
+            d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-problem") 
+            .text(function(d1) {
+              return d.acceptor.delta && d.acceptor.delta != 0 ? d.acceptor.delta : "!";
+            })
+  
 		      }
 	      }
 
@@ -2459,9 +2494,6 @@ export default {
   	},
     spliceJunctionsForGene: function() {
   		this.onDataChanged();
-  	},
-  	loadInProgress: function() {
-  		this.showLoading = this.loadInProgress;
   	},
     minUniquelyMappedReads: function() {
       this.onSettingsChanged();
@@ -2683,18 +2715,16 @@ div.tooltip1 {
 
 
 
-.donor-problem, .acceptor-problem {
-	fill: #03a9f4;
-	font-weight: 600;
-	font-size: 20px;
-	text-anchor: middle;
+.donor-problem, .acceptor-problem, .donor-problem-small, .acceptor-problem-small  {
+	fill: #03a9f4 !important;
+	font-weight: 600 !important;
+	font-size: 13px !important;
+	text-anchor: middle !important;
 }
 
-.donor-problem-small, .acceptor-problem-small {
-	fill: #03a9f4;
-	font-weight: 600;
-	font-size: 16px;
-	text-anchor: middle;
+.donor-problem-small, .acceptor-problem-small  {
+  font-weight: 500 !important;
+  font-size: 12px !important;
 }
 
 text.junction {

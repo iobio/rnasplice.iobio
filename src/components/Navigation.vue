@@ -1,6 +1,6 @@
 <template>
   <v-app-bar 
-      dark 
+      dark height="50"
       style="padding-top:2px"
     >
 

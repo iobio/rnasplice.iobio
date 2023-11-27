@@ -857,9 +857,6 @@ class GeneModel {
         donorLabel =  
         
         'Exon ' + donor.exon.number 
-        //+
-        //(donor.delta && donor.delta > 0 ? ' +' : ' ') +
-        //(donor.delta && donor.delta != 0 ? donor.delta + ' bp' : '')
       } else  {
         donorLabel = 'Intronic '  + geneObject.chr + ":" +  d3.format(",")(donor.pos);
       }
@@ -867,9 +864,6 @@ class GeneModel {
       if (acceptor.exon) {
         acceptorLabel =  
         'Exon ' + acceptor.exon.number 
-        //+ 
-        //(acceptor.delta && acceptor.delta > 0 ? ' +' : ' ') +
-        //(acceptor.delta && acceptor.delta != 0 ? acceptor.delta + ' bp' : '')
       } else  {
         acceptorLabel = 'Intronic ' + geneObject.chr + ":" + d3.format(",")(acceptor.pos);
       }

@@ -103,6 +103,7 @@
 @import '../styles/variables.sass'
 
 #gene-card
+  padding: 5px 10px !important
   #gene-region-buffer-input
     font-size: 13px
 

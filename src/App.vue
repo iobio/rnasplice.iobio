@@ -365,11 +365,10 @@ export default {
   background-color: $nav-color !important
 
 #left-nav-drawer
-  background-color: lightgray
   margin-left: 5px
   margin-right: 5px
   padding: 5px
-  height: calc(100vh - 65px)
+  height: calc(100vh - 50px)
 
 h1, .h1 
   font-size: 20px !important

@@ -8,10 +8,10 @@
      @gene-region-buffer-change="onGeneRegionBufferChange"
      @reinit="$emit('reinit')"/>
 
-    <v-card  v-show="selectedGene" class="full-width-card" style="min-height: calc(100vh + 20px);">
+    <v-card  v-show="selectedGene" class="full-width-card" style="padding-top:0px !important;min-height: calc(100vh + 20px);">
         <v-tabs density="compact"
           v-model="tab" 
-          align-tabs="left" class="mb-2"
+          align-tabs="center" class="mb-2"
         >
           <v-tab  color="#376daf" style="font-weight: 600" value="tab-1">IGV</v-tab>
           <v-tab  color="#376daf" style="font-weight: 600"  value="tab-2">Custom Data Viz</v-tab>
