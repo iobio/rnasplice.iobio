@@ -6,3 +6,6 @@
 )
 
 3. For sites not landing in exon, calculate delta by determining closest exon and using exon.start or end depending on strand and junction end.
+
+
+4. Look for genes in other region when considering if splice junction belongs to gene 
