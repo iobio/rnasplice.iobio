@@ -125,8 +125,7 @@ export default {
     acceptorReferenceSequence: null,
 
 
-    junctionSiteSeqRange:      15
-
+    junctionSiteSeqRange:      30
 
 
     

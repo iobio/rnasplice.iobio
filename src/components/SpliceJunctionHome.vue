@@ -6,32 +6,10 @@
     :selectedGene="selectedGene"
     :geneModel="geneModel"
      @gene-region-buffer-change="onGeneRegionBufferChange"
-     @reinit="$emit('reinit')"/>
+     @reinit="$emit('reinit')"
+     @show-igv="onShowIGV"/>
 
     <v-card  v-show="selectedGene" class="full-width-card" style="padding-top:0px !important;min-height: calc(100vh + 20px);">
-        <v-tabs density="compact"
-          v-model="tab" 
-          align-tabs="center" class="mb-2"
-        >
-          <v-tab  color="#376daf" style="font-weight: 600" value="tab-1">IGV</v-tab>
-          <v-tab  color="#376daf" style="font-weight: 600"  value="tab-2">Custom Data Viz</v-tab>
-        </v-tabs>
-        <v-window v-model="tab">
-          <v-window-item value="tab-1">
-
-            <SpliceJunctionViz 
-            :loadInfo="loadInfo"
-            :tab="tab"
-            :selectedGene="selectedGene"
-            :geneSource="geneModel.geneSource"
-            :genomeBuildHelper="genomeBuildHelper"
-            :geneModel="geneModel"
-            @reinit="$emit('reinit')"
-            />
-         
-          </v-window-item>
-            
-          <v-window-item value="tab-2" eager>
 
             <SpliceJunctionD3 
             ref="ref_SpliceJunctionD3"
@@ -49,8 +27,6 @@
             @splice-junction-selected="onSpliceJunctionSelected"
             @set-site-zoom-factor="onSetSiteZoomFactor"/>
 
-          </v-window-item>
-        </v-window>      
        
     </v-card>
     
@@ -72,7 +48,25 @@
         </template>
       </v-snackbar>
 
-
+<v-dialog v-model="showIGVPopup" persistent fullscreen >
+  <v-card class="full-width">
+    <div style="margin-right: 5px">
+      <v-btn variant="tonal" color="#094792" size="large" 
+      style="float:right;margin-bottom:10px;" @click="onShowIGV(false)">Close</v-btn>
+    </div>
+    <SpliceJunctionViz 
+    ref="ref_SpliceJunctionViz"
+    :loadInfo="loadInfo"
+    :tab="tab"
+    :showIGVPopup="showIGVPopup"
+    :selectedGene="selectedGene"
+    :geneSource="geneModel.geneSource"
+    :genomeBuildHelper="genomeBuildHelper"
+    :geneModel="geneModel"
+    @reinit="$emit('reinit')"
+    />
+  </v-card>
+</v-dialog>
 
 </div>
 
@@ -109,7 +103,8 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       alertCounts: Object,
       geneToAlerts: Object,
 
-      junctionSiteSeqRange: Number
+      junctionSiteSeqRange: Number,
+
     },
     data: () => ({
       urlParams: null,
@@ -124,7 +119,9 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
 
       tab: 'tab-2',
 
-      selectedTranscript: null
+      selectedTranscript: null,
+
+      showIGVPopup: false
 
 
     }),
@@ -318,7 +315,10 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         if (this.$refs.ref_SpliceJunctionD3) {
           this.$refs.ref_SpliceJunctionD3.selectSpliceJunction(spliceJunction)
         }
-      }      
+      },
+      onShowIGV: function(show) {
+        this.showIGVPopup = show;
+      }     
 
     },
     watch: {
@@ -342,6 +342,9 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         if (self.loadInfo && self.selectedGene) {
           self.getSpliceJunctionRecords()
         }
+      },
+      showIGV: function() {
+        this.showIGVPopup = this.showIGV;
       }
     }
 

@@ -187,6 +187,8 @@ export default {
   .v-expansion-panel-title
     padding: 0px 8px
     min-height: 30px
+  .v-expansion-panel-title__overlay
+    background-color: #ababab
   .v-expansion-panel-text__wrapper
     padding: 4px 4px
     margin-bottom: 80px

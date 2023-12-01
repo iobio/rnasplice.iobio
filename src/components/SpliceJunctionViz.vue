@@ -1,9 +1,9 @@
 <template>
 
-    <div class="d-flex flex-column" v-if="loadInfo && coord">
-      <div id="panel-heading" class="d-flex flex-row justify-space-between align-center mb-1" >
+    <div class="d-flex flex-column" style="margin-top:-55px;" >
+      <div id="panel-heading" class="d-flex flex-row  align-center mb-1" >
           <h2 class="mr-16">
-            Splice Junctions
+            {{ selectedGene.gene_name }} Splice Junctions
           </h2>
           <div style="width:195px" class="ml-4 mr-5">
             <v-text-field 
@@ -25,7 +25,7 @@
       </div>
 
       <div>
-        <RNASeqIGV v-if="loadInfo && coord"  class="" id="splice-junction-viz-container"
+        <RNASeqIGV   class="" id="splice-junction-viz-container"
           ref="ref_RNASeqIGV"
           heading="Splice junctions" 
           :genome="genome"
@@ -55,7 +55,8 @@ import RNASeqIGV   from './RNASeqIGV.vue'
       geneModel: Object,
       loadInfo: Object,
       geneSource: String,
-      tab: String
+      tab: String,
+      showIGVPopup: Boolean
     },
     data() {
       let self = this;
@@ -140,7 +141,27 @@ import RNASeqIGV   from './RNASeqIGV.vue'
         }
       }
     },
+    created: function() {
+      let self = this;
+      if (this.bedURL == null && this.loadInfo) {
+        this.initTrackURLs();
+      }
+      if (this.selectedGene && this.selectedGene.gene_name) {
+        this.coord = this.selectedGene.chr + ":" + this.selectedGene.start + "-" + this.selectedGene.end;
+
+      } 
+    },    
     watch: {
+      showIGVPopup: function() {
+        let self = this;
+        if (this.bedURL == null && this.loadInfo) {
+          this.initTrackURLs();
+        }
+        if (this.selectedGene && this.selectedGene.gene_name) {
+          this.coord = this.selectedGene.chr + ":" + this.selectedGene.start + "-" + this.selectedGene.end;
+
+        } 
+      },
       selectedGene: function() {
         let self = this;
         if (this.bedURL == null && this.loadInfo) {
@@ -283,5 +304,7 @@ import RNASeqIGV   from './RNASeqIGV.vue'
     v-field__field
       label
         font-size: 13px
-    
+  .igv-column-container
+    justify-content: center !important
+    width: calc(100%) !important
 </style>

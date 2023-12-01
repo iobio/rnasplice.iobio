@@ -1,6 +1,6 @@
 <template>
 
-<div style="padding-bottom: 10px">
+<div style="padding-top:10px;padding-bottom: 10px">
 	<div class="text-center" v-if="showLoading">
     <v-progress-circular v-if="showLoading"
       indeterminate
@@ -8,11 +8,12 @@
     ></v-progress-circular>
   </div>
 
-      <div id="panel-heading" class="d-flex flex-row justify-space-between align-center mb-1" >
-          <h2 class="mr-16" style="margin-top: 0px !important;margin-bottom: 0px !important;min-width: 150px;">
+      <div id="panel-heading" class="d-flex flex-row  align-center mb-1" >
+          <h2 class="mr-4" style="margin-top: 0px !important;margin-bottom: 0px !important;min-width: 150px;">
             Splice Junctions
           </h2>
-          <div id="label-cb" class="mr-5" >
+
+          <div id="label-cb" class="mr-2" style="width:120px;" >
 						<v-checkbox 
 						  hide-details="true"
 				      v-model="showLabels"
@@ -20,7 +21,7 @@
 				    ></v-checkbox>
 			    </div>
 
-          <div id="show-noncanonical-only-cb" class="mr-5" >
+          <div id="show-noncanonical-only-cb" class="mr-2"  style="width:150px;">
 						<v-checkbox 
 						  hide-details="true"
 				      v-model="showNonCanonicalOnly"
@@ -35,14 +36,14 @@
 				      label="Hide junctions not matching gene strand"
 				    ></v-checkbox>
 			    </div>
-          <div style="width:195px" class="mr-5">
+          <div style="width:120px" class="mr-5">
             <v-text-field 
             density="compact"
             hide-details="auto" 
             label="Min read count" 
             v-model="minUniquelyMappedReads"/>
           </div>
-          <div style="width:155px" class="mr-5">
+          <div style="width:155px" class="mr-2">
             <v-select 
               v-model="colorBy"
               hide-details="auto"
@@ -52,24 +53,23 @@
             ></v-select>
           </div>
           
-
           
           
       </div>
 
 	<div id="diagrams">
-	  <div  class="d-flex flex-row align-center">
+	  <div  class="d-flex flex-column justify-content-start align-start">
+      <div v-if="!showLoading && selectedGene" style="align-self:center">
+        <div class="instruction-box" v-if="!regionIsSelected">
+          Click and drag below to zoom into a region
+        </div>
+        <div class="instruction-box" v-if="regionIsSelected">
+          Click outside of bounding box to zoom out
+        </div>
+      </div>      
 	    <div id="brushable-axis">
 	      <svg/>
 	    </div>
-    	<div v-if="!showLoading && selectedGene" style="max-width:150px">
-        <div class="instruction-box" v-if="!regionIsSelected">
-        	Click and drag to zoom into a region
-        </div>
-        <div class="instruction-box" v-if="regionIsSelected">
-        	Click outside of bounding box to zoom out
-        </div>
-    	</div>      
     </div>
 
     <div id="variant-diagram"  v-if="false && variants" style="margin-top: -11px">
@@ -102,24 +102,29 @@
 		    <svg/>
 		  </div>
 	  </div>
-	  <div class="d-flex" style="padding-right:30px">
-	    <v-spacer/>
-		  <v-btn variant="tonal" v-if="showTranscriptMenu" style="margin-top: -45px;margin-left: -5px !important;" 
-      color="#094792" density="compact">
-	     Select a transcript
-	      <v-menu eager bottom activator="parent">
-	         <v-list id="list-for-transcript-menu">
-	          <v-list-item>
-	            <div id="transcript-menu-panel">
-		        		<div id="transcript-menu-diagram" class="multiple" style="margin-right:-10px;">
-		        			<svg/>
-		        	  </div>
-		        	</div>
-	        	</v-list-item>
-	         </v-list>
-				
-	      </v-menu>
-	    </v-btn>
+	  <div class="d-flex"  style="margin-top:-70px">
+      <v-spacer/>
+      <v-btn variant="tonal"  id="transcript-menu-button" style="margin-left:10px;" 
+            icon="mdi-dots-vertical" color="#094792" density="compact">
+
+          </v-btn>
+        <v-menu eager bottom activator="#transcript-menu-button">
+           
+           <v-list id="list-for-transcript-menu" style="margin-right:20px">
+            <v-list-item>
+              <div id="transcript-menu-panel">
+                <div id="transcript-menu-diagram" class="multiple" style="margin-right:0px;">
+                  <svg/>
+                </div>
+              </div>
+            </v-list-item>
+           </v-list>
+        
+        </v-menu>
+    </div>
+    <div class="d-flex" style="margin-top:10px;" v-if="selectedTranscript">
+      <v-spacer/>
+      <h3 style="font-size:14px !important">{{ selectedTranscript.transcript_id}}</h3>
     </div>
 	  
 	  
@@ -514,10 +519,11 @@ export default {
             {'createBrush': false, 
              'allEdges': self.edgesForGene, 
              'showXAxis': true,
+             'marginRight': 0,
              'showJunctionArrow': true})
 
 			    self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram", self.selectedGene, regionStart, regionEnd, 
-			      {'selectedTranscriptOnly': true, 'allowSelection': false})
+			      {'selectedTranscriptOnly': true, 'allowSelection': false, 'marginRight': 0})
 
 		    }
 		  } else {
@@ -580,12 +586,10 @@ export default {
 			let self = this;
 		  // dimensions
 		  var margin = {top: (options && options.selectedTranscriptOnly ? 0 : 5), 
-		  	            right: 170, 
+		  	            right: (options && options.hasOwnProperty('marginRight') ? options.marginRight : 0), 
 		  	            bottom: (options && options.selectedTranscriptOnly ? 50 : 30), 
 		  	            left: 0};
-		  if (options.margin) {
-		  	margin = options.margin;
-		  }
+
 		  var width = self.$el.offsetWidth - 20;
 		  if (options.width) {
 		  	width = options.width;
@@ -718,6 +722,7 @@ export default {
       .attr("y1", self.CDS_HEIGHT)
       .attr("y2", self.CDS_HEIGHT)
 
+
       transcripts.selectAll(".transcript-label").remove();
       transcripts.selectAll(".transcript-label")
       .data(function(d) {
@@ -727,7 +732,7 @@ export default {
       .append('text')
 			.attr("class", "transcript-label")
 			.attr("text-anchor", 'start')
-			.attr("x", width - margin.right)
+			.attr("x", 0)
 			.attr("y", self.CDS_HEIGHT)
 			.attr("dy", "0.35em")
 			.text(function(d) {
@@ -1015,7 +1020,7 @@ export default {
 
 
 		  // dimensions
-		  var margin = {top: 40, right: 170, bottom: 5, left: 0};
+		  var margin = {top: 40, right: 0, bottom: 5, left: 0};
 		  var width = self.$el.offsetWidth - 20,
 		      height = 60;
 
@@ -1099,7 +1104,10 @@ export default {
 		  }
 
 		  // dimensions
-		  var margin = {top: (options.showXAxis ? 25 : 0), right: 170, bottom: 0, left: 0};
+		  var margin = {top: (options.showXAxis ? 25 : 0), 
+                   right: (options.hasOwnProperty('marginRight') ? options.marginRight : 0), 
+                   bottom: 0, 
+                   left: 0};
 		  var width = self.$el.offsetWidth - 20,
 		      height = 100;
 
@@ -2118,11 +2126,11 @@ export default {
           {'createBrush': false, 
            'allEdges': self.edgesForGene, 
            'showXAxis': true, 
-           'marginRight': 10,
+           'marginRight': 0,
            'showJunctionArrow': true})
 
 	    self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram", self.selectedGene, regionStart, regionEnd, 
-	      {'selectedTranscriptOnly': true, 'allowSelection': false})
+	      {'selectedTranscriptOnly': true, 'allowSelection': false, marginRight: 0})
 		},
 				 
 
@@ -2525,10 +2533,9 @@ export default {
   padding-right: 10px;
   display: flex;
   align-items: center;
-  height: 40px;
   justify-content: center;
   margin-left: 10px;
-  width: 175px;
+  width: 300px;
 }
 
 #brushable-axis  text { 
@@ -2741,7 +2748,7 @@ text.junction {
 	height: 45px;
 }
 #show-matching-strand-only-cb {
-	width: 190px;
+	width: 200px;
 }
 #label-cb label, #show-matching-strand-only-cb label, #show-noncanonical-only-cb label  {
 	font-size: 13px !important;

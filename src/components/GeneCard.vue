@@ -43,7 +43,12 @@
               density="compact"
               :items="['gencode', 'refseq',]"
             ></v-select>
-          </div>
+        </div>
+
+        <v-btn variant="tonal" id="show-igv-button" @click="$emit('show-igv', true)" style="margin-left: 20px;width:120px;"  density="compact" color="#094792">
+          IGV
+        </v-btn>
+
     
       </div>
 

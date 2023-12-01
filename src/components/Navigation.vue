@@ -30,6 +30,7 @@
 
       <v-spacer></v-spacer>
 
+
       <v-btn id="load-data-button" @click="onShowLoadDataDialog" class="navbar-icon-button mr-9" text>
         <v-icon  class="mr-1">mdi-open-in-new</v-icon>
         Load data
