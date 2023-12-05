@@ -136,7 +136,7 @@ export default class EndpointCmd {
       const genomeBuildName = self.genomeBuildHelper.getCurrentBuildName();
       const refFastaFile    = self.genomeBuildHelper.getFastaPath(refName);
       
-      const cmd = this.api.streamCommand('annotateVariantsV2', {
+      const cmd = self.api.streamCommand('annotateVariantsV2', {
           vcfUrl: vcfUrl,
           tbiUrl: indexUrl,
           refNames,
@@ -203,6 +203,11 @@ export default class EndpointCmd {
     }
   }
 
+  getVcfHeader(vcfUrl, tbiUrl) {
+    const me = this;
+    let cmd = this.api.streamCommand('variantHeader', {url: vcfUrl, indexUrl: tbiUrl});
+    return cmd;
+  }
 
 
 

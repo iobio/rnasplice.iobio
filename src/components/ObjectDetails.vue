@@ -16,6 +16,14 @@
         <h2 v-if="selectedObject.type == 'exon'"> 
           Exon
         </h2>
+        <h2 v-if="selectedObject.type == 'variant'"> 
+          <div class="d-flex flex-row align-center"> 
+            Variant
+            <div class="d-flex flex-row ml-4" style="height:26px;">
+              <v-chip color="primary"  size="small" v-if="selectedObject.isSpliceVariant">Splice Variant</v-chip>
+            </div>
+          </div>
+        </h2>
 
 
       </div>
@@ -142,6 +150,22 @@
         </div>
 
       </div>
+
+      <div class="selected-details" v-if="selectedObject.type == 'variant'">
+        <div class="d-flex flex-row mb-5" >
+          {{ selectedObject.variant.type }} {{ selectedObject.variant.chrom }}:{{ selectedObject.variant.start }} {{ selectedObject.variant.ref }} > {{ selectedObject.variant.alt }}
+        </div>
+
+        <div class="d-flex flex-row">
+          <div class="so-label indent">Impact</div>
+          <div class="so-value">{{ Object.keys(selectedObject.variant.vepImpact).join(", ").replaceAll("_", " ") }}</div>
+        </div>        
+
+        <div class="d-flex flex-row">
+          <div class="so-label indent">Consequence</div>
+          <div class="so-value">{{ Object.keys(selectedObject.variant.vepConsequence).join(", ").replaceAll("_", " ") }}</div>
+        </div>        
+      </div>      
 
     </div>
 

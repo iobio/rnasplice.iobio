@@ -18,9 +18,13 @@
             :geneModel="geneModel"
             :geneSource="geneModel.geneSource"
             :spliceJunctionsForGene="spliceJunctionsForGene"
+            :variants="variants"
             :tab="tab"
             :loadInProgress="loadInProgress"
             :junctionSiteSeqRange="junctionSiteSeqRange"
+            :variantHeight="variantHeight"
+            :variantWidth="variantWidth"
+            :vcf="vcf"
             @reinit="$emit('reinit')"
             @object-selected="onObjectSelected"
             @transcript-selected="onTranscriptSelected"
@@ -76,6 +80,7 @@
 import GenomeBuildHelper from '@/models/GenomeBuildHelper.js'
 import GeneModel         from '@/models/GeneModel.js'
 import Endpoint          from '@/models/Endpoint.js'
+import Vcf               from '@/models/Vcf.js'
 
 import GeneCard          from './GeneCard.vue'
 import SpliceJunctionViz from './SpliceJunctionViz.vue'
@@ -110,6 +115,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       urlParams: null,
       launchedFromMosaic: null,
       geneModel: null,
+      vcf: null,
       endpoint: null,
       loadInProgress: false,
 
@@ -121,7 +127,15 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
 
       selectedTranscript: null,
 
-      showIGVPopup: false
+      showIGVPopup: false,
+
+      geneRegionStart: null,
+      geneRegionEnd: null,
+
+      variants: null,
+
+      variantHeight: 8,
+      variantWidth:  8
 
 
     }),
@@ -246,6 +260,28 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         }
 
       },
+      promiseGetVariants: function() {
+        let self = this;
+
+        self.variants = [];
+
+        let regions = [];
+        regions.push({'name': self.selectedGene.chr, 'start': self.selectedGene.start, 'end': self.selectedGene.end})        
+        let isMultiSample = true;
+        let samplesToRetrieve = [{'vcfSampleName': 'NA12878', 'sampleName': 'NA12878'}]
+
+        self.vcf.promiseGetVariants(self.selectedGene.chr, self.selectedGene, self.selectedTranscript, regions,isMultiSample, samplesToRetrieve)
+        .then(function(data) {
+          let width = self.$el.offsetWidth - 420;
+          let variants = data.results[0].features
+          self.vcf.pileupVariants(variants, self.geneRegionStart, self.geneRegionEnd, width)
+          self.variants = variants;
+          console.log(self.variants)
+        })
+        .catch(function(error) {
+          console.log(error)
+        })
+      },
       onSpliceJunctionSelected: function(spliceJunction) {
         let self = this;
         let promises = [];
@@ -268,9 +304,23 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         promises.push(p)
         Promise.all(promises)
         .then(function() {
+
+          let donorVariants = null;
+          let acceptorVariants = null;
+          if (self.variants) {
+            donorVariants = self.variants.filter(function(d) {
+              return d.start >= spliceJunction.donor.pos - self.junctionSiteSeqRange && 
+                     d.start <= spliceJunction.donor.pos + self.junctionSiteSeqRange
+            })
+            acceptorVariants = self.variants.filter(function(d) {
+              return d.start >= spliceJunction.acceptor.pos - self.junctionSiteSeqRange && 
+                     d.start <= spliceJunction.acceptor.pos + self.junctionSiteSeqRange
+            })
+
+          }
           if (self.$refs.ref_SpliceJunctionD3) {
-            self.$refs.ref_SpliceJunctionD3.drawSiteSequences(self.donorReferenceSequence, 
-              self.acceptorReferenceSequence)
+            self.$refs.ref_SpliceJunctionD3.drawAcceptorAndDonorSites(self.donorReferenceSequence, 
+              self.acceptorReferenceSequence, donorVariants, acceptorVariants)
           }
         })
         .catch(function(error) {
@@ -332,6 +382,12 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         let self = this;
 
         if (self.loadInfo != null ) {
+
+          self.vcf = new Vcf(self.globalApp)
+          self.vcf.setEndpoint(self.endpoint)
+          self.vcf.setGenomeBuildHelper(self.genomeBuildHelper)
+          self.vcf.promiseOpenVcfUrl(self.loadInfo.vcfURL)
+
           self.snackbarText = "Type in a gene name to display splice junctions."
           self.snackbar = true;
         }
@@ -341,6 +397,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         let self = this;
         if (self.loadInfo && self.selectedGene) {
           self.getSpliceJunctionRecords()
+          self.promiseGetVariants()
         }
       },
       showIGV: function() {

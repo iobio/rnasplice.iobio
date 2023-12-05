@@ -1,3 +1,5 @@
+
+
 export default function variantD3() {
    var dispatch = d3.dispatch("d3brush", "d3rendered", "d3outsideclick", "d3click", "d3mouseover", "d3mouseout", "d3glyphmouseover", "d3glyphmouseout");
 
@@ -6,12 +8,11 @@ export default function variantD3() {
       width = 800,
       height = 100;
   // scales
-  var x = d3.scale.linear(),
-      y = d3.scale.linear();
+  var x = d3.scaleLinear(),
+      y = d3.scaleLinear();
   // axis
-  var xAxis = d3.svg.axis()
+  var xAxis = d3.axisTop()
     .scale(x)
-    .orient("top")
     .tickFormat(tickFormatter);
   // variables
   var borderRadius = 1,
@@ -36,6 +37,7 @@ export default function variantD3() {
 
   //  options
   var defaults = {};
+
 
   var tooltipHTML = function(variant) {
     return (variant.type + ': '
@@ -290,7 +292,7 @@ export default function variantD3() {
         var brush = d3.svg.brush()
           .x(x)
           .on("brushend", function() {
-              dispatch.d3brush(brush);
+              reactor.dispatch.d3brush(brush);
            });
 
 
@@ -860,8 +862,7 @@ export default function variantD3() {
     return chart;
   }
 
-  // This adds the "on" methods to our custom exports
-  d3.rebind(chart, dispatch, "on");
+
 
   return chart;
 }

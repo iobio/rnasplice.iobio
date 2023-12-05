@@ -72,31 +72,14 @@
 	    </div>
     </div>
 
-    <div id="variant-diagram"  v-if="false && variants" style="margin-top: -11px">
-      <VariantViz id="variant-viz"
-            ref="ref_variantViz"
-            :data="variants"
-            :regionStart="geneStart"
-            :regionEnd="geneEnd"
-            annotationScheme="vep"
-            :width="variantVizWidth"
-            :margin="variantVizMargin"
-            variantHeight="6"
-            variantPadding="2"
-            :showBrush="false"
-            :showXAxis="false"
-            :showWhenEmpty="true"
-            :classifySymbolFunc="classifyByImpact"
-            @variantClick="onVariantClick"
-            @variantHover="onVariantHover"
-            @variantHoverEnd="onVariantHoverEnd">
-      </VariantViz>
+    <div id="variant-diagram"  style="margin-top: -10px">
+      <svg/>
     </div>
 
-	  <div id="arc-diagram" class="hide-labels" style="margin-top:-11px">
+	  <div id="arc-diagram" class="hide-labels" style="margin-top:-7px">
 	  </div>
 
-    <div id="selected-transcript-panel" v-show="showTranscriptMenu" style="margin-top:-11px">
+    <div id="selected-transcript-panel" v-show="showTranscriptMenu" style="margin-top:-7px">
 
 		  <div id="transcript-diagram" >
 		    <svg/>
@@ -124,7 +107,9 @@
     </div>
     <div class="d-flex" style="margin-top:10px;" v-if="selectedTranscript">
       <v-spacer/>
-      <h3 style="font-size:14px !important">{{ selectedTranscript.transcript_id}}</h3>
+      <h3 style="font-size:14px !important">
+        {{ selectedTranscript.transcript_id}} {{ selectedTranscript.is_mane_select ? `MANE SELECT` : `` }} 
+      </h3>
     </div>
 	  
 	  
@@ -134,7 +119,10 @@
 
 	<div id="zoomed-diagrams"  style="margin-top:20px;z-index:1000;border-top: solid 4px #e7e7e7">
     <h2 v-if="clickedObject || regionIsSelected" style="margin-bottom:20px !important;margin-top:10px !important">Selected Region</h2>
-	  <div id="arc-diagram" class="hide-labels">
+    <div id="variant-diagram">
+      <svg/>
+    </div>
+    <div id="arc-diagram" class="hide-labels">
 	    <svg/>
 	  </div>
 	  <div id="transcript-diagram">
@@ -209,7 +197,11 @@ export default {
     geneModel: Object,
     tab: String,
     loadInProgress: Boolean,
-    junctionSiteSeqRange: Number
+    junctionSiteSeqRange: Number,
+    variants: Array,
+    variantHeight: Number,
+    variantWidth: Number,
+    vcf: Object
   },
   data: () => ({
 		// GLOBALS
@@ -228,6 +220,7 @@ export default {
 		xBrushable: null,
 		xTranscriptChart: null,
 		xTranscriptChartZoomed: null,
+    xSeqChart: null,
 		ySitePointer: null,
 		tooltip: null,
 
@@ -267,10 +260,8 @@ export default {
 
     zoomFactor: 1,
 
-    showZoomPanel: false,
+    showZoomPanel: false
 
-    variantVizMargin: {top: 0, right: 170, bottom: 0, left: 0},
-    variantVizWidth: null
 
 
 	}),
@@ -372,11 +363,6 @@ export default {
   			console.log("Problem encountered. Splice junctions gene does not match selected gene.")
   		}
   	},
-
-    drawVariantDiagram: function(container) {
-      let self = this;
-      self.variantVizWidth = self.$el.offsetWidth - 20
-    },
 
 		determineExons: function(gene) {
 		  gene.transcripts.forEach(function(transcript) {
@@ -500,6 +486,8 @@ export default {
 		    	                    self.xArcDiagram )
 		    self.showSelectionBox("#diagrams #transcript-diagram svg", regionStart, regionEnd, 
 		    	                    self.xTranscriptChart )
+        self.showSelectionBox("#diagrams #variant-diagram svg", regionStart, regionEnd, 
+                              self.xTranscriptChart )
 		    
 		    d3.select("#zoomed-diagrams").select("#arc-diagram svg").remove();
 		    d3.select("#zoomed-diagrams").select("#transcript-diagram svg").remove();
@@ -525,14 +513,26 @@ export default {
 			    self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram", self.selectedGene, regionStart, regionEnd, 
 			      {'selectedTranscriptOnly': true, 'allowSelection': false, 'marginRight': 0})
 
+          let filteredVariants = self.variants.filter(function(d) {
+            return d.start >= regionStart && d.start <= regionEnd
+          }).map(function(d) {
+            let variant = $.extend({}, d)
+            variant.level = 0;
+            return variant;
+          })
+          self.vcf.pileupVariants(filteredVariants, regionStart, regionEnd, self.$el.offsetWidth - 20)
+          self.drawVariantDiagram("#zoomed-diagrams #variant-diagram", regionStart, regionEnd, filteredVariants)
+
 		    }
 		  } else {
         self.showZoomPanel = false;
 		    d3.select("#zoomed-diagrams").select("#arc-diagram svg").remove();
 		    d3.select("#zoomed-diagrams").select("#transcript-diagram svg").remove();
+        d3.select("#zoomed-diagrams").select("#variant-diagram svg").remove();
 		    self.regionIsSelected = false;
 		    d3.select("#diagrams #arc-diagram svg .bounding-box.active").classed("active", false)
 		    d3.select("#diagrams #transcript-diagram svg .bounding-box.active").classed("active", false)
+        d3.select("#diagrams #variant-diagram svg .bounding-box.active").classed("active", false)
 
 		  }
 		},
@@ -586,7 +586,7 @@ export default {
 			let self = this;
 		  // dimensions
 		  var margin = {top: (options && options.selectedTranscriptOnly ? 0 : 5), 
-		  	            right: (options && options.hasOwnProperty('marginRight') ? options.marginRight : 0), 
+		  	            right: (options && options.hasOwnProperty('marginRight') ? options.marginRight : 5), 
 		  	            bottom: (options && options.selectedTranscriptOnly ? 50 : 30), 
 		  	            left: 0};
 
@@ -596,7 +596,7 @@ export default {
 		  }
 
 		  var transcriptCount = options && options.selectedTranscriptOnly ? 1 : gene.transcripts.length;
-		  var transcriptPadding = options && options.selectedTranscriptOnly ? 0 : 5;
+		  var transcriptPadding = options && options.selectedTranscriptOnly ? 0 : 25;
 		  var transcriptHeight = self.CDS_HEIGHT;
 
 		  var height = null;
@@ -722,22 +722,23 @@ export default {
       .attr("y1", self.CDS_HEIGHT)
       .attr("y2", self.CDS_HEIGHT)
 
-
-      transcripts.selectAll(".transcript-label").remove();
-      transcripts.selectAll(".transcript-label")
-      .data(function(d) {
-	       return [d];
-      })
-      .enter()
-      .append('text')
-			.attr("class", "transcript-label")
-			.attr("text-anchor", 'start')
-			.attr("x", 0)
-			.attr("y", self.CDS_HEIGHT)
-			.attr("dy", "0.35em")
-			.text(function(d) {
-			  return d.transcript_id + (d.is_mane_select ? " MANE" : "");
-			})
+      if (options && options.allowSelection) {
+        transcripts.selectAll(".transcript-label").remove();
+        transcripts.selectAll(".transcript-label")
+        .data(function(d) {
+  	       return [d];
+        })
+        .enter()
+        .append('text')
+  			.attr("class", "transcript-label")
+  			.attr("text-anchor", 'start')
+  			.attr("x", 5)
+  			.attr("y", 0)
+  			.attr("dy", "0.35em")
+  			.text(function(d) {
+  			  return d.transcript_id + (d.is_mane_select ? " MANE" : "");
+  			})
+      }
 
 
 
@@ -1020,7 +1021,7 @@ export default {
 
 
 		  // dimensions
-		  var margin = {top: 40, right: 0, bottom: 5, left: 0};
+		  var margin = {top: 40, right: 5, bottom: 5, left: 0};
 		  var width = self.$el.offsetWidth - 20,
 		      height = 60;
 
@@ -1072,7 +1073,7 @@ export default {
 
 		  svg
       .call( self.brush = d3.brushX()                  
-        .extent( [ [0,-40], [width,height] ] )
+        .extent( [ [0,-40], [width,innerHeight+1] ] )
         .on("start brush end", self.onBrush)    
       )      
 
@@ -1105,7 +1106,7 @@ export default {
 
 		  // dimensions
 		  var margin = {top: (options.showXAxis ? 25 : 0), 
-                   right: (options.hasOwnProperty('marginRight') ? options.marginRight : 0), 
+                   right: (options.hasOwnProperty('marginRight') ? options.marginRight : 5), 
                    bottom: 0, 
                    left: 0};
 		  var width = self.$el.offsetWidth - 20,
@@ -1777,7 +1778,7 @@ export default {
     },
    
 
-    drawSiteSequences: function(donorSequence, acceptorSequence) {
+    drawAcceptorAndDonorSites: function(donorSequence, acceptorSequence, donorVariants, acceptorVariants) {
     	let self = this;
       let strandStr = self.selectedGene.strand == "+" ? 'plus' : 'minus'
       let donorSiteContainer    = "#site-diagrams." + strandStr + " .donor-site #sequence"
@@ -1792,7 +1793,7 @@ export default {
               (exon.start <= regionStart && exon.end >= regionEnd);
       })
 
-      self.drawSiteSequence(
+      self.drawSiteSequenceDiagram(
         'donor',
         donorSiteContainer, 
       	donorSequence, 
@@ -1800,7 +1801,8 @@ export default {
       	self.clickedObject.donor.pos + self.junctionSiteSeqRange,
       	self.selectedGene.strand == "+" ? self.clickedObject.donor.pos+1 : self.clickedObject.donor.pos,
       	self.selectedGene.strand == "+" ? self.clickedObject.donor.pos+2 : self.clickedObject.donor.pos-1,
-      	donorExons)
+      	donorExons,
+        donorVariants)
 
       regionStart = self.clickedObject.acceptor.pos - self.junctionSiteSeqRange;
       regionEnd = self.clickedObject.acceptor.pos + self.junctionSiteSeqRange;
@@ -1810,7 +1812,7 @@ export default {
               (exon.start <= regionStart && exon.end >= regionEnd);
       })
 
-      self.drawSiteSequence(
+      self.drawSiteSequenceDiagram(
         'acceptor',
         acceptorSiteContainer, 
       	acceptorSequence, 
@@ -1818,11 +1820,12 @@ export default {
       	self.clickedObject.acceptor.pos + self.junctionSiteSeqRange,
       	self.selectedGene.strand == "+" ? self.clickedObject.acceptor.pos-1 : self.clickedObject.acceptor.pos+1,
       	self.selectedGene.strand == "+" ? self.clickedObject.acceptor.pos : self.clickedObject.acceptor.pos+2,
-      	acceptorExons)
+      	acceptorExons,
+        acceptorVariants)
 
     },
 
-    drawSiteSequence: function(junctionSite, container, sequence, regionStart, regionEnd, siteStart, siteEnd, exons) {
+    drawSiteSequenceDiagram: function(junctionSite, container, sequence, regionStart, regionEnd, siteStart, siteEnd, exons, variants) {
 			let self = this;
 
 		  // dimensions
@@ -1836,10 +1839,10 @@ export default {
 		  var center = innerWidth / 2;
 
 		  // scales
-		  var x = d3.scaleLinear()
+		  let x = d3.scaleLinear()
 		            .domain([regionStart, regionEnd])
 		            .range([margin.left, innerWidth+margin.left]);
-		  
+		  self.xSeqChart = x;
 
       var tickFormatter = function(d,i) {
         if (i == 0 ) {
@@ -1860,7 +1863,9 @@ export default {
       var svg = d3.select(container)
       .append("svg")
       .attr("width", innerWidth)
-      .attr("height", height)
+      .attr("height", height);
+
+      var groupAxis = svg
       .append("g")
       .attr("class", "axis")
       .attr("transform",
@@ -1868,8 +1873,8 @@ export default {
       .call(xAxis);
 
       // Strand arrow
-      svg.selectAll(".arrow").remove();
-      svg.selectAll('.arrow')
+      groupAxis.selectAll(".arrow").remove();
+      groupAxis.selectAll('.arrow')
       .data([
           {'gene': self.selectedGene, 'x': center - center/2},
           {'gene': self.selectedGene, 'x': center},
@@ -1880,12 +1885,32 @@ export default {
       .attr('d', function(d) {
         return self.centerArrow(d, innerHeight, 15)
       })
-      .style('transform', 'translate(-10px, -39px)')                
+      .style('transform', 'translate(-10px, -39px)')         
 
+
+      var groupAltSeq = svg
+      .append("g")
+      .attr("class", "alt-seq")
+      .attr("transform",
+           "translate(" + margin.left + "," + (margin.top) + ")")
+
+      var groupSeq = svg
+      .append("g")
+      .attr("class", "ref-seq")
+      .attr("transform",
+           "translate(" + margin.left + "," + (margin.top+15) + ")")
+
+      var groupExon = svg
+      .append("g")
+      .attr("class", "exon-seq")
+      .attr("transform",
+           "translate(" + margin.left + "," + (margin.top+15) + ")")
+       
+      // Reference sequence
       let seqWidth = x(regionStart+1) - x(regionStart)
       if (seqWidth > 6) {
         // Nucleotide sequence
-        svg
+        groupSeq
         .selectAll("text.seq")
         .data(Array.from(sequence))
         .enter()
@@ -1910,7 +1935,7 @@ export default {
       } else {
         // We have narrow width to show sequence, so show colored rectangles
         // instead
-        svg
+        groupSeq
         .selectAll("rect.seq")
         .data(Array.from(sequence))
         .enter()
@@ -1933,8 +1958,48 @@ export default {
 
       }
 
+      // Alt sequence
+      if (seqWidth > 6) {
+      // Nucleotide sequence
+        groupAltSeq
+        .selectAll("text.seq.alt")
+        .data(variants)
+        .enter()
+        .append("text")
+        .attr("class", function(d,i) {
+          return "seq alt " + d.alt.toUpperCase()
+        })
+        .attr("x", function(d,i) {
+          return x(d.start)
+        })
+        .attr("y", "30")
+        .text(function(d) {
+          return d.alt;
+        })
+
+      } else {
+        // We have narrow width to show sequence, so show colored rectangles
+        // instead
+        groupAltSeq
+        .selectAll("rect.seq.alt")
+        .data(variants)
+        .enter()
+        .append("rect")
+        .attr("class", function(d,i) {
+          return "seq alt " + d.alt.toUpperCase()
+        })
+        .attr("x", function(d,i) {
+          return x(d.start)
+        })
+        .attr("y", "10")
+        .attr("width", seqWidth)
+        .attr("height", 12)
+
+      }
+
+
       // Exon on or near donor/acceptor site
-      svg
+      groupExon
       .selectAll("rect.exon")
       .data(function(d) { 
           return exons
@@ -1972,7 +2037,7 @@ export default {
 
 
       // Exon label
-      svg
+      groupExon
       .selectAll("text.exon-label")
       .data(function(d) { 
           return exons
@@ -2008,8 +2073,8 @@ export default {
       // Site pointers 
       let ySitePointer = 65;
       if (junctionSite == 'donor') {
-        svg.selectAll(".donor-pointer").remove();
-        svg
+        groupExon.selectAll(".donor-pointer").remove();
+        groupExon
         .append("polygon")
         .attr("class", "donor-pointer")
         .attr("points", function(d) {
@@ -2019,8 +2084,8 @@ export default {
         })
         .style("opacity", "0")
 
-        svg.selectAll(".donor-problem").remove();
-        svg
+        groupExon.selectAll(".donor-problem").remove();
+        groupExon
         .append("text")
         .attr("class", "donor-problem")
         .attr("x", 0)
@@ -2031,7 +2096,7 @@ export default {
         })
 
         // position the donor pointers
-        svg.select(".donor-pointer")
+        groupExon.select(".donor-pointer")
         .attr("transform", function(d1) {
         return "translate(" + 
                (x(sitePos) - (self.sitePointerWidth/2))  + 
@@ -2043,7 +2108,7 @@ export default {
 
         // Show marker below donor pointer if site is noncanonical
         if (self.clickedObject.donor.status && self.clickedObject.donor.status == 'noncanonical') {
-          svg
+          groupExon
           .select(".donor-problem")
           .attr("x", function(d1) {
               return (x(sitePos) ) 
@@ -2058,9 +2123,10 @@ export default {
 
       }
 
+      // Pointers
       if (junctionSite == 'acceptor') {
-        svg.selectAll(".acceptor-pointer").remove();
-        svg
+        groupSeq.selectAll(".acceptor-pointer").remove();
+        groupSeq
         .append("polygon")
         .attr("class", "acceptor-pointer")
         .attr("points", function(d) {
@@ -2070,8 +2136,8 @@ export default {
         })
         .style("opacity", "0")  
 
-        svg.selectAll(".acceptor-problem").remove();
-        svg
+        groupSeq.selectAll(".acceptor-problem").remove();
+        groupSeq
         .append("text")
         .attr("class", "acceptor-problem")
         .attr("x", 0)
@@ -2082,7 +2148,7 @@ export default {
         })
 
         // position the acceptor pointers
-        svg.select(".acceptor-pointer")
+        groupSeq.select(".acceptor-pointer")
         .attr("transform", function(d1) {
           return "translate(" + 
                  (x(sitePos) - (self.sitePointerWidth/2))  + 
@@ -2094,7 +2160,7 @@ export default {
 
         // Show marker below acceptor pointer if acceptor site is noncanonical
         if (self.clickedObject.acceptor.status && self.clickedObject.acceptor.status == 'noncanonical') {
-          svg
+          groupSeq
           .select(".acceptor-problem")
           .attr("x", function(d1) {
               return (x(sitePos) ) 
@@ -2131,6 +2197,17 @@ export default {
 
 	    self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram", self.selectedGene, regionStart, regionEnd, 
 	      {'selectedTranscriptOnly': true, 'allowSelection': false, marginRight: 0})
+
+
+      let filteredVariants = self.variants.filter(function(d) {
+        return d.start >= regionStart && d.start <= regionEnd
+      }).map(function(d) {
+        let variant = $.extend({}, d)
+        variant.level = 0;
+        return variant;
+      })
+      self.vcf.pileupVariants(filteredVariants, regionStart, regionEnd, self.$el.offsetWidth - 20)
+      self.drawVariantDiagram("#zoomed-diagrams #variant-diagram", regionStart, regionEnd, filteredVariants)      
 		},
 				 
 
@@ -2455,7 +2532,7 @@ export default {
       }
 
 		},
-    classifyByImpact(d, annotationScheme) {
+    classifyByImpact(d) {
       let self = this;
       var colorimpacts = "";
 
@@ -2467,20 +2544,203 @@ export default {
       if (colorimpacts == "") {
         colorimpacts = "impact_none";
       }
-      
-
       return  'variant ' + d.type.toLowerCase()  + ' ' + colorimpacts;
     },
-    onVariantClick: function(variant) {
+   
+    drawVariantDiagram: function(container, regionStart, regionEnd, variants) {
+      let self = this;
+      let data = variants;
+      let width = self.$el.offsetWidth - 20
 
-    },
-    onVariantHover: function(variant) {
+      let margin = {top: 0, bottom: 10, left: 0, right: 5}
 
-    },
-    onVariantHoverEnd: function() {
+      let variantHeight = self.variantHeight;
+      let variantWidth = self.variantWidth;
+      let verticalPadding = 3;
 
-    },
+      let borderRadius = 1;
+
+      let verticalLayers = d3.max(data, function(d) {
+        return d.level+1;
+      });
+      // Recalculate the height based on the number of vertical layers
+      // Not sure why, but we have to bump up the layers by one; otherwise,
+      // y will be negative for first layer
+      let height = verticalLayers * (variantHeight + verticalPadding);
+      height += (variantHeight + verticalPadding);
+
+      // determine inner height (w/o margins)
+      var innerHeight = height - margin.top - margin.bottom;
+      var innerWidth = width - margin.left - margin.right;
+
+      // scales
+      var x = d3.scaleLinear();
+      x.domain([regionStart, regionEnd]);
+      x.range([0, innerWidth]);
+
+      var y = d3.scaleLinear();
+      // Update the y-scale.
+      y  .domain([0, data.length]);
+      y  .range([innerHeight , 0]);
+     
+
+      let minWidth = variantHeight;
+
+      var symbolScaleCircle = d3.scaleOrdinal()
+                    .domain([3,4,5,6,7,8,10,12,14,15,16])
+                    .range([9,15,25,38,54,58,70,100,130,220,260]);
+      var symbolSizeCircle = symbolScaleCircle(minWidth);
+
+      var symbolScale = d3.scaleOrdinal()
+                    .domain([3,4,5,6,7,8,10,12,14,15,16])
+                    .range([9,15,20,25,32,58,70,100,130,140,160]);
+
+      var symbolSize = symbolScale(minWidth);
+
+    
+      // Select the svg element, if it exists.
+      d3.select(container).select("svg").remove();
+      var svg = d3.select(container)
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+      let group = svg
+        .append("g")
+        .attr("class", "group")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+     
+
+
+      // Start variant model
+      // add elements
+      var track = group
+      .append('g')
+      .attr('class', 'track snp')
+
+      var trackindel = group
+      .append('g')
+      .attr('class', 'track indel')
+
+
+      // snps
+      track.selectAll("rect.variant")
+      .data(function(d) {
+        return data.filter( function(d) { return d.type.toUpperCase() == 'SNP' || d.type.toUpperCase() == 'MNP'; }) ;
+      })
+      .enter()
+      .append('rect')
+      .attr('class', function(d) { return self.classifyByImpact(d); })
+      .attr('rx', borderRadius)
+      .attr('ry', borderRadius)
+      .attr('x', function(d) {
+        return Math.round(x(d.start) - (minWidth/2) + (minWidth/4));
+      })
+      .attr('width', function(d) {
+        return variantHeight;
+      })
+      .attr('y', function(d) {
+        return (height - margin.top) - ((d.level + 1) * (variantHeight + verticalPadding));
+      })
+      .attr('height', variantHeight)
+
+      track.selectAll("rect.variant")
+      .on("click", function(event, d) {
+         let matchedSplice = Object.keys(d.vepConsequence).filter(function(consequence) {
+            return consequence.indexOf('splice') >= 0;
+         })
+         let variantObject = {'type': 'variant', 'clicked': true, 'variant': d, 'isSpliceVariant': matchedSplice.length > 0};
+
+         self.$emit("object-selected", variantObject)
+         self.clickedObject = variantObject;
+
+      })
+
+
+      // insertions and deletions
+      trackindel.selectAll('path.variant')
+      .data(function(d) {
+        var indels = data.filter( function(d){
+          return d.type.toUpperCase() == 'DEL'
+              || d.type.toUpperCase() == 'INS'
+              || d.type.toUpperCase() == 'COMPLEX';
+        });
+        return indels;
+      })
+      .enter()
+      .append('path')
+      .attr("d", function(d,i) {
+        if (d.type.toUpperCase() == 'INS') {
+          
+          return d3.symbol(d3.symbolCircle)
+                   .size(symbolSizeCircle)();
+
+        } else if (d.type.toUpperCase() == 'DEL') {
+          return d3.symbol(d3.symbolTriangle)
+                   .size(symbolSize)();
+
+        } else {
+          return d3.symbol(d3.symbolDiamond)
+                   .size(symbolSize)();
+        }
+      })
+      .attr('class', function(d) { return self.classifyByImpact(d); })
+      .attr("transform", function(d) {
+        var xCoord = x(d.start) + 2;
+        var yCoord = (height - margin.top) - ((d.level + 1) * (variantHeight + verticalPadding)) + 5;
+        var tx = "translate(" + xCoord + "," + yCoord + ")";
+        return tx;
+       });
+
+      trackindel.selectAll("path.variant")
+      .on("click", function(event, d) {
+         let matchedSplice = Object.keys(d.vepConsequence).filter(function(consequence) {
+            return consequence.indexOf('splice') >= 0;
+         })
+         let variantObject = {'type': 'variant', 'clicked': true, 'variant': d, 'isSpliceVariant': matchedSplice.length > 0};
+
+         self.$emit("object-selected", variantObject)
+         self.clickedObject = variantObject;
+
+      })
+
+      // draw a circle around splice variants
+      track.selectAll('circle.splicing')
+      .data(function(d) {
+        return data.filter( function(d) { 
+          let isSNP = d.type.toUpperCase() == 'SNP' || d.type.toUpperCase() == 'MNP'; 
+          let matchedSplice = Object.keys(d.vepConsequence).filter(function(consequence) {
+            return consequence.indexOf('splice') >= 0;
+          })
+          return isSNP && matchedSplice.length > 0;
+        }) ;
+      })
+      .enter()
+      .append('circle')
+      .attr('class', "splicing")
+      .attr('r', variantHeight )
+      .attr("transform", function(d) {
+        var xCoord = x(d.start) + 2;
+        var yCoord = (height - margin.top) + 2 - ((d.level + 1) * (variantHeight + verticalPadding));
+        var tx = "translate(" + xCoord + "," + yCoord + ")";
+        return tx;
+       });
+
+
+      // exit
+      track.exit().remove();
+      trackindel.exit().remove();
+
+      svg.selectAll("rect.bounding-box").remove();
+        svg
+         .append("rect")
+         .attr("class", "bounding-box")
+         .attr("x", 0)
+         .attr("y", 0)
+         .attr("width", 0)
+         .attr("height", 0)      
 	
+    }
   },
 
 
@@ -2517,6 +2777,11 @@ export default {
     },
     showNonCanonicalOnly: function() {
     	d3.selectAll("#arc-diagram").classed("hide-canonical", this.showNonCanonicalOnly)
+    },
+    variants: function() {
+      if (this.variants && this.variants.length > 0) {
+        this.drawVariantDiagram('#diagrams #variant-diagram', this.geneStart, this.geneEnd, this.variants)
+      }
     }
   }
 }
@@ -2554,6 +2819,9 @@ rect.bounding-box {
 }
 rect.bounding-box.active {
 	visibility: visible;
+}
+rect.selection {
+  fill: #75abffab;
 }
 
 
@@ -2818,5 +3086,39 @@ text.seq.T, rect.seq.T {
 
 
 
+</style>
 
+<style lang="sass">
+@import '../styles/variables.sass'
+
+.impact_HIGH
+  fill:  $high-impact-color !important
+  color: $high-impact-color !important
+  font-weight: bold
+
+.impact_MODERATE
+  fill:  $moderate-impact-color !important
+  color: $moderate-impact-color !important
+  font-weight: bold
+
+.impact_MODIFIER
+  fill:  $modifier-impact-color
+  color: $modifier-impact-color
+
+.impact_LOW
+  fill:  $low-impact-color
+  color: $low-impact-color
+
+.impact_UNKNOWN
+  fill:  $unremarkable-color
+  color: $unremarkable-color
+
+.impact_NOIMPACT, .impact_none, .effect_none
+  fill: #e5e5e3
+  stroke: #807D7D
+
+.splicing 
+  fill: none  !important
+  stroke: #03a9f4 !important
+  stroke-width: 4px !important
 </style>

@@ -66,7 +66,7 @@ export default {
         buildName: 'GRCh38',
         bedURL: null,
         bigwigURL: null,
-
+        vcfURL: 'https://iobio.s3.amazonaws.com/samples/vcf/2021_platinum/2021_platinum_genomes_GRCh38.vcf.gz',
         demoInfo: {
           'demo1': {
             'bedURL': "https://s3.amazonaws.com/tony.splicejunction.bed/1099_SJ.out.bed.gz",
@@ -92,7 +92,8 @@ export default {
         let loadInfo = {'buildName': this.buildName, 
                         'bedURL': this.bedURL, 
                         'bedIndexURL': this.bedURL + '.tbi',
-                        'bigwigURL': this.bigwigURL}
+                        'bigwigURL': this.bigwigURL,
+                        'vcfURL': this.vcfURL}
         this.$emit("load", loadInfo)
       },
       onCancel: function() {

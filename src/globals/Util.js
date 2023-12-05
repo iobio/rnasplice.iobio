@@ -146,6 +146,16 @@ class Util {
   }
 
   
+  stripTranscriptPrefix(transcriptId) {
+    if (transcriptId == null) {
+      console.log("null transcript id")
+      return "";
+    }
+    var nameTokens = transcriptId.split('.');
+    return nameTokens.length > 0 ? nameTokens[0] : transcriptId;
+  }
+
+
   stripRefName(refName) {
     var tokens = refName.split("chr");
     var strippedName = refName;
