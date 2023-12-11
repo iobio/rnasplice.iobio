@@ -1,7 +1,8 @@
 <template>
 
 <div style="margin-left:5px;margin-right:5px;" class="d-flex flex-column mt-1">
-  
+    <div class="tooltip"></div>
+
     <GeneCard  v-if="selectedGene" class="full-width-card"
     :selectedGene="selectedGene"
     :geneModel="geneModel"
@@ -119,6 +120,8 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       endpoint: null,
       loadInProgress: false,
 
+      sampleNames: null,
+
       snackbar: false,
       snackbarText: "",
       snackbarTimeout: 3000,
@@ -173,8 +176,12 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
 
         self.addAppAlert('success', 'app initialized')
 
-        this.endpoint = new Endpoint(self.globalApp, self.genomeBuildHelper)
+        self.endpoint = new Endpoint(self.globalApp, self.genomeBuildHelper)
 
+        self.vcf = new Vcf(self.globalApp)
+        self.vcf.setEndpoint(self.endpoint)
+        self.vcf.setGenomeBuildHelper(self.genomeBuildHelper)
+        
        
 
       },
@@ -268,7 +275,8 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         let regions = [];
         regions.push({'name': self.selectedGene.chr, 'start': self.selectedGene.start, 'end': self.selectedGene.end})        
         let isMultiSample = true;
-        let samplesToRetrieve = [{'vcfSampleName': 'NA12878', 'sampleName': 'NA12878'}]
+        let samplesToRetrieve = [{'vcfSampleName': self.loadInfo.sampleName, 
+                                  'sampleName': self.loadInfo.sampleName}]
 
         self.vcf.promiseGetVariants(self.selectedGene.chr, self.selectedGene, self.selectedTranscript, regions,isMultiSample, samplesToRetrieve)
         .then(function(data) {
@@ -368,6 +376,20 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       },
       onShowIGV: function(show) {
         this.showIGVPopup = show;
+      },
+      onVcfURLEntered: function(vcfURL, tbiURL) {
+        let self = this;
+        self.vcf.promiseOpenVcfUrl(vcfURL, tbiURL)
+        .then(function() {
+          self.vcf.promiseGetSampleNames()
+          .then(function(sampleNames) {
+            self.sampleNames = sampleNames;
+            self.$emit('sample-names-loaded', self.sampleNames)
+          })
+
+        })
+
+
       }     
 
     },
@@ -382,11 +404,6 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         let self = this;
 
         if (self.loadInfo != null ) {
-
-          self.vcf = new Vcf(self.globalApp)
-          self.vcf.setEndpoint(self.endpoint)
-          self.vcf.setGenomeBuildHelper(self.genomeBuildHelper)
-          self.vcf.promiseOpenVcfUrl(self.loadInfo.vcfURL)
 
           self.snackbarText = "Type in a gene name to display splice junctions."
           self.snackbar = true;

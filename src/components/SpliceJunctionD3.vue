@@ -36,14 +36,24 @@
 				      label="Hide junctions not matching gene strand"
 				    ></v-checkbox>
 			    </div>
-          <div style="width:120px" class="mr-5">
+
+
+
+          <div style="width:120px" >
             <v-text-field 
             density="compact"
             hide-details="auto" 
             label="Min read count" 
             v-model="minUniquelyMappedReads"/>
           </div>
-          <div style="width:155px" class="mr-2">
+          <div v-if="readCountMean">
+            <div  class="read-stat">{{ readCountMean }} mean</div>
+            <div  class="read-stat">{{ readCountStd }} std</div> 
+            <div  class="read-stat">{{ readCountMax }} max</div>
+
+          </div>
+
+          <div style="width:155px" class="ml-5 mr-2">
             <v-select 
               v-model="colorBy"
               hide-details="auto"
@@ -240,16 +250,16 @@ export default {
     minUniquelyMappedReads: 1,
     colorBy: 'motif',
 
-    arcPointerWidth: 13,
+    arcPointerWidth: 15,
     arcPointerHeight: 13,
 
-    arcPointerSmallWidth: 8,
+    arcPointerSmallWidth: 10,
     arcPointerSmallHeight: 8,
 
-    sitePointerWidth: 13,
+    sitePointerWidth: 15,
     sitePointerHeight: 13,
 
-    sitePointerSmallWidth: 8,
+    sitePointerSmallWidth: 10,
     sitePointerSmallHeight: 8,
 
     MIN_ARC_HEIGHT: 50,
@@ -260,7 +270,12 @@ export default {
 
     zoomFactor: 1,
 
-    showZoomPanel: false
+    showZoomPanel: false,
+
+    readCountMean: null,
+    readCountStd: null,
+    readCountMin: null,
+    readCountMax: null
 
 
 
@@ -313,11 +328,6 @@ export default {
   	onGeneSelected: function() {
   		let self = this;
 
-  		if (this.tooltip == null) {
-  			this.tooltip = d3.select("body").append("div")
-				  .attr("class", "tooltip")
-				  .style("opacity", 0);
-  		}
 		  this.determineExons(this.selectedGene);
 
 		  this.selectedGene.transcripts.forEach(function(transcript) {
@@ -336,6 +346,11 @@ export default {
   		if (self.spliceJunctionsForGene.gene == self.selectedGene.gene_name) {
 
 				self.edgesForGene = self.createEdges(self.spliceJunctionsForGene.spliceJunctions)
+
+        self.readCountMean = Math.round(d3.mean(self.edgesForGene, d => d.readCount))
+        self.readCountStd =  Math.round(d3.deviation(self.edgesForGene, d => d.readCount))
+        self.readCountMin =  Math.round(d3.min(self.edgesForGene, d => d.readCount))
+        self.readCountMax =  Math.round(d3.max(self.edgesForGene, d => d.readCount))
 
 		    self.geneStart = self.selectedGene.start - self.REGION_BUFFER;
 		    self.geneEnd   = self.selectedGene.end   + self.REGION_BUFFER;
@@ -1184,7 +1199,7 @@ export default {
 
 
 		  //var arcColors = ['#80A1D4','#7F627A','#39A329','#FACB0F','']
-      var arcColors = ['#6491cb', '#59749e', '#7ba852', '#b09b46', '#FD7049' ]
+      var arcColors = ['#7ba852', '#59749e', '#6491cb', '#b09b46', '#FD7049' ]
 		  let arcColor = null;
 
 		  if (self.colorBy == 'motif') {
@@ -1960,21 +1975,68 @@ export default {
 
       // Alt sequence
       if (seqWidth > 6) {
-      // Nucleotide sequence
+        let altSequence = [];
+        let altCaretSequence = [];
+        variants.forEach(function(variant) {
+          let bases = variant.type == 'DEL' ? Array.from(variant.ref) : Array.from(variant.alt)
+          let startPos = variant.type == 'INS' || variant.type == 'DEL' ? 1 : 0;
+          for (var i = startPos; i < bases.length; i++) {
+            let altObj = {'variant': variant, 'index': i, 'altNucleotide': bases[i]};
+            if (variant.type == 'DEL') {
+              altObj.lineThrough = true
+            }
+            altSequence.push(altObj)
+            if (variant.type == 'INS' && i == startPos) {
+              altCaretSequence.push(altObj)
+            }
+          }
+        })
+
+        // Nucleotide sequence
         groupAltSeq
         .selectAll("text.seq.alt")
-        .data(variants)
+        .data(altSequence)
         .enter()
         .append("text")
         .attr("class", function(d,i) {
-          return "seq alt " + d.alt.toUpperCase()
+          return "seq alt " + d.altNucleotide.toUpperCase()
         })
         .attr("x", function(d,i) {
-          return x(d.start)
+          if (d.variant.type == 'INS') {
+            return x(d.variant.start+d.index) - ((x(d.variant.start+1) - x(d.variant.start))/2)
+          } else {
+            return x(d.variant.start + d.index)
+          }
         })
         .attr("y", "30")
         .text(function(d) {
-          return d.alt;
+          return d.altNucleotide;
+        })
+        .style('text-decoration', function(d) {
+          if (d.variant.type == 'DEL') {
+            return 'line-through';
+          } else {
+            return 'initial'
+          }
+        })
+
+        // Nucleotide sequence
+        groupAltSeq
+        .selectAll("text.seq.alt.caret")
+        .data(altCaretSequence)
+        .enter()
+        .append("text")
+        .attr("class", function(d,i) {
+          return "seq alt caret";
+        })
+        .attr("x", function(d,i) {
+          return x(d.variant.start+d.index) - ((x(d.variant.start+1) - x(d.variant.start))/2)
+        })
+        .attr("y", "40")
+        .text(function(d) {
+          if (d.variant.type == 'INS') {
+            return "^"
+          }          
         })
 
       } else {
@@ -2544,7 +2606,11 @@ export default {
       if (colorimpacts == "") {
         colorimpacts = "impact_none";
       }
-      return  'variant ' + d.type.toLowerCase()  + ' ' + colorimpacts;
+      let matchedSplice = Object.keys(d.vepConsequence).filter(function(consequence) {
+            return consequence.indexOf('splice') >= 0;
+      })
+
+      return  'variant ' + d.type.toLowerCase()  + ' ' + colorimpacts + ' ' + (matchedSplice.length > 0 ? ' splicing' : '');
     },
    
     drawVariantDiagram: function(container, regionStart, regionEnd, variants) {
@@ -2552,50 +2618,47 @@ export default {
       let data = variants;
       let width = self.$el.offsetWidth - 20
 
-      let margin = {top: 0, bottom: 10, left: 0, right: 5}
+      let margin = {top: self.arcPointerSmallHeight, bottom: 0, left: 0, right: 5}
 
       let variantHeight = self.variantHeight;
-      let variantWidth = self.variantWidth;
+      let variantWidth  = self.variantWidth;
       let verticalPadding = 3;
 
       let borderRadius = 1;
 
-      let verticalLayers = d3.max(data, function(d) {
-        return d.level+1;
+      let maxLevel = d3.max(data, function(d) {
+        return d.level;
       });
-      // Recalculate the height based on the number of vertical layers
-      // Not sure why, but we have to bump up the layers by one; otherwise,
-      // y will be negative for first layer
-      let height = verticalLayers * (variantHeight + verticalPadding);
-      height += (variantHeight + verticalPadding);
+      // Recalculate the height based on the number of levels.
+      let height = (maxLevel+1) * (variantHeight + verticalPadding);
+      height += margin.top + margin.bottom;
 
       // determine inner height (w/o margins)
       var innerHeight = height - margin.top - margin.bottom;
-      var innerWidth = width - margin.left - margin.right;
+      var innerWidth  = width - margin.left - margin.right;
 
       // scales
       var x = d3.scaleLinear();
       x.domain([regionStart, regionEnd]);
       x.range([0, innerWidth]);
 
-      var y = d3.scaleLinear();
-      // Update the y-scale.
-      y  .domain([0, data.length]);
-      y  .range([innerHeight , 0]);
-     
-
-      let minWidth = variantHeight;
 
       var symbolScaleCircle = d3.scaleOrdinal()
                     .domain([3,4,5,6,7,8,10,12,14,15,16])
                     .range([9,15,25,38,54,58,70,100,130,220,260]);
-      var symbolSizeCircle = symbolScaleCircle(minWidth);
+      var symbolSizeCircle = symbolScaleCircle(variantHeight);
 
       var symbolScale = d3.scaleOrdinal()
                     .domain([3,4,5,6,7,8,10,12,14,15,16])
                     .range([9,15,20,25,32,58,70,100,130,140,160]);
 
-      var symbolSize = symbolScale(minWidth);
+      var symbolSize = symbolScale(variantHeight);
+
+      var symbolScaleWye = d3.scaleOrdinal()
+                    .domain([3,4,5,6,7,8,10,12,14,15,16])
+                    .range([11,17,22,27,32,58,70,100,130,140,160]);
+
+      var symbolSizeWye = symbolScaleWye(variantHeight*1.5);
 
     
       // Select the svg element, if it exists.
@@ -2611,66 +2674,24 @@ export default {
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
      
 
-
-      // Start variant model
-      // add elements
-      var track = group
+      var variantGroup = group
       .append('g')
-      .attr('class', 'track snp')
+      .attr('class', 'track variants')
 
-      var trackindel = group
-      .append('g')
-      .attr('class', 'track indel')
-
-
-      // snps
-      track.selectAll("rect.variant")
-      .data(function(d) {
-        return data.filter( function(d) { return d.type.toUpperCase() == 'SNP' || d.type.toUpperCase() == 'MNP'; }) ;
-      })
-      .enter()
-      .append('rect')
-      .attr('class', function(d) { return self.classifyByImpact(d); })
-      .attr('rx', borderRadius)
-      .attr('ry', borderRadius)
-      .attr('x', function(d) {
-        return Math.round(x(d.start) - (minWidth/2) + (minWidth/4));
-      })
-      .attr('width', function(d) {
-        return variantHeight;
-      })
-      .attr('y', function(d) {
-        return (height - margin.top) - ((d.level + 1) * (variantHeight + verticalPadding));
-      })
-      .attr('height', variantHeight)
-
-      track.selectAll("rect.variant")
-      .on("click", function(event, d) {
-         let matchedSplice = Object.keys(d.vepConsequence).filter(function(consequence) {
-            return consequence.indexOf('splice') >= 0;
-         })
-         let variantObject = {'type': 'variant', 'clicked': true, 'variant': d, 'isSpliceVariant': matchedSplice.length > 0};
-
-         self.$emit("object-selected", variantObject)
-         self.clickedObject = variantObject;
-
-      })
-
-
-      // insertions and deletions
-      trackindel.selectAll('path.variant')
-      .data(function(d) {
-        var indels = data.filter( function(d){
-          return d.type.toUpperCase() == 'DEL'
-              || d.type.toUpperCase() == 'INS'
-              || d.type.toUpperCase() == 'COMPLEX';
-        });
-        return indels;
-      })
+      // Insert symbols for variants
+      variantGroup.selectAll('path.variant')
+      .data(data)
       .enter()
       .append('path')
       .attr("d", function(d,i) {
-        if (d.type.toUpperCase() == 'INS') {
+        let matchedSplice = Object.keys(d.vepConsequence).filter(function(consequence) {
+            return consequence.indexOf('splice') >= 0;
+        })
+        if (matchedSplice.length > 0) {
+           return d3.symbol(d3.symbolWye)
+                   .size(symbolSizeWye)();
+
+        } else if (d.type.toUpperCase() == 'INS') {
           
           return d3.symbol(d3.symbolCircle)
                    .size(symbolSizeCircle)();
@@ -2679,20 +2700,29 @@ export default {
           return d3.symbol(d3.symbolTriangle)
                    .size(symbolSize)();
 
-        } else {
+        } else if (d.type.toUpperCase() == 'COMPLEX') {
           return d3.symbol(d3.symbolDiamond)
+                   .size(symbolSize)();
+        } else if (d.type.toUpperCase() == 'SNP' || d.type.toUpperCase() == 'MNP') {
+          return d3.symbol(d3.symbolSquare)
                    .size(symbolSize)();
         }
       })
       .attr('class', function(d) { return self.classifyByImpact(d); })
       .attr("transform", function(d) {
-        var xCoord = x(d.start) + 2;
-        var yCoord = (height - margin.top) - ((d.level + 1) * (variantHeight + verticalPadding)) + 5;
+        var xCoord = Math.round(x(d.start) + (variantWidth/2));
+        var yCoord = innerHeight - ((d.level + 1) * (variantHeight + verticalPadding));
         var tx = "translate(" + xCoord + "," + yCoord + ")";
+        
+        // Keep track of position of variant symbol. We will use these 
+        // coordinates when drawing a circle around a variant or 
+        // drawing a pointer above the variant
+        d.x = xCoord;
+        d.y = yCoord;
         return tx;
        });
 
-      trackindel.selectAll("path.variant")
+      variantGroup.selectAll("path.variant")
       .on("click", function(event, d) {
          let matchedSplice = Object.keys(d.vepConsequence).filter(function(consequence) {
             return consequence.indexOf('splice') >= 0;
@@ -2705,14 +2735,14 @@ export default {
       })
 
       // draw a circle around splice variants
-      track.selectAll('circle.splicing')
+      /*
+      variantGroup.selectAll('circle.splicing')
       .data(function(d) {
         return data.filter( function(d) { 
-          let isSNP = d.type.toUpperCase() == 'SNP' || d.type.toUpperCase() == 'MNP'; 
           let matchedSplice = Object.keys(d.vepConsequence).filter(function(consequence) {
             return consequence.indexOf('splice') >= 0;
           })
-          return isSNP && matchedSplice.length > 0;
+          return matchedSplice.length > 0;
         }) ;
       })
       .enter()
@@ -2720,16 +2750,103 @@ export default {
       .attr('class', "splicing")
       .attr('r', variantHeight )
       .attr("transform", function(d) {
-        var xCoord = x(d.start) + 2;
-        var yCoord = (height - margin.top) + 2 - ((d.level + 1) * (variantHeight + verticalPadding));
+        var xCoord = d.x;
+        var yCoord = d.y
         var tx = "translate(" + xCoord + "," + yCoord + ")";
         return tx;
        });
+       */
 
 
-      // exit
-      track.exit().remove();
-      trackindel.exit().remove();
+      variantGroup.exit().remove();
+
+
+
+
+      variantGroup.selectAll(".variant")
+      .on("click", function(event, d) {
+        /*
+        if (self.clickedObject && self.clickedObject.type == 'variant' && self.clickedObject.variant == d) {
+
+          self.clickedObject = null;
+          svg.select(".variant-pointer")
+          .transition()
+          .duration(200)
+          .style("opacity", .0); 
+          return;
+        }
+
+        let matchedSplice = Object.keys(d.vepConsequence).filter(function(consequence) {
+          return consequence.indexOf('splice') >= 0;
+        })
+        let variantObject = {'type': 'variant', 'clicked': true, 'variant': d, 'isSpliceVariant': matchedSplice.length > 0};
+
+        self.$emit("object-selected", variantObject)
+        self.clickedObject = variantObject;
+
+
+        svg.select(".variant-pointer-small")
+          .transition()
+          .duration(100)
+          .style("opacity", 0);           
+        svg.select(".variant-pointer")
+          .attr("transform", function(d1) {
+            return "translate(" + (d.x - (self.arcPointerWidth/2))
+            + "," 
+            + (d.y  - self.arcPointerHeight - 4) + ")"
+           })
+          .transition()
+          .duration(200)
+          .style("opacity", .9); 
+          */
+
+      })
+      .on('mouseover', function(event, d) {
+
+          svg.select(".variant-pointer-small")
+          .attr("transform", function(d1) {
+            return "translate(" + (d.x  - (self.arcPointerSmallWidth/2))
+            + "," 
+            + (d.y - self.arcPointerSmallHeight - 4) + ")"
+           })
+          .transition()
+          .duration(150)
+          .style("opacity", .9); 
+
+          let tooltipContent = d.type + " " + d.chrom + ":" + d.start + " " + d.ref + " > " + d.alt + "<br>" + "Impact " + Object.keys(d.vepImpact).join(", ") + "<br>" + Object.keys(d.vepConsequence).join(", ").split("_").join(" ");
+
+          d3.select('.tooltip')
+          .html(tooltipContent)
+
+          let tooltipWidth = d3.select('.tooltip').node().getBoundingClientRect().width
+          let tooltipHeight = d3.select('.tooltip').node().getBoundingClientRect().height
+
+          let offsetY = d3.select(container).node().getBoundingClientRect().y
+          let offsetX = d3.select(container).node().getBoundingClientRect().x
+
+
+          let tooltipY =  offsetY + margin.top + d.y - self.arcPointerSmallHeight - 4 - tooltipHeight;
+          let tooltipX =  offsetX + d.x  - (self.arcPointerSmallWidth/2)
+          d3.select('.tooltip')
+          .style("top",+ tooltipY + 'px') 
+          .style("left",  tooltipX + 'px')
+          .transition()
+          .duration(150)
+          .style("opacity", .9); 
+
+      })
+      .on('mouseout', function(event, d) {
+        svg.select(".variant-pointer-small")
+          .transition()
+          .duration(150)
+          .style("opacity", 0); 
+        d3.select('.tooltip')
+          .transition()
+          .duration(150)
+          .style("opacity", 0); 
+
+      })
+
 
       svg.selectAll("rect.bounding-box").remove();
         svg
@@ -2739,7 +2856,32 @@ export default {
          .attr("y", 0)
          .attr("width", 0)
          .attr("height", 0)      
-	
+
+      variantGroup.selectAll(".variant-pointer").remove();
+      variantGroup
+      .append("polygon")
+      .attr("class", "variant-pointer")
+      .attr("points", function(d) {
+        return self.arcPointerWidth + ",0 "
+               + (self.arcPointerWidth/2) + "," + self.arcPointerHeight 
+               + " 0,0"
+      })
+      .style("opacity", "0")
+      .on('click', function(d) {
+        //self.unclickVariant()
+      }) 	
+
+      variantGroup.selectAll(".variant-pointer-small").remove();
+      variantGroup
+      .append("polygon")
+      .attr("class", "variant-pointer-small")
+      .attr("points", function(d) {
+        return self.arcPointerSmallWidth + ",0 "
+               + (self.arcPointerSmallWidth/2) + "," + self.arcPointerSmallHeight 
+               + " 0,0"
+      })
+      .style("opacity", "0")
+      
     }
   },
 
@@ -2907,18 +3049,25 @@ svg text.transcript-label {
   pointer-events: none;
   cursor: pointer;
 }
-div.tooltip1 {
+div.tooltip {
   position: absolute;
   text-align: center;
-  width:  200px;
-  height: 75px;
   padding: 2px;
-  font-size: 12px;
-  background: lightsteelblue;
-  border: 0px;
+  background: #ffffff;
+  border-width: 1.5px;
   border-radius: 8px;
   pointer-events: none;
   padding: 5px;
+  border-color: #2196F3;
+  border-style: solid;
+  color: #525252;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 17px;
+  min-height: 50px;
+  max-height: 500px;
+  min-width: 100px;
+  max-width: 300px;
 }
 
 .arrow {
@@ -2976,10 +3125,15 @@ div.tooltip1 {
     cursor: pointer;
 }
 
-.arc-pointer, .donor-pointer, .acceptor-pointer {
+.arc-pointer, .donor-pointer, .acceptor-pointer, .variant-pointer, .variant-pointer-small {
 	fill: #03a9f4;
 	stroke: black; 
 	stroke-width: 1;
+}
+
+.variant.splicing {
+  fill: #d70000 !important;
+  stroke-width: 2 !important;
 }
 
 .arc-pointer-small, .acceptor-pointer-small, .donor-pointer-small {
@@ -3084,6 +3238,13 @@ text.seq.T, rect.seq.T {
   font-weight: 500;
 }
 
+.read-stat {
+  font-size: 11px;
+  font-weight: 600;
+  color: gray;
+  font-style: italic;
+}
+
 
 
 </style>
@@ -3117,8 +3278,5 @@ text.seq.T, rect.seq.T {
   fill: #e5e5e3
   stroke: #807D7D
 
-.splicing 
-  fill: none  !important
-  stroke: #03a9f4 !important
-  stroke-width: 4px !important
+
 </style>

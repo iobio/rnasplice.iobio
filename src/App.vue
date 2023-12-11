@@ -6,10 +6,12 @@
       :genes="genes" 
       :alerts="appAlerts"
       :alertCounts="appAlertCounts"
+      :sampleNames="sampleNames"
       @gene-searched="onGeneSearched"
       @show-alert-panel="onShowAlertPanel"
       @show-genes-panel="onShowLeftNavDrawer"
       @load-data="onLoadData"
+      @vcf-url-entered="onVcfURLEntered"
       />
 
        <v-navigation-drawer 
@@ -65,7 +67,8 @@
           @gene-model-initialized="onGeneModelInitialized"
           @splice-junctions-loaded="onSpliceJunctionsLoaded"
           @object-selected="onObjectSelected"
-          @set-site-zoom-factor="onSetSiteZoomFactor"/>
+          @set-site-zoom-factor="onSetSiteZoomFactor"
+          @sample-names-loaded="onSampleNamesLoaded"/>
 
 
       </v-main>
@@ -111,6 +114,7 @@ export default {
 
     loadInfo: null,
     isLoaded: false,
+    sampleNames: null,
 
     appAlerts: [],
     appAlertCounts: {'total': 0, 'success': 0, 'info': 0, 'warning': 0, 'error': 0},
@@ -198,6 +202,9 @@ export default {
       if (this.junctionSiteSeqRange <= 0) {
         this.junctionSiteSeqRange = 1;
       }
+    },
+    onSampleNamesLoaded: function(sampleNames) {
+      this.sampleNames = sampleNames;
     },
     addAlert: function(type, message, genes=null, details=null) {
       let self = this;
@@ -348,6 +355,14 @@ export default {
       // the splice junction being selected in the main arc diagram
       if (this.$refs.ref_SpliceJunctionHome) {
         this.$refs.ref_SpliceJunctionHome.selectSpliceJunction(spliceJunction)
+      }
+    },
+    onVcfURLEntered: function(vcfURL, tbiURL) {
+      // This is called when the user enters a vcf URL and optionally a tbi URL.
+      // Here we call a method on SpliceJunctionHome to indicate that  
+      // we are ready to read the VCF header to get the sample names
+      if (this.$refs.ref_SpliceJunctionHome) {
+        this.$refs.ref_SpliceJunctionHome.onVcfURLEntered(vcfURL, tbiURL)
       }
     }
   }

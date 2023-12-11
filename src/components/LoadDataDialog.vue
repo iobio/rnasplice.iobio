@@ -3,7 +3,7 @@
     <v-dialog 
       v-model="show"
       width="auto">
-      <v-card style="width:700px">
+      <v-card style="width:900px">
         <v-card-title> 
           Load data files
         </v-card-title>
@@ -36,7 +36,36 @@
                 density="compact" 
                 label="Coverage URL (.bw or .bigWig)">
               </v-text-field>
+            </div>
 
+            <v-divider/>
+
+            <div class="pt-4">
+              <v-text-field id="vcf-url-text" 
+                v-model="vcfURL"
+                hide-details 
+                density="compact" 
+                label="VCF URL (.vcf.gz)">
+              </v-text-field>
+            </div>
+
+            <div class="pt-4">
+              <v-text-field id="tbi-url-text" 
+                v-model="tbiURL"
+                hide-details 
+                density="compact" 
+                label="tbi URL (.vcf.gz.tbi)">
+              </v-text-field>
+            </div>
+
+            <div style="width:255px" class="pt-4">
+              <v-select v-if="sampleNames"
+                v-model="selectedSampleName"
+                hide-details="auto"
+                label="Sample name"
+                density="compact"
+                :items="sampleNames"
+              ></v-select>
             </div>
 
           </div>
@@ -58,7 +87,8 @@
 export default {
     name: 'LoadDataDialog',
     props: {
-      showIt: Boolean
+      showIt: Boolean,
+      sampleNames: Array
     },
     data () {
       return {
@@ -66,7 +96,10 @@ export default {
         buildName: 'GRCh38',
         bedURL: null,
         bigwigURL: null,
-        vcfURL: 'https://iobio.s3.amazonaws.com/samples/vcf/2021_platinum/2021_platinum_genomes_GRCh38.vcf.gz',
+        vcfURL: null,
+        tbiURL: null,
+        selectedSampleName: null,
+
         demoInfo: {
           'demo1': {
             'bedURL': "https://s3.amazonaws.com/tony.splicejunction.bed/1099_SJ.out.bed.gz",
@@ -93,7 +126,9 @@ export default {
                         'bedURL': this.bedURL, 
                         'bedIndexURL': this.bedURL + '.tbi',
                         'bigwigURL': this.bigwigURL,
-                        'vcfURL': this.vcfURL}
+                        'vcfURL': this.vcfURL,
+                        'tbiURL': this.tbiURL,
+                        'sampleName': this.selectedSampleName}
         this.$emit("load", loadInfo)
       },
       onCancel: function() {
@@ -113,14 +148,28 @@ export default {
         if (!this.show) {
           this.$emit("cancel")
         }
+      },
+      vcfURL: function() {
+        if (this.vcfURL) {
+          this.$emit("vcf-url-entered", this.vcfURL, this.tbiURL)
+        }
+      },
+      tbiURL: function(){
+        if (this.vcfURL) {
+          this.$emit("vcf-url-entered", this.vcfURL, this.tbiURL)
+        }
       }
+
     }
 }
 </script>
 
 <style>
 #load-data-dialog-content #bed-url-text,
-#load-data-dialog-content #bigwig-url-text {
+#load-data-dialog-content #bigwig-url-text,
+#load-data-dialog-content #vcf-url-text,
+#load-data-dialog-content #tbi-url-text
+ {
   font-size: 13px;
 }
 </style>

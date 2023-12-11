@@ -64,8 +64,10 @@
 
       <LoadDataDialog
       :showIt="showLoadDataDialog"
+      :sampleNames="sampleNames"
       @load="onLoadData"
-      @cancel="onCancelLoadData"/>
+      @cancel="onCancelLoadData"
+      @vcf-url-entered="onVcfURLEntered"/>
 
 
       <v-dialog v-model="showDisclaimer" max-width="400" min-height="400">
@@ -107,7 +109,8 @@ import { Typeahead } from 'uiv'
       genes: Array,
       genomeBuild: Array,
       alerts: Array,
-      alertCounts: Object
+      alertCounts: Object,
+      sampleNames: Array
     },
     data: () => ({
       searchedGene: null,
@@ -135,6 +138,9 @@ import { Typeahead } from 'uiv'
       },
       onCancelLoadData: function() {
         this.showLoadDataDialog = false;
+      },
+      onVcfURLEntered: function(vcfURL, tbiURL) {
+        this.$emit('vcf-url-entered', vcfURL, tbiURL)
       },
       onShowGenesPanel: function() {
         this.$emit('show-genes-panel')

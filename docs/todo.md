@@ -9,3 +9,5 @@
 
 
 4. Look for genes in other region when considering if splice junction belongs to gene 
+
+5. Get rid of hard coded demo vcf file. Add vcf URL to LoadDataDialog.

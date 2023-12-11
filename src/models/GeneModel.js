@@ -940,10 +940,14 @@ class GeneModel {
       let canonicalSplice = spliceJunctions.filter(function(spliceJunction) {
         return spliceJunction.spliceKind == 'canonical' && spliceJunction.countSkippedExons == 0;
       })
+      let meanReadCount = Math.round(d3.mean(spliceJunctions, d => d.readCount))
+      let stdReadCount  = Math.round(d3.deviation(spliceJunctions, d => d.readCount))
       summary = {
           'canonical':          canonicalSplice,
           'noncanonical':       nonCanonicalSplice, 
-          'alternateSplice':    alternateSplice
+          'alternateSplice':    alternateSplice,
+          'meanReadCount':      meanReadCount,
+          'stdReadCount':       stdReadCount
       }
       self.geneToSpliceJunctionSummary[geneObject.gene_name] = summary;
     }
