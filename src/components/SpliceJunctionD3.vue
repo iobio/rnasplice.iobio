@@ -192,12 +192,10 @@
 
 </template>
 <script>
-import VariantViz          from './VariantViz.vue'
 
 export default {
   name: 'SpliceJunctionD3',
   components: {
-      VariantViz
   },
   props: {
     selectedGene: Object,
