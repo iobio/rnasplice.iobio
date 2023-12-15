@@ -478,11 +478,15 @@ export default {
 
 		filterSpliceJunctions: function() {
 		  let self = this;
-      let spliceJunctions = self.geneModel.geneToSpliceJunctionObjects[self.selectedGene.gene_name]
-		  let spliceJunctionsFiltered = spliceJunctions.filter(function(spliceJunction) {
-		    return +spliceJunction.readCount >= self.minUniquelyMappedReads
-		  });
-		  return spliceJunctionsFiltered;
+      if (self.selectedGene) {
+        let spliceJunctions = self.geneModel.geneToSpliceJunctionObjects[self.selectedGene.gene_name]
+        let spliceJunctionsFiltered = spliceJunctions.filter(function(spliceJunction) {
+          return +spliceJunction.readCount >= self.minUniquelyMappedReads
+        });
+        return spliceJunctionsFiltered;        
+      } else {
+        return [];
+      }
 		},
 
 		// Function that is triggered when brushing is performed

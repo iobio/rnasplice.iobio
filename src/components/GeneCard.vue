@@ -182,9 +182,11 @@
           if (!d3.select("#read-count-histogram svg").empty()) {
             d3.select("#read-count-histogram svg").remove();
           }
-          setTimeout(function() {
-            self.drawReadCountHistogram();
-          }, 3000)
+          if (self.selectedGene) {
+            setTimeout(function() {
+              self.drawReadCountHistogram();
+            }, 3000)            
+          }
 
         })
       }

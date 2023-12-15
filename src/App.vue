@@ -34,7 +34,7 @@
               @select-splice-junction="selectSpliceJunction"
             />
 
-            <ObjectDetails 
+            <ObjectDetails :show="selectedGene && selectedObject"
               class="d-flex flex-column" 
               :selectedObject="selectedObject"
               :selectedGene="selectedGene"
@@ -168,6 +168,8 @@ export default {
     },
     onGeneSearched: function(gene) {
       this.searchedGene = gene;
+      this.selectedObject = null;
+      this.spliceJunctionsForGene = null;
     },
     onGeneSelected: function(gene) {
       this.selectedGene = gene;
@@ -344,6 +346,7 @@ export default {
         if (this.$refs && this.$refs.ref_Navigation) {
           this.$refs.ref_Navigation.setGeneSearchField("")
         }
+        this.selectedObject = null;
 
       }
 
