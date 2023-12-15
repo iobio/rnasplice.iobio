@@ -3,7 +3,7 @@
 <div style="margin-left:5px;margin-right:5px;" class="d-flex flex-column mt-1">
     <div class="tooltip"></div>
 
-    <GeneCard  v-if="selectedGene" class="full-width-card"
+    <GeneCard  v-show="selectedGene" class="full-width-card"
     :selectedGene="selectedGene"
     :geneModel="geneModel"
      @gene-region-buffer-change="onGeneRegionBufferChange"
@@ -252,12 +252,16 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
           self.endpoint.promiseGetBedRegion(self.loadInfo.bedURL, 
                                             self.loadInfo.bedIndexURL, 
                                             region)
-          .then(function(spliceJunctionRecords) {
+          .then(function(bedRecords) {
             self.loadInProgess = false;
-            self.geneModel.geneToSpliceJunctionRecords[self.selectedGene.gene_name] = spliceJunctionRecords;
-            let spliceJunctions  = {'gene': self.selectedGene.gene_name, 
-                                    'spliceJunctions': spliceJunctionRecords}
-            self.$emit('splice-junctions-loaded', spliceJunctions, )
+            let spliceJunctions = self.geneModel.createSpliceJunctions(bedRecords, self.selectedGene, self.selectedTranscript);
+            let summary = self.geneModel.geneToSpliceJunctionSummary[self.selectedGene.gene_name]
+
+
+            //self.geneModel.geneToSpliceJunctionRecords[self.selectedGene.gene_name] = spliceJunctionRecords;
+            //let spliceJunctions  = {'gene': self.selectedGene.gene_name, 
+             //                       'spliceJunctions': spliceJunctions}
+            self.$emit('splice-junctions-loaded', self.selectedGene.gene_name, spliceJunctions, summary)
           })
           .catch(function(error) {
             self.loadInProgress = false;
@@ -271,6 +275,10 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         let self = this;
 
         self.variants = [];
+
+        if (self.vcf.vcfURL == null) {
+          return;
+        }
 
         let regions = [];
         regions.push({'name': self.selectedGene.chr, 'start': self.selectedGene.start, 'end': self.selectedGene.end})        

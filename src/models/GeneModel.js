@@ -938,16 +938,20 @@ class GeneModel {
         return spliceJunction.spliceKind == 'canonical' && spliceJunction.countSkippedExons > 0;
       })
       let canonicalSplice = spliceJunctions.filter(function(spliceJunction) {
-        return spliceJunction.spliceKind == 'canonical' && spliceJunction.countSkippedExons == 0;
+        return spliceJunction.spliceKind == 'canonical';
       })
-      let meanReadCount = Math.round(d3.mean(spliceJunctions, d => d.readCount))
-      let stdReadCount  = Math.round(d3.deviation(spliceJunctions, d => d.readCount))
+      let meanReadCountCanonical = Math.round(d3.mean(canonicalSplice, d => +d.readCount))
+      let stdReadCountCanonical  = Math.round(d3.deviation(canonicalSplice, d => +d.readCount))
+      let minReadCountCanonical  = d3.min(canonicalSplice, d => d.readCount)
+      let maxReadCountCanonical  = d3.max(canonicalSplice, d => d.readCount)
       summary = {
-          'canonical':          canonicalSplice,
-          'noncanonical':       nonCanonicalSplice, 
-          'alternateSplice':    alternateSplice,
-          'meanReadCount':      meanReadCount,
-          'stdReadCount':       stdReadCount
+          'canonical':              canonicalSplice,
+          'noncanonical':           nonCanonicalSplice, 
+          'alternateSplice':        alternateSplice,
+          'meanReadCountCanonical': meanReadCountCanonical,
+          'stdReadCountCanonical':  stdReadCountCanonical,
+          'minReadCountCanonical':  minReadCountCanonical,
+          'maxReadCountCanonical':  maxReadCountCanonical
       }
       self.geneToSpliceJunctionSummary[geneObject.gene_name] = summary;
     }

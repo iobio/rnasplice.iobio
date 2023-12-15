@@ -188,8 +188,11 @@ export default {
       }
       self.addAlert("info", "reloaded data")
     },
-    onSpliceJunctionsLoaded: function(spliceJunctionData, summary) {
-      this.spliceJunctionsForGene = spliceJunctionData;
+    onSpliceJunctionsLoaded: function(geneName, spliceJunctions, summary) {
+      let self = this;
+      if (geneName == self.selectedGene.gene_name) {
+        self.spliceJunctionsForGene = spliceJunctions;
+      }
     },
     onDonorReferenceSequenceLoaded: function(referenceSequenceData) {
       this.donorReferenceSequence = referenceSequenceData;

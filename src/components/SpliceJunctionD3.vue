@@ -49,7 +49,6 @@
           <div v-if="readCountMean">
             <div  class="read-stat">{{ readCountMean }} mean</div>
             <div  class="read-stat">{{ readCountStd }} std</div> 
-            <div  class="read-stat">{{ readCountMax }} max</div>
 
           </div>
 
@@ -287,7 +286,7 @@ export default {
           self.showDonorPanel = false;
           self.showAcceptorPanel = false;
 	  			self.onGeneSelected();
-	  			if (self.spliceJunctionsForGene && self.spliceJunctionsForGene.gene == self.selectedGene.gene_name) {
+	  			if (self.spliceJunctionsForGene) {
 	  				self.showLoading = false;
 	  				self.loadDiagram();
 	  			} else {
@@ -306,7 +305,7 @@ export default {
   		let self = this;
   		if (this.tab == 'tab-2' && this.selectedGene) {
   			self.$nextTick(function() {
-		  		self.edgesForGene = self.createEdges(self.spliceJunctionsForGene.spliceJunctions)
+		  		self.edgesForGene = self.filterSpliceJunctions()
 
 			    self.geneStart = self.selectedGene.start - self.REGION_BUFFER;
 			    self.geneEnd   = self.selectedGene.end   + self.REGION_BUFFER;
@@ -317,7 +316,7 @@ export default {
 			    d3.selectAll('#zoomed-diagrams #arc-diagram svg').remove();
           self.showZoomPanel = false;
 			    self.drawArcDiagram('#diagrams', self.edgesForGene, self.geneStart, self.geneEnd, 
-			    	{'createBrush': false});	
+			    	{'createBrush': false, 'isZoomedRegion': false});	
 
   			})
   		}
@@ -341,14 +340,17 @@ export default {
   		let self = this;
       self.showZoomPanel = false;
       self.showTranscriptMenu = false;
-  		if (self.spliceJunctionsForGene.gene == self.selectedGene.gene_name) {
+  		if (self.spliceJunctionsForGene) {
 
-				self.edgesForGene = self.createEdges(self.spliceJunctionsForGene.spliceJunctions)
+				self.edgesForGene = self.filterSpliceJunctions()
 
-        self.readCountMean = Math.round(d3.mean(self.edgesForGene, d => d.readCount))
-        self.readCountStd =  Math.round(d3.deviation(self.edgesForGene, d => d.readCount))
-        self.readCountMin =  Math.round(d3.min(self.edgesForGene, d => d.readCount))
-        self.readCountMax =  Math.round(d3.max(self.edgesForGene, d => d.readCount))
+        let summary = self.geneModel.geneToSpliceJunctionSummary[self.selectedGene.gene_name]
+        if (summary) {
+          self.readCountMean = summary.meanReadCountCanonical;
+          self.readCountStd =  summary.stdReadCountCanonical;
+          self.readCountMin =  summary.minReadCountCanonical;
+          self.readCountMax =  summary.maxReadCountCanonical;          
+        }
 
 		    self.geneStart = self.selectedGene.start - self.REGION_BUFFER;
 		    self.geneEnd   = self.selectedGene.end   + self.REGION_BUFFER;
@@ -361,7 +363,7 @@ export default {
 		    self.drawBrushableAxis("#diagrams", self.geneStart, self.geneEnd)
         self.showZoomPanel = false;
 		    self.drawArcDiagram('#diagrams', self.edgesForGene, self.geneStart, self.geneEnd, 
-		    	{'createBrush': false});
+		    	{'createBrush': false, 'isZoomedRegion': false});
 
 		    self.drawTranscriptDiagram("#diagrams #selected-transcript-panel #transcript-diagram", self.selectedGene, self.geneStart, self.geneEnd,  
 		      {'selectedTranscriptOnly': true, 'allowSelection': false, 'showBoundingBox': true})
@@ -474,14 +476,13 @@ export default {
 		  }
 		},
 
-		createEdges: function(bedRecords) {
+		filterSpliceJunctions: function() {
 		  let self = this;
-		  let bedRecordsFiltered = bedRecords.filter(function(bedRow) {
-		    return +bedRow.score >= self.minUniquelyMappedReads
+      let spliceJunctions = self.geneModel.geneToSpliceJunctionObjects[self.selectedGene.gene_name]
+		  let spliceJunctionsFiltered = spliceJunctions.filter(function(spliceJunction) {
+		    return +spliceJunction.readCount >= self.minUniquelyMappedReads
 		  });
-
-		  let spliceJunctions = self.geneModel.createSpliceJunctions(bedRecordsFiltered, self.selectedGene, self.selectedTranscript);
-		  return spliceJunctions;
+		  return spliceJunctionsFiltered;
 		},
 
 		// Function that is triggered when brushing is performed
@@ -504,7 +505,7 @@ export default {
 		    
 		    d3.select("#zoomed-diagrams").select("#arc-diagram svg").remove();
 		    d3.select("#zoomed-diagrams").select("#transcript-diagram svg").remove();
-
+        
 		    if (event.type == 'end') {
 			    let filteredEdges = self.edgesForGene.filter(function(edge) {
 			       return (edge.donor.pos >= regionStart && edge.donor.pos <=regionEnd) ||
@@ -521,20 +522,23 @@ export default {
              'allEdges': self.edgesForGene, 
              'showXAxis': true,
              'marginRight': 0,
-             'showJunctionArrow': true})
+             'showJunctionArrow': true,
+             'isZoomedRegion': true})
 
 			    self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram", self.selectedGene, regionStart, regionEnd, 
 			      {'selectedTranscriptOnly': true, 'allowSelection': false, 'marginRight': 0})
 
-          let filteredVariants = self.variants.filter(function(d) {
-            return d.start >= regionStart && d.start <= regionEnd
-          }).map(function(d) {
-            let variant = $.extend({}, d)
-            variant.level = 0;
-            return variant;
-          })
-          self.vcf.pileupVariants(filteredVariants, regionStart, regionEnd, self.$el.offsetWidth - 20)
-          self.drawVariantDiagram("#zoomed-diagrams #variant-diagram", regionStart, regionEnd, filteredVariants)
+          if (self.variants && self.variants.length > 0) {
+            let filteredVariants = self.variants.filter(function(d) {
+              return d.start >= regionStart && d.start <= regionEnd
+            }).map(function(d) {
+              let variant = $.extend({}, d)
+              variant.level = 0;
+              return variant;
+            })
+            self.vcf.pileupVariants(filteredVariants, regionStart, regionEnd, self.$el.offsetWidth - 20)
+            self.drawVariantDiagram("#zoomed-diagrams #variant-diagram", regionStart, regionEnd, filteredVariants)            
+          }
 
 		    }
 		  } else {
@@ -553,13 +557,16 @@ export default {
 		showSelectionBox: function(container, regionStart, regionEnd, x) {
 			let self = this;
 
+      if (d3.select(container).empty()) {
+        return;
+      }
+
 			let x1   = x(regionStart);
 		  let x2   = x(regionEnd);
 		  let width = x2 - x1;
 
-
-      let height = parseInt(d3.select(container).style("height"));
-
+      let height = d3.select(container).node().getBoundingClientRect().height
+      
 	  	let boundingBox = d3.select(container).select('.bounding-box');
 	  	boundingBox.attr("x", x1)
 	  	boundingBox.attr("y", 0)
@@ -1306,11 +1313,16 @@ export default {
 		      return scaleArcWidth(d.readCount);
 		    })
 		    .attr("stroke", function(d) {
-		    	if (self.colorBy == '' || self.colorBy == 'none') {
-		    		return "#9f9f9f";
-		    	} else {
-			    	return arcColor(d[self.colorBy]);		    		
-		    	}
+          if (options && options.isZoomedRegion) {
+            return d.color;
+          } else {
+            if (self.colorBy == '' || self.colorBy == 'none') {
+              return "#9f9f9f";
+            } else {
+              d.color = arcColor(d[self.colorBy])
+              return d.color;           
+            }            
+          }
 		    })
 		    .on("click", function(event,d) {
 
@@ -2253,21 +2265,25 @@ export default {
            'allEdges': self.edgesForGene, 
            'showXAxis': true, 
            'marginRight': 0,
-           'showJunctionArrow': true})
+           'showJunctionArrow': true,
+           'isZoomedRegion': true})
 
 	    self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram", self.selectedGene, regionStart, regionEnd, 
 	      {'selectedTranscriptOnly': true, 'allowSelection': false, marginRight: 0})
 
 
-      let filteredVariants = self.variants.filter(function(d) {
-        return d.start >= regionStart && d.start <= regionEnd
-      }).map(function(d) {
-        let variant = $.extend({}, d)
-        variant.level = 0;
-        return variant;
-      })
-      self.vcf.pileupVariants(filteredVariants, regionStart, regionEnd, self.$el.offsetWidth - 20)
-      self.drawVariantDiagram("#zoomed-diagrams #variant-diagram", regionStart, regionEnd, filteredVariants)      
+
+      if (self.variants && self.variants.length > 0) {
+        let filteredVariants = self.variants.filter(function(d) {
+          return d.start >= regionStart && d.start <= regionEnd
+        }).map(function(d) {
+          let variant = $.extend({}, d)
+          variant.level = 0;
+          return variant;
+        })
+        self.vcf.pileupVariants(filteredVariants, regionStart, regionEnd, self.$el.offsetWidth - 20)
+        self.drawVariantDiagram("#zoomed-diagrams #variant-diagram", regionStart, regionEnd, filteredVariants)       
+      }
 		},
 				 
 
@@ -3008,9 +3024,6 @@ svg text.junction.clicked {
 	font-size: 13px;
 }
 
-#zoomed-diagrams svg .junction {
-  stroke: #8f8f8f63;
-}
 #zoomed-diagrams svg .junction.clicked {
   stroke: #03a9f4;
 }
@@ -3241,6 +3254,10 @@ text.seq.T, rect.seq.T {
   font-weight: 600;
   color: gray;
   font-style: italic;
+}
+
+.variant {
+  stroke: #00000061;
 }
 
 
