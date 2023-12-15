@@ -276,7 +276,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
 
         self.variants = [];
 
-        if (self.vcf.vcfURL == null) {
+        if (self.vcf.getVcfURL() == null) {
           return;
         }
 

@@ -1691,7 +1691,7 @@ export default {
       let junctionMainChart = null;
       let nodeMainChart = null;
      
-      let theSpliceJunctions = self.geneModel.geneToSpliceJunctionObjects[self.selectedGene.gene_name]
+      let theSpliceJunctions = self.edgesForGene;
       if (theSpliceJunctions) {
      	  let matched = theSpliceJunctions.filter(function(edge) {
      		  return edge.key == d.key;
@@ -2842,8 +2842,10 @@ export default {
           let offsetY = d3.select(container).node().getBoundingClientRect().y
           let offsetX = d3.select(container).node().getBoundingClientRect().x
 
+          let scrollOffset = $('html').scrollTop()
 
-          let tooltipY =  offsetY + margin.top + d.y - self.arcPointerSmallHeight - 4 - tooltipHeight;
+
+          let tooltipY =  offsetY + margin.top + d.y - self.arcPointerSmallHeight - 4 - tooltipHeight + scrollOffset;
           let tooltipX =  offsetX + d.x  - (self.arcPointerSmallWidth/2)
           d3.select('.tooltip')
           .style("top",+ tooltipY + 'px') 
