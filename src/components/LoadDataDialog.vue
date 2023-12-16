@@ -3,82 +3,89 @@
     <v-dialog 
       v-model="show"
       width="auto">
-      <v-card style="width:900px">
-        <v-card-title> 
-          Load data files
-        </v-card-title>
-        <v-card-text id="load-data-dialog-content">
 
-          <div class="d-flex flex-column">
+      <v-form v-model="isFormValid" @submit.prevent fast-fail>
 
-            <div style="max-width:180px">
-              <v-select
-                label="Genome build"
-                v-model="buildName"
-                :items="['GRCh37', 'GRCh38']">
-              </v-select>
+        <v-card style="width:900px">
+          <v-card-title> 
+            Load data files
+          </v-card-title>
+          <v-card-text id="load-data-dialog-content">
+
+            <div class="d-flex flex-column">
+
+              <div style="max-width:180px">
+                <v-select
+                  label="Genome build"
+                  v-model="buildName"
+                  :items="['GRCh37', 'GRCh38']">
+                </v-select>
+              </div>
+
+              <div class="pt-4">
+                <v-text-field id="bed-url-text" 
+                  v-model="bedURL"
+                  :rules="bedRules"
+                  density="compact" 
+                  label="Splice Junction URL (.bed.gz)">
+                </v-text-field>
+              </div>
+
+
+              <div class="pt-4">
+                <v-text-field id="bigwig-url-text" 
+                  v-model="bigwigURL"
+                  density="compact" 
+                  :rules="bigwigRules"
+                  label="Coverage URL (.bw or .bigWig)">
+                </v-text-field>
+              </div>
+
+              <v-divider/>
+
+              <div class="pt-4">
+                <v-text-field id="vcf-url-text" 
+                  v-model="vcfURL"
+                  :rules="vcfRules"
+                  density="compact" 
+                  label="VCF URL (.vcf.gz)">
+                </v-text-field>
+              </div>
+
+              <div class="pt-4">
+                <v-text-field id="tbi-url-text" 
+                  v-show="vcfURL"
+                  v-model="tbiURL"
+                  :rules="tbiRules"
+                  density="compact" 
+                  label="tbi URL (.vcf.gz.tbi)">
+                </v-text-field>
+              </div>
+
+              <div style="width:255px" class="pt-4">
+                <v-select 
+                  v-if="vcfURL"
+                  v-model="selectedSampleName"
+                  :rules="sampleNameRules"
+                  hide-details="auto"
+                  label="Sample name"
+                  density="compact"
+                  :items="sampleNames"
+                ></v-select>
+              </div>
+
             </div>
+            
+          </v-card-text>
+          <v-card-actions  class="mt-4">
+            <v-btn type="submit" class="mt-1" v-if="false" density="compact" size="medium" color="primary" variant="tonal" @click="onTryDemoBed">Load demo data</v-btn>
 
-            <div class="pt-4">
-              <v-text-field id="bed-url-text" 
-                v-model="bedURL"
-                hide-details 
-                density="compact" 
-                label="Splice Junction URL (.bed.gz)">
-              </v-text-field>
-            </div>
-
-
-            <div class="pt-4">
-              <v-text-field id="bigwig-url-text" 
-                v-model="bigwigURL"
-                hide-details 
-                density="compact" 
-                label="Coverage URL (.bw or .bigWig)">
-              </v-text-field>
-            </div>
-
-            <v-divider/>
-
-            <div class="pt-4">
-              <v-text-field id="vcf-url-text" 
-                v-model="vcfURL"
-                hide-details 
-                density="compact" 
-                label="VCF URL (.vcf.gz)">
-              </v-text-field>
-            </div>
-
-            <div class="pt-4">
-              <v-text-field id="tbi-url-text" 
-                v-model="tbiURL"
-                hide-details 
-                density="compact" 
-                label="tbi URL (.vcf.gz.tbi)">
-              </v-text-field>
-            </div>
-
-            <div style="width:255px" class="pt-4">
-              <v-select v-if="sampleNames"
-                v-model="selectedSampleName"
-                hide-details="auto"
-                label="Sample name"
-                density="compact"
-                :items="sampleNames"
-              ></v-select>
-            </div>
-
-          </div>
-          
-        </v-card-text>
-        <v-card-actions  class="mt-4">
-          <v-btn class="mt-1" v-if="false" density="compact" size="medium" color="primary" variant="tonal" @click="onTryDemoBed">Load demo data</v-btn>
-
-          <v-spacer/>
-          <v-btn elevation="2" variant="flat" density="compact" color="blue-darken-4" size="large"  @click="onLoad">Load</v-btn>
-          <v-btn  elevation="2" density="compact" size="large" @click="onCancel">Cancel</v-btn>
-        </v-card-actions>
-      </v-card>
+            <v-spacer/>
+            <v-btn elevation="2" variant="flat" :disabled="!isFormValid" density="compact" color="blue-darken-4" size="large"  @click="onLoad">Load</v-btn>
+            <v-btn  elevation="2" density="compact" size="large" @click="onCancel">Cancel</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-form>
     </v-dialog>
   </div>
 </template>
@@ -91,14 +98,19 @@ export default {
       sampleNames: Array
     },
     data () {
+      let self = this;
       return {
         show: false,
+        isFormValid: null,
         buildName: 'GRCh38',
         bedURL: null,
         bigwigURL: null,
         vcfURL: null,
         tbiURL: null,
         selectedSampleName: null,
+
+        urlRegExp: /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi,
+            
 
         demoInfo: {
           'demo1': {
@@ -111,7 +123,38 @@ export default {
             'bedIndexURL': "https://www.dropbox.com/s/iv5tcg3t8v3xu23/splice_junction_track_test_cases_sampleA.chr15-92835700-93031800.SJ.out.bed.gz.tbi?dl=0",
             'bigwigURL': "https://www.dropbox.com/s/8j2uf0hsqprusnc/splice_junction_track_test_cases_sampleA.chr15-92835700-93031800.bigWig?dl=0"
           }
-        }
+        },
+
+        bedRules: [
+          v => !!v || 'bed URL is required',
+          v => (v && v.indexOf('bed.gz') > 0) || 'The bed file must be bgzipped (.bed.gz)',
+          v => v.match(new RegExp(self.urlRegExp)) ||  'Invalid URL'
+        ],
+        bigwigRules: [
+          v => (!v || (v.indexOf('.bw') > 0 ||  v.indexOf('.bigWig') > 0)) || 'The file extension must be .bw or .bigWig',
+          v => !v || v.match(new RegExp(self.urlRegExp)) ||  'Invalid URL'
+        ],
+        vcfRules: [
+          v => !v || v.indexOf('vcf.gz') > 0 || 'The vcf file must be bgzipped (.vcf.gz)',
+          v => !v || v.match(new RegExp(self.urlRegExp)) ||  'Invalid URL'
+        ],
+        tbiRules: [
+          v => (!v || v.indexOf('vcf.gz.tbi') > 0) || 'The index file must have the extension (.vcf.gz.tbi)',
+          v => (!v || v.match(new RegExp(self.urlRegExp))) ||  'Invalid URL'
+        ],
+        sampleNameRules: [
+          v => {
+            if (self.sampleNames) {
+              if (v) {
+                return true;
+              } else {
+              return true;
+              }
+            } else {
+              return 'Sample name must be selected'
+            }
+          }
+        ]
       }
     },
     mounted: function() {
@@ -123,11 +166,11 @@ export default {
     methods: {
       onLoad: function() {
         let loadInfo = {'buildName': this.buildName, 
-                        'bedURL': this.bedURL, 
-                        'bedIndexURL': this.bedURL + '.tbi',
-                        'bigwigURL': this.bigwigURL,
-                        'vcfURL': this.vcfURL,
-                        'tbiURL': this.tbiURL,
+                        'bedURL': this.bedURL.trim(), 
+                        'bedIndexURL': this.bedURL.trim() + '.tbi',
+                        'bigwigURL': this.bigwigURL ? this.bigwigURL.trim() : null,
+                        'vcfURL': this.vcfURL ? this.vcfURL.trim() : null,
+                        'tbiURL': this.tbiURL ? this.tbiURL.trim() : null,
                         'sampleName': this.selectedSampleName}
         this.$emit("load", loadInfo)
       },
