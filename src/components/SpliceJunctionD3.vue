@@ -82,10 +82,12 @@
     </div>
 
     <div id="variant-diagram"  style="margin-top: -10px">
+      <div v-if="variants && variants.length > 0">Variants</div>
       <svg/>
     </div>
 
 	  <div id="arc-diagram" class="hide-labels" style="margin-top:-7px">
+      <div v-if="variants && variants.length > 0">Splice Junctions</div>
 	  </div>
 
     <div id="selected-transcript-panel" v-show="showTranscriptMenu" style="margin-top:-7px">
