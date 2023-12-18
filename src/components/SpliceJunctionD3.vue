@@ -9,7 +9,7 @@
   </div>
 
       <div id="panel-heading" class="d-flex flex-row align-center mb-1" >
-          <h2 class="mr-8" style="margin-top: 0px !important;margin-bottom: 0px !important;min-width: 150px;">
+          <h2 class="mr-5" style="margin-top: 0px !important;margin-bottom: 0px !important;min-width: 150px;">
             Splice Junctions
           </h2>
 
@@ -62,7 +62,7 @@
             <div id="read-count-histogram" style="margin-left: 10px">
             </div>
 
-            <div v-if="readCountMean" style="margin-left: -10px;">
+            <div v-if="readCountMean" style="margin-left: -40px;">
               <div  class="read-stat">mean: {{ readCountMean }} </div>
               <div  class="read-stat">&#x3C3;:  {{ readCountStd }}  </div> 
             </div>
@@ -72,7 +72,7 @@
             <div id="read-count-histogram" style="margin-left: 10px">
             </div>
 
-            <div v-if="readCountMeanNoncan" style="margin-left: -10px;">
+            <div v-if="readCountMeanNoncan" style="margin-left: -40px;">
               <div  class="read-stat">mean: {{ readCountMeanNoncan }} </div>
               <div  class="read-stat">&#x3C3;:  {{ readCountStdNoncan }}  </div> 
             </div>
