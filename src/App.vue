@@ -7,11 +7,13 @@
       :alerts="appAlerts"
       :alertCounts="appAlertCounts"
       :sampleNames="sampleNames"
+      :selectedGene="selectedGene"
       @gene-searched="onGeneSearched"
       @show-alert-panel="onShowAlertPanel"
       @show-genes-panel="onShowLeftNavDrawer"
       @load-data="onLoadData"
       @vcf-url-entered="onVcfURLEntered"
+      @show-igv="onShowIGV(true)"
       />
 
        <v-navigation-drawer 
@@ -175,6 +177,12 @@ export default {
       this.selectedGene = gene;
       this.addAlert("info", "gene <pre>" + gene.gene_name + "</pre> loaded", gene.gene_name)
       this.showLeftNavDrawer = true;
+    },
+    onShowIGV: function(show) {
+      let self = this;
+      if (self.$refs && self.$refs.ref_SpliceJunctionHome) {
+        self.$refs.ref_SpliceJunctionHome.onShowIGV(show);
+      }
     },
     onLoadData: function(loadInfo) {
       let self = this;

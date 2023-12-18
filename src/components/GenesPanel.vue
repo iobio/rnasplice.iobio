@@ -27,13 +27,13 @@
             :class="`d-flex gene-expansion-title` + (selectedGene && selectedGene.gene_name == geneName ? ` selected` : ``)">
               <v-btn class="gene-button" variant="tonal" 
                 @click.stop="onGeneClicked(geneName)" size="medium" 
-                style="margin-left:0px;padding-left: 5px;padding-right:5px;padding-top: 1px;padding-bottom: 1px;font-size: 13px; width:110px"  
+                style="margin-left:0px;padding-left: 5px;padding-right:5px;padding-top: 1px;padding-bottom: 1px;font-size: 13px; width:120px"  
                 color="#094792" density="compact">{{ geneName }}</v-btn>
 
             </div>
-                  <v-chip v-if="getSummary(geneName)" color="red" class="ml-4" size="small" >
-                      {{ getSummary(geneName).noncanonical.length }}
-                  </v-chip>
+            <v-chip v-if="getSummary(geneName)" color="blue" class="ml-4" size="small" >
+                  {{ getSummary(geneName).count }}
+            </v-chip>
              
              <v-spacer/>
              <v-btn  id="clear-gene-button" variant="text" @click="onClearGene(geneName)">
@@ -42,18 +42,37 @@
           </template>
           <template v-slot:text>
             <div v-if="getSummary(geneName)">
-              <h3>Non-canonical splice junctions                     
+              <h3 style="color: #eb6161 !important;">Non-canonical splice junctions 
+                <v-chip v-if="getSummary(geneName)" color="red" class="ml-4" size="small" >
+                      {{ getSummary(geneName).noncanonical.length }}
+                </v-chip>
+                    
               </h3>
 
+
               <div class="d-flex flex-column" style="max-height:167px;overflow-y:scroll">
+
+                <div  class="d-flex splice-junction-entry">
+                  <div style="width: 31px"></div>
+                  <div style="width: 100px;">Donor</div>
+                  <div style="width: 100px;">Acceptor</div>
+                  <div style="width: 40px;text-align:right;margin-right:2px;"># Reads</div>
+                  <div style="width: 40px;text-align:right;margin-right:10px;">z</div>
+                  <div style="width: 40px;text-align:center">strand</div>  
+                </div>
+
+
+
                 <div  v-for="spliceJunction, idx in getSummary(geneName).noncanonical"
                   :key="spliceJunction.key" 
                   :class="`d-flex splice-junction-entry` + (selectedObject && selectedObject.key == spliceJunction.key ? ` selected` : ``)"
                    @click="onSelectSpliceJunction(spliceJunction, geneName)" flat density="compact">
-                  <div style="width: 35px">{{ idx+1 }}.</div>
-                  <div style="width: 255px;">{{ spliceJunction.label}}</div>
-                  <div style="width: 50px">{{ spliceJunction.readCount }}</div>
-                  <div>{{ (spliceJunction.strand && spliceJunction.strand != 'undefined' ? spliceJunction.strand : `?`)}}</div>  
+                  <div style="width: 31px">{{ idx+1 }}.</div>
+                  <div style="width: 100px;">{{ spliceJunction.donor.label}}</div>
+                  <div style="width: 100px;">{{ spliceJunction.acceptor.label}}</div>
+                  <div style="width: 40px;text-align:right;margin-right:2px;">{{ spliceJunction.readCount }}</div>
+                  <div style="width: 40px;text-align:right;margin-right:10px;">{{ spliceJunction.zScore }}</div>
+                  <div style="width:40px;text-align:center">{{ (spliceJunction.strand && spliceJunction.strand != 'undefined' ? spliceJunction.strand : `?`)}}</div>  
                 </div>
               </div>
    
@@ -100,7 +119,7 @@ export default {
     showConfirmDialog: false,
     confirmMessage: "",
     confirmTitle: "",
-    expandGene: null
+    expandGene: null,
 
     
   }),
@@ -172,6 +191,7 @@ export default {
   flex-grow: 1
   height: calc(100% - 360px)
 
+
   
    
   .gene-expansion-title
@@ -187,6 +207,7 @@ export default {
   .v-expansion-panel-title
     padding: 0px 8px
     min-height: 30px
+    padding-left: 0px
   .v-expansion-panel-title__overlay
     background-color: #ababab
   .v-expansion-panel-text__wrapper
@@ -194,6 +215,7 @@ export default {
     margin-bottom: 80px
 
   .splice-junction-entry
+    font-size: 12px
     margin-bottom: 10px
     cursor:        pointer
     text-align:    left

@@ -7,8 +7,7 @@
     :selectedGene="selectedGene"
     :geneModel="geneModel"
      @gene-region-buffer-change="onGeneRegionBufferChange"
-     @reinit="$emit('reinit')"
-     @show-igv="onShowIGV"/>
+     @reinit="$emit('reinit')"/>
 
     <v-card  v-show="selectedGene" class="full-width-card" style="padding-top:0px !important;min-height: calc(100vh + 20px);">
 
@@ -387,6 +386,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       },
       onVcfURLEntered: function(vcfURL, tbiURL) {
         let self = this;
+        self.sampleNames = null;
         self.vcf.promiseOpenVcfUrl(vcfURL, tbiURL)
         .then(function() {
           self.vcf.promiseGetSampleNames()
@@ -394,7 +394,13 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
             self.sampleNames = sampleNames;
             self.$emit('sample-names-loaded', self.sampleNames)
           })
+          .catch(function(error) {
+            self.addAppAlert('warning', 'Unable to get samples from VCF URL', null, [error])
+          })
 
+        })
+        .catch(function(error) {
+          self.addAppAlert('warning', 'Unable to read VCF URL', null, [error])
         })
 
 

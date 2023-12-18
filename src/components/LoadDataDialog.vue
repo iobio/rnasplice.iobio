@@ -54,7 +54,6 @@
 
               <div class="pt-4">
                 <v-text-field id="tbi-url-text" 
-                  v-show="vcfURL"
                   v-model="tbiURL"
                   :rules="tbiRules"
                   density="compact" 
@@ -64,7 +63,6 @@
 
               <div style="width:255px" class="pt-4">
                 <v-select 
-                  v-if="vcfURL"
                   v-model="selectedSampleName"
                   :rules="sampleNameRules"
                   hide-details="auto"
@@ -126,21 +124,86 @@ export default {
         },
 
         bedRules: [
-          v => !!v || 'bed URL is required',
-          v => (v && v.indexOf('bed.gz') > 0) || 'The bed file must be bgzipped (.bed.gz)',
-          v => v.match(new RegExp(self.urlRegExp)) ||  'Invalid URL'
+          v => { if (v) {
+              return true;
+            } else {
+              return 'bed URL is required'
+            }
+          },
+          v => {
+            if (v && v.indexOf('bed.gz') > 0) {
+              return true;
+            } else {
+              return 'The bed file must be bgzipped (.bed.gz)'
+            } 
+          },
+          v => {
+            if (v && v.match(new RegExp(self.urlRegExp))) {
+              return true;
+            } else {
+              return 'Invalid URL';
+            } 
+          }
         ],
         bigwigRules: [
-          v => (!v || (v.indexOf('.bw') > 0 ||  v.indexOf('.bigWig') > 0)) || 'The file extension must be .bw or .bigWig',
-          v => !v || v.match(new RegExp(self.urlRegExp)) ||  'Invalid URL'
+          v => {
+            if (v && v.toLowerCase().indexOf('.bigwig') > 0 || v.toLowerCase().indexOf('.bw') > 0 ) {
+              return true;
+            } else if (v) {
+              return 'The bigwig file must have the extension .bw or .bigwig'
+            } else {
+              return true;
+            }
+          },
+          v => {
+            if (v && v.match(new RegExp(self.urlRegExp))) {
+              return true;
+            } else if (v) {
+              return 'Invalid URL';
+            } else {
+              return true;
+            }
+          }
         ],
         vcfRules: [
-          v => !v || v.indexOf('vcf.gz') > 0 || 'The vcf file must be bgzipped (.vcf.gz)',
-          v => !v || v.match(new RegExp(self.urlRegExp)) ||  'Invalid URL'
+          v => {
+            if (v && v.toLowerCase().indexOf('.vcf.gz') > 0) {
+              return true;
+            } else if (v) {
+              return 'The vcf file must be bgzipped (.vcf.gz)'
+            } else {
+              return true;
+            }
+          },
+          v => {
+            if (v && v.match(new RegExp(self.urlRegExp))) {
+              return true;
+            } else if (v) {
+              return 'Invalid URL';
+            } else {
+              return true;
+            }
+          }
         ],
         tbiRules: [
-          v => (!v || v.indexOf('vcf.gz.tbi') > 0) || 'The index file must have the extension (.vcf.gz.tbi)',
-          v => (!v || v.match(new RegExp(self.urlRegExp))) ||  'Invalid URL'
+          v => {
+            if (v && v.toLowerCase().indexOf('.vcf.gz.tbi') > 0) {
+              return true;
+            } else if (v) {
+              return 'The index file file must have extension .vcf.gz.tbi'
+            } else {
+              return true;
+            }
+          },
+          v => {
+            if (v && v.match(new RegExp(self.urlRegExp))) {
+              return true;
+            } else if (v) {
+              return 'Invalid URL';
+            } else {
+              return true;
+            }
+          }
         ],
         sampleNameRules: [
           v => {
@@ -148,10 +211,12 @@ export default {
               if (v) {
                 return true;
               } else {
-              return true;
+                return 'Sample name must be selected'
               }
+            } else if (self.vcfURL == null) {
+              return true;
             } else {
-              return 'Sample name must be selected'
+              return 'Unable to get sample names from VCF'
             }
           }
         ]

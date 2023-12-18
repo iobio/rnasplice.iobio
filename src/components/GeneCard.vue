@@ -35,7 +35,7 @@
           {{ selectedGene.strand == '-' ? `reverse strand` : `forward strand` }}
         </v-chip>
 
-        <div style="width:155px" class="ml-5">
+        <div style="width:155px" class="ml-3">
             <v-select id="strand-combo"
               v-model="theGeneSource"
               hide-details="auto"
@@ -45,14 +45,16 @@
             ></v-select>
         </div>
 
-        <v-btn variant="tonal" id="show-igv-button" @click="$emit('show-igv', true)" style="margin-left: 20px;width:70px;"  density="compact" color="#094792">
-          IGV
-        </v-btn>
+       
 
-        <div id="read-count-histogram">
+        <div id="read-count-histogram" style="margin-left: 30px">
         </div>
 
-    
+        <div v-if="readCountMean">
+          <div  class="read-stat">mean: {{ readCountMean }} </div>
+          <div  class="read-stat">&#x3C3;:  {{ readCountStd }}  </div> 
+        </div>
+
       </div>
 
 
@@ -73,7 +75,12 @@
     },
     data: () => ({
       regionBuffer: 1000,
-      theGeneSource: 'gencode'
+      theGeneSource: 'gencode',
+
+      readCountMean: null,
+      readCountStd: null,
+      readCountMin: null,
+      readCountMax: null
 
     }),
     created: function() {
@@ -107,13 +114,22 @@
           return;
         }
 
+        let summary = self.geneModel.geneToSpliceJunctionSummary[self.selectedGene.gene_name]
+        if (summary) {
+          self.readCountMean = summary.meanReadCountCanonical;
+          self.readCountStd =  summary.stdReadCountCanonical;
+          self.readCountMin =  summary.minReadCountCanonical;
+          self.readCountMax =  summary.maxReadCountCanonical;          
+        }
+
+
         let data = spliceJunctions.filter(function(spliceJunction) {
           return spliceJunction.spliceKind == 'canonical';
         })
 
         // set the dimensions and margins of the graph
         var margin = {top: 10, right: 10, bottom: 30, left: 40},
-            width = 300 - margin.left - margin.right,
+            width = 250 - margin.left - margin.right,
             height = 120 - margin.top - margin.bottom;
 
         
@@ -136,6 +152,28 @@
         svg.append("g")
             .attr("transform", "translate(0," + height + ")")
             .call(d3.axisBottom(x).ticks(5));
+
+        svg.append("text")
+           .attr("class", "histogram-text")
+           .attr("x", (width / 2))
+           .attr("y", 0)
+           .style("text-anchor", "middle")
+           .text("Canonical splice junctions")
+
+        svg.append("text")
+           .attr("class", "histogram-text")
+           .attr("x", (width / 2))
+           .attr("y", height + margin.top + margin.bottom - 10)
+           .style("text-anchor", "middle")
+           .text("Read count")
+
+        svg.append("text")
+           .attr("class", "histogram-text")
+           .attr("x", 0)
+           .attr("y", height)
+           .style("text-anchor", "middle")
+           .style("transform", "translate(-110px, 40px)rotate(-90deg)")
+           .text("Frequency")
 
         // set the parameters for the histogram
         var histogram = d3.histogram()
@@ -182,6 +220,10 @@
           if (!d3.select("#read-count-histogram svg").empty()) {
             d3.select("#read-count-histogram svg").remove();
           }
+          self.readCountMean = null;
+          self.readCountStd = null;
+          self.readCountMin = null;
+          self.readCountMax = null;
           if (self.selectedGene) {
             setTimeout(function() {
               self.drawReadCountHistogram();
@@ -212,8 +254,17 @@
   #minus-strand
     font-size: 13px
 
+
+  .read-stat 
+    font-size: 11px
+    color: rgb(73, 73, 73)
+    font-style: italic
+
   .v-select
     .v-field
       font-size: 13px
+  .histogram-text
+    font-size: 11px
+    fill: rgb(73, 73, 73)
 
 </style>

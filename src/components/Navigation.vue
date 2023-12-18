@@ -27,6 +27,12 @@
         item-key="gene_name" /> 
       </div>
 
+      <v-btn v-if="selectedGene" class="ml-3 navbar-icon-button" id="show-igv-button" @click="$emit('show-igv', true)"   density="compact">
+          <span class="material-symbols-outlined" style="transform: rotate(90deg);margin-right:2px;">
+          low_priority
+          </span>
+          IGV
+      </v-btn>
 
       <v-spacer></v-spacer>
 
@@ -110,7 +116,8 @@ import { Typeahead } from 'uiv'
       genomeBuild: Array,
       alerts: Array,
       alertCounts: Object,
-      sampleNames: Array
+      sampleNames: Array,
+      selectedGene: Object
     },
     data: () => ({
       searchedGene: null,

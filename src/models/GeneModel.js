@@ -854,16 +854,19 @@ class GeneModel {
 
       let donorLabel = "";
       if (donor.exon) {
-        donorLabel =  
-        
-        'Exon ' + donor.exon.number 
+        donorLabel =  'Exon ' + donor.exon.number 
+        if (donor.delta) {
+          donorLabel += " " + (donor.delta > 0 ? "+" : "") + donor.delta + ""
+        }
       } else  {
         donorLabel = 'Intronic '  + geneObject.chr + ":" +  d3.format(",")(donor.pos);
       }
       let acceptorLabel = "";
       if (acceptor.exon) {
-        acceptorLabel =  
-        'Exon ' + acceptor.exon.number 
+        acceptorLabel = 'Exon ' + acceptor.exon.number 
+        if (acceptor.delta) {
+          acceptorLabel += " " + (acceptor.delta > 0 ? "+" : "") + acceptor.delta + ""
+        }
       } else  {
         acceptorLabel = 'Intronic ' + geneObject.chr + ":" + d3.format(",")(acceptor.pos);
       }
@@ -881,10 +884,8 @@ class GeneModel {
         isPreferredTranscript = false;
       }
 
-      let label = (donor.delta && donor.delta != 0 ? '~' : '') +
-                  donorLabel + 
+      let label = donorLabel + 
                   "      >      " + 
-                  (acceptor.delta && acceptor.delta != 0 ? '~' : '') +
                   acceptorLabel +
                   (isPreferredTranscript == false ? '      (' + junctionTranscript.transcript_id + ')' : '');
 
@@ -909,7 +910,13 @@ class GeneModel {
     })
 
     self.geneToSpliceJunctionObjects[geneObject.gene_name] = spliceJunctions;
-    self.summarizeSpliceJunctions(geneObject, transcript)
+    let summary = self.summarizeSpliceJunctions(geneObject, transcript)
+
+    // Update the splice junctions with the z-score
+    spliceJunctions.forEach(function(sj) {
+      let zScore  = (sj.readCount -  summary.meanReadCountCanonical) / summary.stdReadCountCanonical;
+      sj.zScore = Math.round((zScore + Number.EPSILON) * 100) / 100
+    })
     return spliceJunctions;
 
   }
@@ -948,6 +955,7 @@ class GeneModel {
           'canonical':              canonicalSplice,
           'noncanonical':           nonCanonicalSplice, 
           'alternateSplice':        alternateSplice,
+          'count':                  spliceJunctions.length,
           'meanReadCountCanonical': meanReadCountCanonical,
           'stdReadCountCanonical':  stdReadCountCanonical,
           'minReadCountCanonical':  minReadCountCanonical,

@@ -38,21 +38,7 @@
 			    </div>
 
 
-
-          <div style="width:120px" >
-            <v-text-field 
-            density="compact"
-            hide-details="auto" 
-            label="Min read count" 
-            v-model="minUniquelyMappedReads"/>
-          </div>
-          <div v-if="readCountMean">
-            <div  class="read-stat">{{ readCountMean }} mean</div>
-            <div  class="read-stat">{{ readCountStd }} std</div> 
-
-          </div>
-
-          <div style="width:155px" class="ml-5 mr-2">
+          <div style="width:155px" class="ml-3">
             <v-select 
               v-model="colorBy"
               hide-details="auto"
@@ -62,6 +48,15 @@
             ></v-select>
           </div>
           
+
+
+          <div style="width:120px" class="ml-5" >
+            <v-text-field 
+            density="compact"
+            hide-details="auto" 
+            label="Min read count" 
+            v-model="minUniquelyMappedReads"/>
+          </div>
           
           
       </div>
@@ -81,13 +76,11 @@
 	    </div>
     </div>
 
-    <div id="variant-diagram"  style="margin-top: -10px">
-      <div v-if="variants && variants.length > 0">Variants</div>
+    <div id="variant-diagram"  style="margin-top: -10px">      
       <svg/>
     </div>
 
 	  <div id="arc-diagram" class="hide-labels" style="margin-top:-7px">
-      <div v-if="variants && variants.length > 0">Splice Junctions</div>
 	  </div>
 
     <div id="selected-transcript-panel" v-show="showTranscriptMenu" style="margin-top:-7px">
@@ -271,12 +264,6 @@ export default {
 
     showZoomPanel: false,
 
-    readCountMean: null,
-    readCountStd: null,
-    readCountMin: null,
-    readCountMax: null
-
-
 
 	}),
   methods: {
@@ -346,14 +333,7 @@ export default {
 
 				self.edgesForGene = self.filterSpliceJunctions()
 
-        let summary = self.geneModel.geneToSpliceJunctionSummary[self.selectedGene.gene_name]
-        if (summary) {
-          self.readCountMean = summary.meanReadCountCanonical;
-          self.readCountStd =  summary.stdReadCountCanonical;
-          self.readCountMin =  summary.minReadCountCanonical;
-          self.readCountMax =  summary.maxReadCountCanonical;          
-        }
-
+        
 		    self.geneStart = self.selectedGene.start - self.REGION_BUFFER;
 		    self.geneEnd   = self.selectedGene.end   + self.REGION_BUFFER;
 
@@ -2688,6 +2668,11 @@ export default {
         .attr("width", width)
         .attr("height", height);
 
+      svg.append("text")
+      .attr("x", 5)
+      .attr("y", 12)
+      .text("Variants")
+
       let group = svg
         .append("g")
         .attr("class", "group")
@@ -3010,15 +2995,18 @@ svg path.junction {
 
 svg .junction.selected {
 	stroke: #03a9f4;
+  opacity: 1;
 }
 svg .junction.selected.clicked {
 	stroke: #03a9f4;
+  opacity: 1;
 }
 svg .junction.end.selected.clicked {
   fill: #03a9f4 !important;
 }
 svg .junction.clicked {
 	stroke: #03a9f4;
+  opacity: 1;
 }
 
 svg text.junction.selected {
@@ -3034,9 +3022,11 @@ svg text.junction.clicked {
 
 #zoomed-diagrams svg .junction.clicked {
   stroke: #03a9f4;
+  opacity: 1;
 }
 #zoomed-diagrams svg .junction.selected {
   stroke: #03a9f4;
+  opacity: 1;
 }
 
 
@@ -3257,15 +3247,12 @@ text.seq.T, rect.seq.T {
   font-weight: 500;
 }
 
-.read-stat {
-  font-size: 11px;
-  font-weight: 600;
-  color: gray;
-  font-style: italic;
-}
-
 .variant {
   stroke: #00000061;
+}
+
+#zoomed-diagrams .junction {
+  opacity: .6
 }
 
 
