@@ -930,13 +930,6 @@ class GeneModel {
       let nonCanonicalSplice = spliceJunctions.filter(function(spliceJunction) {
         return spliceJunction.spliceKind == 'noncanonical';
       })
-      .filter(function(spliceJunction) {
-        if(spliceJunction.strand == null || spliceJunction.strand == 'undefined') {
-          return true;
-        } else if (spliceJunction.strand == geneObject.strand) {
-          return true;
-        }
-      })
       .sort(function(a,b) {
         return b.readCount - a.readCount;
       })
@@ -951,15 +944,27 @@ class GeneModel {
       let stdReadCountCanonical  = Math.round(d3.deviation(canonicalSplice, d => +d.readCount))
       let minReadCountCanonical  = d3.min(canonicalSplice, d => d.readCount)
       let maxReadCountCanonical  = d3.max(canonicalSplice, d => d.readCount)
+
+      let meanReadCountNoncanonical = Math.round(d3.mean(nonCanonicalSplice, d => +d.readCount))
+      let stdReadCountNoncanonical  = Math.round(d3.deviation(nonCanonicalSplice, d => +d.readCount))
+      let minReadCountNoncanonical  = d3.min(nonCanonicalSplice, d => d.readCount)
+      let maxReadCountNoncanonical  = d3.max(nonCanonicalSplice, d => d.readCount)
+
       summary = {
           'canonical':              canonicalSplice,
           'noncanonical':           nonCanonicalSplice, 
           'alternateSplice':        alternateSplice,
           'count':                  spliceJunctions.length,
+
           'meanReadCountCanonical': meanReadCountCanonical,
           'stdReadCountCanonical':  stdReadCountCanonical,
           'minReadCountCanonical':  minReadCountCanonical,
-          'maxReadCountCanonical':  maxReadCountCanonical
+          'maxReadCountCanonical':  maxReadCountCanonical,
+
+          'meanReadCountNoncanonical': meanReadCountNoncanonical,
+          'stdReadCountNoncanonical':  stdReadCountNoncanonical,
+          'minReadCountNoncanonical':  minReadCountNoncanonical,
+          'maxReadCountNoncanonical':  maxReadCountNoncanonical
       }
       self.geneToSpliceJunctionSummary[geneObject.gene_name] = summary;
     }

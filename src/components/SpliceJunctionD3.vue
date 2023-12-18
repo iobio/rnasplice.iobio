@@ -8,37 +8,12 @@
     ></v-progress-circular>
   </div>
 
-      <div id="panel-heading" class="d-flex flex-row  align-center mb-1" >
-          <h2 class="mr-4" style="margin-top: 0px !important;margin-bottom: 0px !important;min-width: 150px;">
+      <div id="panel-heading" class="d-flex flex-row align-center mb-1" >
+          <h2 class="mr-8" style="margin-top: 0px !important;margin-bottom: 0px !important;min-width: 150px;">
             Splice Junctions
           </h2>
 
-          <div id="label-cb" class="mr-2" style="width:120px;" >
-						<v-checkbox 
-						  hide-details="true"
-				      v-model="showLabels"
-				      label="Show read counts"
-				    ></v-checkbox>
-			    </div>
-
-          <div id="show-noncanonical-only-cb" class="mr-2"  style="width:150px;">
-						<v-checkbox 
-						  hide-details="true"
-				      v-model="showNonCanonicalOnly"
-				      label="Hide canonical splice junctions"
-				    ></v-checkbox>
-			    </div>
-
-          <div id="show-matching-strand-only-cb" class="mr-5" >
-						<v-checkbox 
-						  hide-details="true"
-				      v-model="showSameStrandOnly"
-				      label="Hide junctions not matching gene strand"
-				    ></v-checkbox>
-			    </div>
-
-
-          <div style="width:155px" class="ml-3">
+          <div style="width:155px" class="">
             <v-select 
               v-model="colorBy"
               hide-details="auto"
@@ -47,23 +22,66 @@
               :items="['none', 'strand', 'motif']"
             ></v-select>
           </div>
-          
 
+          <div id="label-cb" class="" style="" >
+						<v-checkbox 
+						  hide-details="true"
+				      v-model="showLabels"
+				      label="Show read counts"
+				    ></v-checkbox>
+			    </div>
 
-          <div style="width:120px" class="ml-5" >
+          <div id="show-noncanonical-only-cb" class=""  style="">
+						<v-checkbox 
+						  hide-details="true"
+				      v-model="showNonCanonicalOnly"
+				      label="Hide canonical splice junctions"
+				    ></v-checkbox>
+			    </div>
+
+          <div id="show-matching-strand-only-cb" class="" style="" >
+						<v-checkbox 
+						  hide-details="true"
+				      v-model="showSameStrandOnly"
+				      label="Hide junctions not matching gene strand"
+				    ></v-checkbox>
+			    </div>
+      </div>
+
+      <div class="d-flex" style="margin-left:170px;margin-top:30px;margin-bottom:10px;justify-content:flex-start">
+
+          <div style="width:120px" class="" >
             <v-text-field 
             density="compact"
             hide-details="auto" 
             label="Min read count" 
             v-model="minUniquelyMappedReads"/>
           </div>
-          
-          
+
+          <div id="canonical-histogram" class="d-flex ml-5">
+            <div id="read-count-histogram" style="margin-left: 10px">
+            </div>
+
+            <div v-if="readCountMean" style="margin-left: -10px;">
+              <div  class="read-stat">mean: {{ readCountMean }} </div>
+              <div  class="read-stat">&#x3C3;:  {{ readCountStd }}  </div> 
+            </div>
+          </div>
+
+          <div id="noncanonical-histogram" class="d-flex ml-5">
+            <div id="read-count-histogram" style="margin-left: 10px">
+            </div>
+
+            <div v-if="readCountMeanNoncan" style="margin-left: -10px;">
+              <div  class="read-stat">mean: {{ readCountMeanNoncan }} </div>
+              <div  class="read-stat">&#x3C3;:  {{ readCountStdNoncan }}  </div> 
+            </div>
+          </div>
       </div>
 
 	<div id="diagrams">
-	  <div  class="d-flex flex-column justify-content-start align-start">
-      <div v-if="!showLoading && selectedGene" style="align-self:center">
+	  <div  class="d-flex flex-column align-start">
+      <div v-if="!showLoading && selectedGene" style="margin-top:-30px">
         <div class="instruction-box" v-if="!regionIsSelected">
           Click and drag below to zoom into a region
         </div>
@@ -265,6 +283,16 @@ export default {
     showZoomPanel: false,
 
 
+    readCountMean: null,
+    readCountStd: null,
+    readCountMin: null,
+    readCountMax: null,
+
+    readCountMeanNoncan: null,
+    readCountStdNoncan: null,
+    readCountMinNoncan: null,
+    readCountMaxNoncan: null
+
 	}),
   methods: {
 
@@ -329,6 +357,17 @@ export default {
   		let self = this;
       self.showZoomPanel = false;
       self.showTranscriptMenu = false;
+
+      d3.selectAll("#read-count-histogram svg").remove();
+      self.readCountMean = null;
+      self.readCountStd = null;
+      self.readCountMin = null;
+      self.readCountMax = null;
+      self.readCountMeanNocan = null;
+      self.readCountStdNocan = null;
+      self.readCountMinNocan = null;
+      self.readCountMaxNocan = null;
+
   		if (self.spliceJunctionsForGene) {
 
 				self.edgesForGene = self.filterSpliceJunctions()
@@ -355,6 +394,10 @@ export default {
 		    self.drawTranscriptDiagram('#transcript-menu-panel #transcript-menu-diagram', self.selectedGene, self.geneStart, self.geneEnd, 
 		    	{'selectedTranscriptOnly': false, 'allowSelection': true});	
         self.showTranscriptMenu = true;
+
+        self.drawReadCountHistogram('#canonical-histogram', 'canonical', 'Canonical Splice Junctions');
+
+        self.drawReadCountHistogram('#noncanonical-histogram', 'noncanonical', 'Non-canonical Splice Junctions');
 
   		} else {
   			console.log("Problem encountered. Splice junctions gene does not match selected gene.")
@@ -2889,7 +2932,128 @@ export default {
       })
       .style("opacity", "0")
       
-    }
+    },
+    drawReadCountHistogram: function(container, spliceKind, title) {
+      let self = this;
+       let spliceJunctions = self.geneModel.geneToSpliceJunctionObjects[self.selectedGene.gene_name]
+      if (spliceJunctions == null) {
+        return;
+      }
+
+      let summary = self.geneModel.geneToSpliceJunctionSummary[self.selectedGene.gene_name]
+      let meanReadCount = null;
+      let count = null;
+      if (summary) {
+        if (spliceKind == 'canonical') {
+          count = summary.canonical.length;
+          self.readCountMean = summary.meanReadCountCanonical;
+          self.readCountStd =  summary.stdReadCountCanonical;
+          self.readCountMin =  summary.minReadCountCanonical;
+          self.readCountMax =  summary.maxReadCountCanonical;     
+          meanReadCount =    self.readCountMean;   
+        } else  if (spliceKind == 'noncanonical') {
+          count = summary.noncanonical.length
+          self.readCountMeanNoncan = summary.meanReadCountNoncanonical;
+          self.readCountStdNoncan =  summary.stdReadCountNoncanonical;
+          self.readCountMinNoncan =  summary.minReadCountNoncanonical;
+          self.readCountMaxNoncan =  summary.maxReadCountNoncanonical;  
+          meanReadCount =    self.readCountMeanNoncan;              
+        }
+
+      }
+
+     
+      let data = spliceJunctions.filter(function(spliceJunction) {
+        return spliceJunction.spliceKind == spliceKind;
+      })
+
+      // set the dimensions and margins of the graph
+      var margin = {top: 10, right: 10, bottom: 30, left: 40},
+          width = 350 - margin.left - margin.right,
+          height = 120 - margin.top - margin.bottom;
+
+      
+      // append the svg object to the body of the page
+      var svg = d3.select(container).select("#read-count-histogram")
+        .append("svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+          .attr("transform",
+                "translate(" + margin.left + "," + margin.top + ")");
+
+      let maxReadCount = d3.max(data, function(d) {
+        return +d.readCount;
+      })
+      let numberBins = 40; 
+      // X axis: scale and draw:
+      var x = d3.scaleLinear()
+          .domain([0, maxReadCount])   
+          .range([0, width]);
+      svg.append("g")
+          .attr("transform", "translate(0," + height + ")")
+          .call(d3.axisBottom(x).ticks(5));
+
+      svg.append("text")
+         .attr("class", "histogram-text")
+         .attr("x", (width / 2))
+         .attr("y", 0)
+         .style("text-anchor", "middle")
+         .text(title + " (" + count + ")")
+
+      svg.append("text")
+         .attr("class", "histogram-text")
+         .attr("x", (width / 2))
+         .attr("y", height + margin.top + margin.bottom - 10)
+         .style("text-anchor", "middle")
+         .text("Read count")
+
+      svg.append("text")
+         .attr("class", "histogram-text")
+         .attr("x", 0)
+         .attr("y", height)
+         .style("text-anchor", "middle")
+         .style("transform", "translate(-110px, 40px)rotate(-90deg)")
+         .text("Frequency")
+
+      // set the parameters for the histogram
+      var histogram = d3.histogram()
+          .value(function(d) { return d.readCount; })   // I need to give the vector of value
+          .domain(x.domain())  // then the domain of the graphic
+          .thresholds(x.ticks(numberBins)); // then the numbers of bins
+
+      // And apply this function to data to get the bins
+      var bins = histogram(data);
+
+      let maxY =  d3.max(bins, function(d) { return d.length; })
+
+      // Y axis: scale and draw:
+      var y = d3.scaleLinear()
+          .range([height, 0]);
+          y.domain([-(maxY * .02),maxY]);   // d3.hist has to be called before the Y axis obviously
+      svg.append("g")
+          .call(d3.axisLeft(y).ticks(5));
+
+      // Add a rect for each bin.
+      svg.append("g")
+        .selectAll()
+        .data(bins)
+        .join("rect")
+          .attr("class", "histogram-bar")
+          .attr("x", (d) => x(d.x0) + 1)
+          .attr("width", (d) => Math.max(1, x(d.x1) - x(d.x0) - 1))
+          .attr("y", (d) => y(d.length))
+          .attr("height", (d) => height - y(d.length));
+
+      // draw vertical line for mean
+      svg.append("line")
+      .attr("class", "mean-line")
+      .attr("x1", x(meanReadCount))
+      .attr("x2", x(meanReadCount))
+      .attr("y1", 0)
+      .attr("y2", height + 15)
+
+    }    
   },
 
 
@@ -2989,8 +3153,6 @@ svg path.junction {
   
   fill: none;
 }
-.
-
 
 
 svg .junction.selected {
@@ -3288,5 +3450,28 @@ text.seq.T, rect.seq.T {
   fill: #e5e5e3
   stroke: #807D7D
 
+.read-stat 
+  font-size: 11px
+  color: rgb(73, 73, 73)
+  font-style: italic
 
+.histogram-text
+  font-size: 11px
+  fill: rgb(73, 73, 73)
+
+#noncanonical-histogram
+  #read-count-histogram
+    .histogram-bar
+      fill: #ee7e7e 
+
+#canonical-histogram
+  #read-count-histogram
+    .histogram-bar
+      fill: steelblue 
+
+#read-count-histogram
+  .mean-line
+    stroke-width: 2
+    stroke: black
+    stroke-dasharray: 3
 </style>
