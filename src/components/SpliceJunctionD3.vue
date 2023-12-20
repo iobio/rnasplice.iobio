@@ -258,7 +258,7 @@ export default {
 		showLoading: false,
 
     minUniquelyMappedReads: 1,
-    colorBy: 'spliceKind',
+    colorBy: 'motif',
 
     arcPointerWidth: 15,
     arcPointerHeight: 13,
@@ -1295,7 +1295,7 @@ export default {
 		    if (currentArcHeight < minArcHeight) {
 		    	ry = minArcHeight/currentArcHeight;
 		    	rx = 1;
-		    	d.arcYTop = innerHeight - (currentArcHeight * ry)
+		    	d.arcYTop = margin.top + innerHeight - (currentArcHeight * ry)
 		    } else if (currentArcHeight >= maxArcHeight) {
 		    	// Arc is taller than chart
 		    	// Need arc to be stretched on x axis
@@ -1306,11 +1306,11 @@ export default {
 
 		    	rx = currentArcHeight/newMaxArcHeight
 		    	ry = 1;
-		    	d.arcYTop = innerHeight - (newMaxArcHeight)
+		    	d.arcYTop = margin.top + innerHeight - (newMaxArcHeight)
 		    } else {
 		    	rx = 1;
 		    	ry = 1;
-		    	d.arcYTop = innerHeight - currentArcHeight;
+		    	d.arcYTop = margin.top + innerHeight - currentArcHeight;
 		    }
 		    d.arcXCenter = Math.min(start,end) + (Math.abs(distance)/2)
 
@@ -1623,7 +1623,7 @@ export default {
 		      })
 		      .attr("y", function(d) {
 		      	let rando = Math.floor(Math.random() * 31);
-		      	let position = d.arcYTop - 10 - rando;
+		      	let position = d.arcYTop - 40 - rando;
 		      	return position < 5 ? 5 : position;
 		      })
 		      .text(function(d) {
