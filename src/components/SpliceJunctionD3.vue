@@ -19,7 +19,7 @@
               hide-details="auto"
               label="Color by"
               density="compact"
-              :items="['none', 'strand', 'motif']"
+              :items="colorByItems"
             ></v-select>
           </div>
 
@@ -258,7 +258,7 @@ export default {
 		showLoading: false,
 
     minUniquelyMappedReads: 1,
-    colorBy: 'motif',
+    colorBy: 'spliceKind',
 
     arcPointerWidth: 15,
     arcPointerHeight: 13,
@@ -291,7 +291,14 @@ export default {
     readCountMeanNoncan: null,
     readCountStdNoncan: null,
     readCountMinNoncan: null,
-    readCountMaxNoncan: null
+    readCountMaxNoncan: null,
+
+    colorByItems: [
+    { title: 'n/a',         props: {subtitle: ''}, 'value': 'none' }, 
+    { title: 'Strand',      props: {subtitle: ''}, 'value': 'strand' }, 
+    { title: 'Motif',       props: {subtitle: ''}, 'value': 'motif' }, 
+    { title: 'Splice kind', props: {subtitle: 'Canonical vs Non-canonical'}, 'value': 'spliceKind' }
+    ]
 
 	}),
   methods: {
@@ -1154,7 +1161,7 @@ export default {
 		  }
 
 		  // dimensions
-		  var margin = {top: (options.showXAxis ? 25 : 0), 
+		  var margin = {top: (options.showXAxis ? 35 : 10), 
                    right: (options.hasOwnProperty('marginRight') ? options.marginRight : 5), 
                    bottom: 0, 
                    left: 0};
@@ -1192,10 +1199,16 @@ export default {
 		  .append("svg")
 		    .attr("width", innerWidth)
 		    .attr("height", height)
-		  .append("g")
-		    .attr("transform",
-		          "translate(" + margin.left + "," + margin.top + ")")
 
+      var arcGroup = svg  
+		  .append("g")
+		  .attr("transform",
+		        "translate(" + margin.left + "," + margin.top + ")")
+
+      var axisGroup = svg  
+      .append("g")
+      .attr("transform",
+            "translate(" + margin.left + "," + (margin.top - 10) + ")")
 
       if (options.showXAxis) {
         var tickFormatter = function(d) {
@@ -1206,11 +1219,11 @@ export default {
         var xAxis = d3.axisTop(x)
                       .tickFormat(tickFormatter);  
 
-        svg.call(xAxis)   
+        axisGroup.call(xAxis)   
         
         var center = innerWidth / 2;
-        svg.selectAll(".arrow").remove();
-        svg.selectAll('.arrow').data([
+        axisGroup.selectAll(".arrow").remove();
+        axisGroup.selectAll('.arrow').data([
           {'gene': self.selectedGene, 'x': center - center/2},
           {'gene': self.selectedGene, 'x': center},
           {'gene': self.selectedGene, 'x': center + center/2},
@@ -1220,7 +1233,7 @@ export default {
             .attr('d', function(d) {
               return self.centerArrow(d, innerHeight, 15)
             })
-            .style('transform', 'translate(-10px, -36px)') 
+            .style('transform', 'translate(-10px, -' + (margin.top - 3) + 'px)') 
       }
 
 		  if (options && options.createBrush) {
@@ -1257,7 +1270,12 @@ export default {
 	                   .domain([true, false])
 	                   .range(arcColors);
 
-		  } 
+		  } else if (self.colorBy == 'spliceKind') {
+        arcColor = d3.scaleOrdinal()
+                     .domain(['canonical', 'noncanonical'])
+                     .range(['steelblue', '#ee7e7e']);
+
+      } 
 
 			let arc = function(d, theInnerHeight) {
 				
@@ -1313,7 +1331,7 @@ export default {
 		  }
 
 
-		  var arcs =  svg.insert("g", "*")
+		  var arcs =  arcGroup.insert("g", "*")
 		  .attr("class", "arcs")
 		  .selectAll("path.junction")
 		  .data(edges,function(d) {
@@ -1580,7 +1598,7 @@ export default {
 		  });
 
 
-	   let arcLabels = svg.insert("g", "*")
+	   let arcLabels = arcGroup.insert("g", "*")
 			  .attr("class", "arc-labels")
 			  .selectAll("text.junction")
 			  .data(edges)
@@ -3042,8 +3060,8 @@ export default {
           .attr("class", "histogram-bar")
           .attr("x", (d) => x(d.x0) + 1)
           .attr("width", (d) => Math.max(1, x(d.x1) - x(d.x0) - 1))
-          .attr("y", (d) => y(d.length))
-          .attr("height", (d) => height - y(d.length));
+          .attr("y", (d) => d.length == 0 ? 0 : y(d.length))
+          .attr("height", (d) => d.length == 0 ? 0 : height - y(d.length));
 
       // draw vertical line for mean
       svg.append("line")
@@ -3382,6 +3400,11 @@ text.seq.T, rect.seq.T {
 
 #sequence text.site {
 	font-weight: 900;
+  text-decoration: underline
+}
+
+#sequence rect.site {
+  stroke: black;
 }
 
 .tick text {
