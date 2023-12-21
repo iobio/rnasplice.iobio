@@ -8,7 +8,7 @@
     ></v-progress-circular>
   </div>
 
-      <div id="panel-heading" class="d-flex flex-row align-center mb-1" >
+      <div id="panel-heading" class="d-flex flex-row align-start mb-1" >
           <h2 class="mr-5" style="margin-top: 0px !important;margin-bottom: 0px !important;min-width: 150px;">
             Splice Junctions
           </h2>
@@ -21,6 +21,9 @@
               density="compact"
               :items="colorByItems"
             ></v-select>
+          </div>
+
+          <div id="arc-color-legend">
           </div>
 
           <div id="label-cb" class="" style="" >
@@ -48,7 +51,7 @@
 			    </div>
       </div>
 
-      <div class="d-flex" style="margin-left:170px;margin-top:30px;margin-bottom:10px;justify-content:flex-start">
+      <div class="d-flex" style="margin-left:170px;margin-top:10px;margin-bottom:10px;justify-content:flex-start">
 
           <div style="width:120px" class="" >
             <v-text-field 
@@ -59,10 +62,10 @@
           </div>
 
           <div id="canonical-histogram" class="d-flex ml-5">
-            <div id="read-count-histogram" style="margin-left: 10px">
+            <div id="read-count-histogram" style="margin-left: 20px">
             </div>
 
-            <div v-if="readCountMean" style="margin-left: -40px;">
+            <div v-if="readCountMean" style="margin-top:20px;margin-left: -70px;">
               <div  class="read-stat">mean: {{ readCountMean }} </div>
               <div  class="read-stat">&#x3C3;:  {{ readCountStd }}  </div> 
             </div>
@@ -72,7 +75,7 @@
             <div id="read-count-histogram" style="margin-left: 10px">
             </div>
 
-            <div v-if="readCountMeanNoncan" style="margin-left: -40px;">
+            <div v-if="readCountMeanNoncan" style="margin-top:20px;margin-left: -70px;">
               <div  class="read-stat">mean: {{ readCountMeanNoncan }} </div>
               <div  class="read-stat">&#x3C3;:  {{ readCountStdNoncan }}  </div> 
             </div>
@@ -258,7 +261,8 @@ export default {
 		showLoading: false,
 
     minUniquelyMappedReads: 1,
-    colorBy: 'motif',
+    colorBy: 'spliceKind',
+    arcColorScale: null,
 
     arcPointerWidth: 15,
     arcPointerHeight: 13,
@@ -341,6 +345,7 @@ export default {
           self.showZoomPanel = false;
 			    self.drawArcDiagram('#diagrams', self.edgesForGene, self.geneStart, self.geneEnd, 
 			    	{'createBrush': false, 'isZoomedRegion': false});	
+          self.drawArcColorLegend('#arc-color-legend')
 
   			})
   		}
@@ -392,6 +397,7 @@ export default {
         self.showZoomPanel = false;
 		    self.drawArcDiagram('#diagrams', self.edgesForGene, self.geneStart, self.geneEnd, 
 		    	{'createBrush': false, 'isZoomedRegion': false});
+        self.drawArcColorLegend('#arc-color-legend')
 
 		    self.drawTranscriptDiagram("#diagrams #selected-transcript-panel #transcript-diagram", self.selectedGene, self.geneStart, self.geneEnd,  
 		      {'selectedTranscriptOnly': true, 'allowSelection': false, 'showBoundingBox': true})
@@ -1245,16 +1251,14 @@ export default {
 		  }
 
 
-		  //var arcColors = ['#80A1D4','#7F627A','#39A329','#FACB0F','']
       var arcColors = ['#7ba852', '#59749e', '#6491cb', '#b09b46', '#FD7049' ]
-		  let arcColor = null;
 
 		  if (self.colorBy == 'motif') {
 			  let motifMap = {};
 			  edges.forEach(function(edge) {
 			  	motifMap[edge.motif] = edge.motif
 			  })
-			  arcColor = d3.scaleOrdinal()
+			  self.arcColorScale = d3.scaleOrdinal()
 	                   .domain(Object.keys(motifMap))
 	                   .range(arcColors);
 		  } else if (self.colorBy == 'strand') {
@@ -1262,20 +1266,20 @@ export default {
 					edges.forEach(function(edge) {
 					strandMap[edge.strand] = edge.strand
 				})
-	      arcColor = d3.scaleOrdinal()
+	      self.arcColorScale = d3.scaleOrdinal()
 	                   .domain(['+', '-', 'undefined'])
 	                   .range(arcColors);
 		  } else if (self.colorBy == 'exon span') {
-			  arcColor = d3.scaleOrdinal()
+			  self.arcColorScale = d3.scaleOrdinal()
 	                   .domain([true, false])
 	                   .range(arcColors);
-
 		  } else if (self.colorBy == 'spliceKind') {
-        arcColor = d3.scaleOrdinal()
+        self.arcColorScale = d3.scaleOrdinal()
                      .domain(['canonical', 'noncanonical'])
-                     .range(['steelblue', '#ee7e7e']);
-
-      } 
+                     .range(['steelblue', '#7ba852']);
+      }  else {
+        self.arcColorScale = null;
+      }
 
 			let arc = function(d, theInnerHeight) {
 				
@@ -1366,7 +1370,7 @@ export default {
             if (self.colorBy == '' || self.colorBy == 'none') {
               return "#9f9f9f";
             } else {
-              d.color = arcColor(d[self.colorBy])
+              d.color = self.arcColorScale(d[self.colorBy])
               return d.color;           
             }            
           }
@@ -1700,6 +1704,35 @@ export default {
 
 		 
 		},
+
+    drawArcColorLegend: function(container) {
+      let self = this;
+
+      if (!d3.select(container).select('svg').empty()) {
+        d3.select(container).select('svg').remove()
+      }
+
+      if (self.arcColorScale) {
+        let svg = d3.select(container).append('svg')
+        .attr("width", "120")
+        svg.append("g")
+        .attr("class", "legendOrdinal")
+        .attr("transform", "translate(20,10)");
+
+        var legendOrdinal = d3Legend.legendColor()
+        .shape("path", d3.symbol().type(d3.symbolSquare).size(150)())
+        .scale(self.arcColorScale)
+        .shapePadding(2)
+
+
+        svg.select(".legendOrdinal")
+          .call(legendOrdinal);
+
+        let count = svg.selectAll("path").size()
+        svg.attr("height", count*17)
+      }
+
+    },
 
 		unclickSpliceJunction: function() {
 			let self = this;
@@ -2987,7 +3020,7 @@ export default {
 
       // set the dimensions and margins of the graph
       var margin = {top: 10, right: 10, bottom: 30, left: 40},
-          width = 350 - margin.left - margin.right,
+          width = 300 - margin.left - margin.right,
           height = 120 - margin.top - margin.bottom;
 
       
@@ -3437,7 +3470,7 @@ text.seq.T, rect.seq.T {
 }
 
 #zoomed-diagrams .junction {
-  opacity: .6
+  opacity: .3
 }
 
 
@@ -3485,7 +3518,7 @@ text.seq.T, rect.seq.T {
 #noncanonical-histogram
   #read-count-histogram
     .histogram-bar
-      fill: #ee7e7e 
+      fill: #7ba852
 
 #canonical-histogram
   #read-count-histogram
@@ -3497,4 +3530,9 @@ text.seq.T, rect.seq.T {
     stroke-width: 2
     stroke: black
     stroke-dasharray: 3
+
+.legendCells
+  .label 
+    fill: #787878 !important
+    font-size: 85% !important
 </style>

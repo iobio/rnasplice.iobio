@@ -14,6 +14,7 @@
       @load-data="onLoadData"
       @vcf-url-entered="onVcfURLEntered"
       @show-igv="onShowIGV(true)"
+      @show-legend="onShowLegend(true)"
       />
 
        <v-navigation-drawer 
@@ -50,6 +51,23 @@
       @clear-alert="onClearAlert"
       @clear-all-alerts="onClearAllAlerts"/>
 
+      <v-navigation-drawer
+      v-model="showLegendDrawer"
+      absolute
+      location="right"
+      width="200"
+      >
+        <v-btn id="legend-drawer-close-button" class="toolbar-button" flat @click="showLegendDrawer = false">
+          <v-icon >mdi-close</v-icon>
+        </v-btn>
+
+        <legend-panel
+           :showLegendTitle="false"
+           :isBasicMode="false"
+           :isSimpleMode="false">
+        </legend-panel>
+
+      </v-navigation-drawer>
 
       <v-main  >
          <SpliceJunctionHome 
@@ -86,6 +104,7 @@ import Navigation         from './components/Navigation.vue';
 import AlertPanel         from './components/AlertPanel.vue';
 import GenesPanel         from './components/GenesPanel.vue';
 import ObjectDetails      from './components/ObjectDetails.vue';
+import LegendPanel        from './components/LegendPanel.vue';
 
 
 import genesData          from '@/data/genes.json'
@@ -102,7 +121,8 @@ export default {
     Navigation,
     AlertPanel,
     GenesPanel,
-    ObjectDetails
+    ObjectDetails,
+    LegendPanel
   },
 
   data: () => ({
@@ -116,7 +136,7 @@ export default {
 
     loadInfo: null,
     isLoaded: false,
-    sampleNames: null,
+    sampleNames: [],
 
     appAlerts: [],
     appAlertCounts: {'total': 0, 'success': 0, 'info': 0, 'warning': 0, 'error': 0},
@@ -131,7 +151,9 @@ export default {
     acceptorReferenceSequence: null,
 
 
-    junctionSiteSeqRange:      30
+    junctionSiteSeqRange:      30,
+
+    showLegendDrawer: false
 
 
     
@@ -183,6 +205,9 @@ export default {
       if (self.$refs && self.$refs.ref_SpliceJunctionHome) {
         self.$refs.ref_SpliceJunctionHome.onShowIGV(show);
       }
+    },
+    onShowLegend: function(show) {
+      this.showLegendDrawer = show;
     },
     onLoadData: function(loadInfo) {
       let self = this;
@@ -397,6 +422,19 @@ export default {
   margin-right: 5px
   padding: 5px
   height: calc(100vh - 50px)
+
+
+#legend-drawer-close-button
+    position: absolute
+    padding-right: 0px
+    position: absolute
+    right: 0px
+    display: inline-block
+    margin-left: 0px
+    min-width: 22px
+    margin-top: 0px
+    top: 0px
+    z-index: 1
 
 h1, .h1 
   font-size: 20px !important

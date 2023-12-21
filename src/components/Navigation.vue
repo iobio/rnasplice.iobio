@@ -26,15 +26,15 @@
         :data="genes" 
         item-key="gene_name" /> 
       </div>
+      <v-spacer></v-spacer>
 
-      <v-btn v-if="selectedGene" class="ml-3 navbar-icon-button" id="show-igv-button" @click="$emit('show-igv', true)"   density="compact">
-          <span class="material-symbols-outlined" style="transform: rotate(90deg);margin-right:2px;">
-          low_priority
+      <v-btn v-if="selectedGene" class="ml-3 navbar-icon-button" id="show-igv-button" @click="$emit('show-igv', true)">
+          <span class="material-symbols-outlined" style="margin-right:2px;">
+          legend_toggle
           </span>
           IGV
       </v-btn>
 
-      <v-spacer></v-spacer>
 
 
       <v-btn id="load-data-button" @click="onShowLoadDataDialog" class="navbar-icon-button mr-9" text>
@@ -42,7 +42,6 @@
         Load data
       </v-btn>
 
-      <v-spacer></v-spacer>
 
 
       <AlertButton 
@@ -50,6 +49,16 @@
       :alerts="alerts" 
       :alertCounts="alertCounts"
       @show-alert-panel="onShowAlertPanel"/>
+
+
+
+
+      <v-btn id="legend-button" 
+      @click="$emit('show-legend')" 
+      v-tooltip.bottom-left="{content: 'Show legend'}">
+        <v-icon class="mr-1">mdi-map</v-icon>
+        Legend
+      </v-btn>
 
       <template v-slot:append >
         <v-btn icon>

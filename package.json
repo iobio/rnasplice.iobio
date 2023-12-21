@@ -10,6 +10,8 @@
     "@mdi/font": "7.0.96",
     "bootstrap": "^3.4.1",
     "d3": "^7.8.5",
+    "d3-svg-legend": "^2.25.6",
+    "fibridge-host": "^0.16.0",
     "igv": "^2.15.8",
     "iobio-api-client": "^0.11.0",
     "jquery": "^3.7.0",
@@ -19,8 +21,7 @@
     "vite-plugin-node-polyfills": "^0.11.3",
     "vue": "^3.2.0",
     "vuetify": "^3.0.0",
-    "webfontloader": "^1.0.0",
-    "fibridge-host": "^0.16.0"
+    "webfontloader": "^1.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.0.0",

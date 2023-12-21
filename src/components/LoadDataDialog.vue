@@ -207,7 +207,10 @@ export default {
         ],
         sampleNameRules: [
           v => {
-            if (self.sampleNames) {
+            if (self.vcf == null) {
+              return true;
+            } 
+            if (self.sampleNames && self.samples.length > 0) {
               if (v) {
                 return true;
               } else {

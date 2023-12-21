@@ -5,8 +5,9 @@
       <v-btn  class="navbar-icon-button" v-if="alerts" id="alert-button"  @click="showAlertPanel" text 
         >
         <v-badge right  >
-          <v-icon id="alert-button-icon">mdi-bell</v-icon>
+          <v-icon id="alert-button-icon" class="mr-1">mdi-bell</v-icon>
         </v-badge>
+        Alerts
       </v-btn>
       <v-icon class="navbar-icon-button" v-if="(alertCounts && alertCounts.error && alertCounts.error > 0)"  id="error-badge" >
        mdi-alert-octagon

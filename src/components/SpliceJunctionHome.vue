@@ -119,7 +119,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       endpoint: null,
       loadInProgress: false,
 
-      sampleNames: null,
+      sampleNames: [],
 
       snackbar: false,
       snackbarText: "",
@@ -386,7 +386,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       },
       onVcfURLEntered: function(vcfURL, tbiURL) {
         let self = this;
-        self.sampleNames = null;
+        self.sampleNames = [];
         self.vcf.promiseOpenVcfUrl(vcfURL, tbiURL)
         .then(function() {
           self.vcf.promiseGetSampleNames()

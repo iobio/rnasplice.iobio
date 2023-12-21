@@ -30,6 +30,9 @@ import * as d3 from "d3";
 
 window.d3 = d3;
 
+import * as d3Legend from "d3-svg-legend";
+window.d3Legend = d3Legend
+
 
 import jQuery               from 'jquery'
 const $ = jQuery;
