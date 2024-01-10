@@ -57,7 +57,6 @@
       @click="$emit('show-legend')" 
       v-tooltip.bottom-left="{content: 'Show legend'}">
         <v-icon class="mr-1">mdi-map</v-icon>
-        Legend
       </v-btn>
 
       <template v-slot:append >
@@ -179,4 +178,9 @@ import { Typeahead } from 'uiv'
 <style lang="sass">
 .navbar-icon-button
   background-color: transparent !important
+
+.v-app-bar
+  .v-btn
+    font-size: 16px !important
+    font-weight: 500
 </style>

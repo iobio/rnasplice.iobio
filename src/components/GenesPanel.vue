@@ -31,7 +31,8 @@
                 color="#094792" density="compact">{{ geneName }}</v-btn>
 
             </div>
-            <v-chip v-if="getSummary(geneName)" color="blue" class="ml-4" size="small" >
+            <div  style="color:#4682b4;font-weight:500;margin-left:10px;font-size:13px;margin-right:3px;">Splice Junctions</div>
+            <v-chip v-if="getSummary(geneName)" color="#4682b4" class="" size="small" >
                   {{ getSummary(geneName).count }}
             </v-chip>
              
@@ -42,8 +43,8 @@
           </template>
           <template v-slot:text>
             <div v-if="getSummary(geneName)">
-              <h3 style="color: #eb6161 !important;">Non-canonical splice junctions 
-                <v-chip v-if="getSummary(geneName)" color="red" class="ml-4" size="small" >
+              <h3 style="color: #7ba852 !important;">Non-canonical splice junctions
+                <v-chip v-if="getSummary(geneName)" color="#7ba852" class="ml-8" size="small" >
                       {{ getSummary(geneName).noncanonical.length }}
                 </v-chip>
                     

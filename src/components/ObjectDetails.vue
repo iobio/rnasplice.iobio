@@ -8,7 +8,7 @@
           <div class="d-flex flex-row align-center"> 
             Splice Junction
             <div class="d-flex flex-row ml-4" style="height:26px;">
-              <v-chip color="red"  size="small" v-if="selectedObject.spliceKind == 'noncanonical'">Non-canonical splice</v-chip>
+              <v-chip color="#7ba852"  size="small" v-if="selectedObject.spliceKind == 'noncanonical'">Non-canonical splice</v-chip>
               <v-chip color="primary"  size="small" v-if="selectedObject.spliceKind=='canonical' && selectedObject.countSkippedExons > 0">Alternate splice</v-chip>
             </div>
           </div>
@@ -36,7 +36,7 @@
         <div class="d-flex flex-row">
           <div class="so-label">
             Donor
-            <v-chip size="x-small" color="red" v-if="selectedObject.donor.status == 'noncanonical'">{{ `noncanonical`}}
+            <v-chip size="x-small" color="#7ba852" v-if="selectedObject.donor.status == 'noncanonical'">{{ `noncanonical`}}
              </v-chip>
           </div>
           <div class="so-value">
@@ -75,7 +75,7 @@
         <div class="d-flex flex-row">
           <div class="so-label">
              Acceptor
-             <v-chip size="x-small" color="red" v-if="selectedObject.acceptor.status == 'noncanonical'">{{ `noncanonical`}}
+             <v-chip size="x-small" color="#7ba852" v-if="selectedObject.acceptor.status == 'noncanonical'">{{ `noncanonical`}}
              </v-chip>
           </div>
           <div class="so-value">

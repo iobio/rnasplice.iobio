@@ -1195,7 +1195,7 @@ export default {
 
 		  var scaleArcWidth = d3.scaleLinear()
 		                    .domain([self.minUniquelyMappedReads, maxReadCount])
-		                    .range([2.5, 15])
+		                    .range([1.5, 25])
 
 
 		           
