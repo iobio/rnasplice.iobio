@@ -51,9 +51,9 @@
 			    </div>
       </div>
 
-      <div class="d-flex" style="margin-left:170px;margin-top:10px;margin-bottom:10px;justify-content:flex-start">
+      <div class="d-flex" style="margin-left:0px;margin-top:10px;margin-bottom:10px;justify-content:flex-start">
 
-          <div style="width:120px" class="" >
+          <div style="width:120px" class="mr-9" >
             <v-text-field 
             density="compact"
             hide-details="auto" 
@@ -61,36 +61,72 @@
             v-model="minUniquelyMappedReads"/>
           </div>
 
-          <div id="canonical-histogram" class="d-flex ml-5">
-            <div id="read-count-histogram" style="margin-left: 20px">
+          <div  v-show="!showLoading && selectedGene">
+            <div v-if="readCountRange == null" class="hint-box">
+              <v-icon>mdi-select-drag</v-icon>
+              <div>Drag to zoom into histogram region</div>
             </div>
-
-            <div v-if="readCountMean" style="margin-top:20px;margin-left: -70px;">
-              <div  class="read-stat">mean: {{ readCountMean }} </div>
-              <div  class="read-stat">&#x3C3;:  {{ readCountStd }}  </div> 
+            <div v-if="readCountRange != null" class="hint-box">
+              <v-icon>mdi-restore</v-icon>
+              <div>Click outside selection to restore</div>
+            </div>
+            <div id="all-histogram" class="d-flex ml-1 mt-1">
+              <div id="read-count-histogram" style="margin-left: 0px">
+              </div>
             </div>
           </div>
 
-          <div id="noncanonical-histogram" class="d-flex ml-5">
-            <div id="read-count-histogram" style="margin-left: 10px">
+
+
+          <div class="d-flex flex-column">
+
+
+            <div class="d-flex justify-center">
+
+             <v-btn-toggle id="hist-button-group"
+                v-show="!showLoading && selectedGene"
+                v-model="scaleYHist"
+                color="primary"
+                mandatory divided
+                variant="elevated"
+
+              >
+                <v-btn density="compact" value="normal">Normal</v-btn>
+                <v-btn density="compact" value="log">Log</v-btn>
+                <v-btn density="compact" value="density">Density</v-btn>
+              </v-btn-toggle>
             </div>
 
-            <div v-if="readCountMeanNoncan" style="margin-top:20px;margin-left: -70px;">
-              <div  class="read-stat">mean: {{ readCountMeanNoncan }} </div>
-              <div  class="read-stat">&#x3C3;:  {{ readCountStdNoncan }}  </div> 
+            <div class="d-flex">
+              <div id="canonical-histogram" class="d-flex ml-1">
+                <div id="read-count-histogram" style="margin-left: 0px">
+                </div>
+              </div>
+
+              <div id="alternate-histogram" class="d-flex ml-1">
+                <div id="read-count-histogram" style="margin-left: 0px">
+                </div>
+              </div>
+
+              <div id="noncanonical-histogram" class="d-flex ml-1">
+                <div id="read-count-histogram" style="margin-left: 0px">
+                </div>
+              </div>
             </div>
           </div>
       </div>
 
 	<div id="diagrams">
 	  <div  class="d-flex flex-column align-start">
-      <div v-if="!showLoading && selectedGene" style="margin-top:-30px">
-        <div class="instruction-box" v-if="!regionIsSelected">
-          Click and drag below to zoom into a region
-        </div>
-        <div class="instruction-box" v-if="regionIsSelected">
-          Click outside of bounding box to zoom out
-        </div>
+      <div v-if="!showLoading && selectedGene" style="margin-top:-30px;margin:auto">
+          <div v-if="!regionIsSelected" class="hint-box">
+            <v-icon>mdi-select-drag</v-icon>
+            <div>Drag to zoom into gene region</div>
+          </div>
+          <div v-if="regionIsSelected" class="hint-box">
+            <v-icon>mdi-restore</v-icon>
+            <div>Click outside selection to restore</div>
+          </div>
       </div>      
 	    <div id="brushable-axis">
 	      <svg/>
@@ -240,12 +276,17 @@ export default {
 		edgesForGene: null,
 
 		xArcDiagram: null,
-		xBrushable: null,
 		xTranscriptChart: null,
 		xTranscriptChartZoomed: null,
     xSeqChart: null,
 		ySitePointer: null,
 		tooltip: null,
+
+    xBrushable: null,
+
+    xBrushableHist: null,
+    scaleYHist: 'normal',
+    readCountRange: null,
 
 		showLabels: false,
 		showSameStrandOnly: false, 
@@ -257,6 +298,7 @@ export default {
     geneEnd: null,
 
 		brush: null,
+    brushHist: null,
 
 		showLoading: false,
 
@@ -301,7 +343,7 @@ export default {
     { title: 'n/a',         props: {subtitle: ''}, 'value': 'none' }, 
     { title: 'Strand',      props: {subtitle: ''}, 'value': 'strand' }, 
     { title: 'Motif',       props: {subtitle: ''}, 'value': 'motif' }, 
-    { title: 'Splice kind', props: {subtitle: 'Canonical vs Non-canonical'}, 'value': 'spliceKind' }
+    { title: 'Splice kind', props: {subtitle: 'Canonical, Alternate, Non-canonical'}, 'value': 'spliceKind' }
     ]
 
 	}),
@@ -408,9 +450,14 @@ export default {
 		    	{'selectedTranscriptOnly': false, 'allowSelection': true});	
         self.showTranscriptMenu = true;
 
-        self.drawReadCountHistogram('#canonical-histogram', 'canonical', 'Canonical Splice Junctions');
 
-        self.drawReadCountHistogram('#noncanonical-histogram', 'noncanonical', 'Non-canonical Splice Junctions');
+        self.drawBrushableHistAxis('#all-histogram');
+
+        self.drawReadCountHistogram('#canonical-histogram', 'canonical', 'Canonical', {}, self.readCountRange);
+
+        self.drawReadCountHistogram('#alternate-histogram', 'alternate', 'Alternate', {}, self.readCountRange);
+
+        self.drawReadCountHistogram('#noncanonical-histogram', 'noncanonical', 'Non-canonical', {}, self.readCountRange);
 
   		} else {
   			console.log("Problem encountered. Splice junctions gene does not match selected gene.")
@@ -527,7 +574,7 @@ export default {
       }
 		},
 
-		// Function that is triggered when brushing is performed
+		// Function that is triggered when brushing above arc diagram is performed
 		onBrush:  function(event) {
 			let self = this;
 
@@ -595,6 +642,57 @@ export default {
 
 		  }
 		},
+
+    // Function that is triggered when brushing on histogram is performed
+    onBrushHist:  function(event) {
+      let self = this;
+
+      let container = "#all-histogram #read-count-histogram"
+
+      // Get the selection coordinate
+      let extent = event.selection
+      if (extent && extent.length == 2 && extent[0] != extent[1]) {
+        let binStart = self.xBrushableHist.invert(extent[0]);
+        let binEnd   = self.xBrushableHist.invert(extent[1]);
+        self.readCountRange = [binStart, binEnd]
+
+        let x1   = self.xBrushableHist(binStart);
+        let x2   = self.xBrushableHist(binEnd);
+        let width = x2 - x1;
+        let height = d3.select(container).node().getBoundingClientRect().height
+        let boundingBox = d3.select(container).select('.bounding-box');
+        boundingBox.attr("x", x1)
+        boundingBox.attr("y", 0)
+        boundingBox.attr("width", width)
+        boundingBox.attr("height", height)
+        boundingBox.classed("active", true)
+
+        if (event.type == 'end') {
+
+          d3.select("#canonical-histogram #read-count-histogram svg").remove();
+          d3.select("#alternate-histogram #read-count-histogram svg").remove();
+          d3.select("#noncanonical-histogram #read-count-histogram svg").remove();
+
+          self.drawReadCountHistogram('#canonical-histogram', 'canonical', 'Canonical', {}, self.readCountRange);
+          self.drawReadCountHistogram('#alternate-histogram', 'alternate', 'Alternate', {}, self.readCountRange);
+          self.drawReadCountHistogram('#noncanonical-histogram', 'noncanonical', 'Non-canonical', {}, self.readCountRange);
+        }
+      } else {
+        self.readCountRange = null;
+        self.brushHist.extent([0,0])
+
+        d3.select("#canonical-histogram #read-count-histogram svg").remove();
+        d3.select("#alternate-histogram #read-count-histogram svg").remove();
+        d3.select("#noncanonical-histogram #read-count-histogram svg").remove();
+
+        self.drawReadCountHistogram('#canonical-histogram', 'canonical', 'Canonical', {}, null);
+        self.drawReadCountHistogram('#alternate-histogram', 'alternate', 'Alternate', {}, null);
+        self.drawReadCountHistogram('#noncanonical-histogram', 'noncanonical', 'Non-canonical', {}, null);
+
+        d3.select(container).select(".bounding-box.active").classed("active", false)
+
+      }
+    },
 
 		showSelectionBox: function(container, regionStart, regionEnd, x) {
 			let self = this;
@@ -1251,7 +1349,7 @@ export default {
 		  }
 
 
-      var arcColors = ['#7ba852', '#59749e', '#6491cb', '#b09b46', '#FD7049' ]
+      var arcColors = ['#7ba852', '#59749e', '#6491cb', '#db9625', '#FD7049' ]
 
 		  if (self.colorBy == 'motif') {
 			  let motifMap = {};
@@ -1275,8 +1373,8 @@ export default {
 	                   .range(arcColors);
 		  } else if (self.colorBy == 'spliceKind') {
         self.arcColorScale = d3.scaleOrdinal()
-                     .domain(['canonical', 'noncanonical'])
-                     .range(['steelblue', '#7ba852']);
+                     .domain(['canonical', 'alternate', 'noncanonical'])
+                     .range(['steelblue', '#db9625', '#7ba852']);
       }  else {
         self.arcColorScale = null;
       }
@@ -2984,43 +3082,88 @@ export default {
       .style("opacity", "0")
       
     },
-    drawReadCountHistogram: function(container, spliceKind, title) {
+
+    getMaxLocalFrequency: function(numberBins) {
       let self = this;
-       let spliceJunctions = self.geneModel.geneToSpliceJunctionObjects[self.selectedGene.gene_name]
+      let data = self.geneModel.geneToSpliceJunctionObjects[self.selectedGene.gene_name]
+
+      let groupedData = d3.group(data, function(d) {
+        return d.spliceKind;
+      })
+      let histData = []
+      for (let d of groupedData.entries()) {
+        let key        = d[0];
+        let group      = d[1];
+        let groupCount = group.length;
+
+        var localMin = d3.min(group, function(d) {
+          return d.readCount;
+        });
+        var localMax = d3.max(group, function(d) {
+          return d.readCount;
+        });
+
+        let histogram = d3.histogram()
+          .domain([0, localMax])
+          .thresholds(numberBins)
+          .value(function(d) { return d.readCount; })
+        let bins = histogram(group)
+
+        var obj = {};
+        obj["key"]       = key;
+        obj["bins"]      = bins;
+        obj["max"]       = d3.max(bins, function(d) {
+          return d.length;
+        });
+
+        histData.push(obj)
+      }
+      let maxFreq = d3.max(histData, function(d) {
+        return d.max;
+      })
+      return maxFreq;
+    },
+
+    drawReadCountHistogram: function(container, spliceKind, title, options, readCountRange) {
+      let self = this;
+      let spliceJunctions = self.geneModel.geneToSpliceJunctionObjects[self.selectedGene.gene_name]
       if (spliceJunctions == null) {
         return;
       }
 
-      let summary = self.geneModel.geneToSpliceJunctionSummary[self.selectedGene.gene_name]
-      let meanReadCount = null;
-      let count = null;
-      if (summary) {
-        if (spliceKind == 'canonical') {
-          count = summary.canonical.length;
-          self.readCountMean = summary.meanReadCountCanonical;
-          self.readCountStd =  summary.stdReadCountCanonical;
-          self.readCountMin =  summary.minReadCountCanonical;
-          self.readCountMax =  summary.maxReadCountCanonical;     
-          meanReadCount =    self.readCountMean;   
-        } else  if (spliceKind == 'noncanonical') {
-          count = summary.noncanonical.length
-          self.readCountMeanNoncan = summary.meanReadCountNoncanonical;
-          self.readCountStdNoncan =  summary.stdReadCountNoncanonical;
-          self.readCountMinNoncan =  summary.minReadCountNoncanonical;
-          self.readCountMaxNoncan =  summary.maxReadCountNoncanonical;  
-          meanReadCount =    self.readCountMeanNoncan;              
-        }
 
-      }
-
-     
       let data = spliceJunctions.filter(function(spliceJunction) {
-        return spliceJunction.spliceKind == spliceKind;
+        let isKind = spliceKind == null || spliceKind == spliceJunction.spliceKind;
+        let withinRange = readCountRange ? (spliceJunction.readCount >= readCountRange[0] && spliceJunction.readCount < readCountRange[1]) : true;
+        return isKind && withinRange;
       })
 
+
+      let count = data.length;
+      let mean = Math.round(d3.mean(data, function(d) {
+        return d.readCount;
+      }))
+      let median = Math.round(d3.median(data, function(d) {
+        return d.readCount;
+      }))
+      let std = Math.round(d3.deviation(data, function(d) {
+        return d.readCount;
+      }))
+      let maxReadCount = d3.max(data, function(d) {
+        return +d.readCount;
+      })
+
+      let numberBins = 30;
+
+      // We set the max y to the highest frequency across all
+      // bins across all three splice kinds. That will allow
+      // a uniform y axis across the three histograms.
+      let maxY =  self.getMaxLocalFrequency(data, numberBins)
+
+
       // set the dimensions and margins of the graph
-      var margin = {top: 10, right: 10, bottom: 30, left: 40},
-          width = 300 - margin.left - margin.right,
+      var margin = {top: 20, right: 10, bottom: 45, left: 35},
+          width = 220 - margin.left - margin.right,
           height = 120 - margin.top - margin.bottom;
 
       
@@ -3033,78 +3176,357 @@ export default {
           .attr("transform",
                 "translate(" + margin.left + "," + margin.top + ")");
 
-      let maxReadCount = d3.max(data, function(d) {
-        return +d.readCount;
-      })
-      let numberBins = 40; 
       // X axis: scale and draw:
       var x = d3.scaleLinear()
           .domain([0, maxReadCount])   
           .range([0, width]);
+
+      if (options && options.createBrush) {
+        self.xBrushableHist = x;
+      }
+
+      var tickFormatter = function(d) {
+        if ((d / 1000000) >= 1)
+          return Math.round(d / 1000000) + "M";
+        else if ((d / 1000) >= 1)
+          return Math.round(d / 1000) + "K";
+        else
+          return d;
+      }
       svg.append("g")
           .attr("transform", "translate(0," + height + ")")
-          .call(d3.axisBottom(x).ticks(5));
+          .call(d3.axisBottom(x).ticks(6).tickFormat(tickFormatter));
 
       svg.append("text")
          .attr("class", "histogram-text")
          .attr("x", (width / 2))
-         .attr("y", 0)
+         .attr("y", -10)
          .style("text-anchor", "middle")
          .text(title + " (" + count + ")")
 
+
       svg.append("text")
          .attr("class", "histogram-text")
          .attr("x", (width / 2))
-         .attr("y", height + margin.top + margin.bottom - 10)
+         .attr("y", height + margin.top + 10)
          .style("text-anchor", "middle")
          .text("Read count")
+
+      svg.append("text")
+         .attr("class", "histogram-text")
+         .attr("x", (width / 2))
+         .attr("y", height + margin.top + 20)
+         .style("text-anchor", "middle")
+         .style("font-size", "10px")
+         .html('mean:&nbsp;' + mean + "&nbsp;&nbsp;" + '&#x3C3;&nbsp;:' + std)
 
       svg.append("text")
          .attr("class", "histogram-text")
          .attr("x", 0)
          .attr("y", height)
          .style("text-anchor", "middle")
-         .style("transform", "translate(-110px, 40px)rotate(-90deg)")
-         .text("Frequency")
+         .style("transform", "translate(-112px, 30px)rotate(-90deg)")
+         .text(function(d) {
+            if (self.scaleYHist == 'density') {
+              return 'Density %'
+            } else {
+              return 'Frequency'
+            }
+          })
+
+
 
       // set the parameters for the histogram
       var histogram = d3.histogram()
-          .value(function(d) { return d.readCount; })   // I need to give the vector of value
           .domain(x.domain())  // then the domain of the graphic
-          .thresholds(x.ticks(numberBins)); // then the numbers of bins
+          .thresholds(x.ticks(numberBins)) // then the numbers of bins
+          .value(function(d) { return d.readCount; })   // I need to give the vector of value
 
       // And apply this function to data to get the bins
       var bins = histogram(data);
 
-      let maxY =  d3.max(bins, function(d) { return d.length; })
+      // Calculate cumulative density
+      if (self.scaleYHist == 'density') {
+        var last = 0;
+        let n = data.length;
+        for(var i=0; i < bins.length; i++){
+          bins[i]['cum'] = last + bins[i].length;
+          last = bins[i]['cum'];
+          bins[i]['cum'] = bins[i]['cum']/n;
+        }
+      }
+
 
       // Y axis: scale and draw:
-      var y = d3.scaleLinear()
-          .range([height, 0]);
-          y.domain([-(maxY * .02),maxY]);   // d3.hist has to be called before the Y axis obviously
+      var y = null;
+      if (self.scaleYHist == 'log') {
+        y = d3.scaleLog()
+            .range([height, 0])
+            .domain([.01,maxY]);   // d3.hist has to be called before the Y axis obviously
+      } else if (self.scaleYHist == 'normal') {
+        y = d3.scaleLinear()
+            .range([height, 0])
+            .domain([0,maxY]);   // d3.hist has to be called before the Y axis obviously
+
+      } else if (self.scaleYHist == 'density') {
+        y = d3.scaleLinear()
+              .range([height, 0])
+              .domain([0, 1]);
+      }
       svg.append("g")
+          .attr("class", "y-axis")
           .call(d3.axisLeft(y).ticks(5));
 
       // Add a rect for each bin.
       svg.append("g")
+        .attr("class", "histogram-bars")
         .selectAll()
         .data(bins)
         .join("rect")
           .attr("class", "histogram-bar")
           .attr("x", (d) => x(d.x0) + 1)
           .attr("width", (d) => Math.max(1, x(d.x1) - x(d.x0) - 1))
-          .attr("y", (d) => d.length == 0 ? 0 : y(d.length))
-          .attr("height", (d) => d.length == 0 ? 0 : height - y(d.length));
+          .attr("y", function(d) {
+            if (self.scaleYHist == 'density') {
+              return y(d.cum)
+            } else {
+              return  y(d.length);
+            }
+          })
+          .attr("height", function(d) {
+            if (self.scaleYHist == 'density') {
+              return height - y(d.cum);
+            } else {
+              return height - y(d.length);
+            }
+          });
+
+      if (self.scaleYHist == 'density') {
+        // Draw CDF (cumulative density function) line
+        var guide = d3.line()
+                      .x(function(d){ return x(d.x0) + 1 })
+                      .y(function(d){ return y(d.cum) })
+                      .curve(d3.curveBasis);
+
+        var line = svg.append("g")
+                      .attr("class", "cdf")
+                      .append('path')
+                      .datum(bins)
+                      .attr('d', guide)
+                      .attr('class', 'line');
+
+      }
 
       // draw vertical line for mean
       svg.append("line")
       .attr("class", "mean-line")
-      .attr("x1", x(meanReadCount))
-      .attr("x2", x(meanReadCount))
-      .attr("y1", 0)
+      .attr("x1", x(mean))
+      .attr("x2", x(mean))
+      .attr("y1", -5)
       .attr("y2", height + 15)
 
-    }    
+      if (options && options.createBrush) {
+        svg
+        .call( self.brushHist = d3.brushX()
+          .extent( [ [0,-40], [width,height] ] )
+          .on("start brush end", self.onBrushHist)
+        )
+      }
+
+    },
+    drawBrushableHistAxis: function(container) {
+      let self = this;
+      let spliceJunctions = self.geneModel.geneToSpliceJunctionObjects[self.selectedGene.gene_name]
+      if (spliceJunctions == null) {
+        return;
+      }
+
+      let data = spliceJunctions;
+      let groupedData = d3.group(data, function(d) {
+        return d.spliceKind;
+      })
+
+
+      let boxQuartiles = function(d) {
+        let values = d.map(function(d) {
+          return d.readCount
+        })
+        return [
+          d3.quantile(values, .25),
+          d3.quantile(values, .5),
+          d3.quantile(values, .75)
+        ]
+      };
+      let sortNumber = function(a,b) {
+        return a.readCount - b.readCount;
+      };
+
+      let boxPlotData = []
+      for (let d of groupedData.entries()) {
+        let key        = d[0];
+        let group      = d[1];
+        group      = group.sort(sortNumber);
+        let groupCount = group.length;
+
+        var localMin = d3.min(group, function(d) {
+          return d.readCount;
+        });
+        var localMax = d3.max(group, function(d) {
+          return d.readCount;
+        });
+
+        var obj = {};
+        obj["key"]       = key;
+        obj["counts"]    = groupCount;
+        obj["quartile"]  = boxQuartiles(group);
+        obj["whiskers"]  = [localMin, localMax];
+        obj["max"]       = localMax;
+        obj["min"]       = localMin;
+
+        boxPlotData.push(obj)
+      }
+      let maxReadCount = d3.max(data, function(d) {
+        return +d.readCount;
+      })
+
+
+      // set the dimensions and margins of the graph
+      var margin = {top: 5, right: 0, bottom: 35, left: 75},
+          width = 250 - margin.left - margin.right,
+          height = 120 - margin.top - margin.bottom;
+
+      var barHeight = 22;
+
+      // append the svg object to the body of the page
+      var svg = d3.select(container).select("#read-count-histogram")
+        .append("svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+          .attr("transform",
+                "translate(" + margin.left + "," + margin.top + ")");
+
+       svg.append("text")
+             .attr("class", "histogram-text")
+             .attr("x", (width / 2))
+             .attr("y", height + margin.top + 25)
+             .style("text-anchor", "middle")
+             .text("Read count")
+
+      // X axis: scale and draw:
+      self.xBrushableHist = d3.scaleLinear()
+                    .domain([0, maxReadCount])
+                    .range([0, width]);
+
+
+      let y = d3.scaleBand()
+        .domain(['canonical', 'alternate', 'noncanonical'])
+        .rangeRound([0, height])
+        .paddingInner(.1)
+        .align(.5)
+
+      var tickFormatter = function(d) {
+        if ((d / 1000000) >= 1)
+          return Math.round(d / 1000000) + "M";
+        else if ((d / 1000) >= 1)
+          return Math.round(d / 1000) + "K";
+        else
+          return d;
+      }
+
+      svg.append("g")
+          .attr("transform", "translate(0," + height + ")")
+          .call(d3.axisBottom(self.xBrushableHist).ticks(5).tickFormat(tickFormatter));
+
+      svg.append("g")
+            .attr("class", "axis axis--y")
+            .call(d3.axisLeft(y))
+
+      // Draw the box plot vertical lines
+      var verticalLines = svg.selectAll(".verticalLines")
+        .data(boxPlotData)
+        .enter()
+        .append("line")
+        .attr("x1", function(d){ return self.xBrushableHist(d.whiskers[0]); })
+        .attr("y1", function(d){ return y(d.key) + (barHeight/2); })
+        .attr("x2", function(d){ return self.xBrushableHist(d.whiskers[1]); })
+        .attr("y2", function(d){ return y(d.key) + (barHeight/2); })
+        .attr("stroke", "#000")
+        .attr("stroke-width", 1)
+        .attr("fill", "none");
+
+      // Draw the boxes of the box plot, filled and on top of vertical lines
+      var rects = svg.selectAll("rect")
+        .data(boxPlotData)
+        .enter()
+        .append("rect")
+        .attr("height", barHeight)
+        .attr("width", function(d) {
+          var quartiles = d.quartile;
+          var width =  self.xBrushableHist(quartiles[2]) - self.xBrushableHist(quartiles[0]);
+          return Math.max(width, 4);
+        })
+        .attr("x", function(d) { return self.xBrushableHist(d.quartile[0]); })
+        .attr("y", function(d) { return y(d.key);})
+        .attr("fill", function(d) {
+          let keyToColor = {'canonical': 'steelblue',
+                            'alternate': '#db9625',
+                            'noncanonical': '#7ba852'};
+          return keyToColor[d.key]
+        })
+        .attr("stroke", "#000")
+        .attr("stroke-width", 1);
+
+
+      // Now render all the vertical lines at once - the whiskers and the median
+      var vertLineConfigs = [
+        // Top whisker
+        {
+          y1: function(d) { return y(d.key)},
+          x1: function(d) { return self.xBrushableHist(d.whiskers[0]) },
+          y2: function(d) { return y(d.key) + barHeight },
+          x2: function(d) { return self.xBrushableHist(d.whiskers[0]) }
+        },
+        // Median line
+        {
+          y1: function(d) { return y(d.key)  },
+          x1: function(d) { return self.xBrushableHist(d.quartile[1]) },
+          y2: function(d) { return y(d.key) + barHeight },
+          x2: function(d) { return self.xBrushableHist(d.quartile[1]) }
+        },
+        // Bottom whisker
+        {
+          y1: function(d) { return y(d.key) },
+          x1: function(d) { return self.xBrushableHist(d.whiskers[1]) },
+          y2: function(d) { return y(d.key) + barHeight },
+          x2: function(d) { return self.xBrushableHist(d.whiskers[1]) }
+        }
+      ];
+
+      for(var i=0; i < vertLineConfigs.length; i++) {
+        var lineConfig = vertLineConfigs[i];
+
+        // Draw the whiskers at the min for this series
+        var vertLine = svg.selectAll(".whiskers")
+          .data(boxPlotData)
+          .enter()
+          .append("line")
+          .attr("x1", lineConfig.x1)
+          .attr("y1", lineConfig.y1)
+          .attr("x2", lineConfig.x2)
+          .attr("y2", lineConfig.y2)
+          .attr("stroke", "#000")
+          .attr("stroke-width", 1)
+          .attr("fill", "none");
+      }
+
+      svg
+      .call( self.brushHist = d3.brushX()
+        .extent( [ [0,-40], [width,height] ] )
+        .on("start brush end", self.onBrushHist)
+      )
+
+    }
   },
 
 
@@ -3146,6 +3568,16 @@ export default {
       if (this.variants && this.variants.length > 0) {
         this.drawVariantDiagram('#diagrams #variant-diagram', this.geneStart, this.geneEnd, this.variants)
       }
+    },
+    scaleYHist: function() {
+      let self = this;
+      d3.selectAll("#canonical-histogram #read-count-histogram svg").remove();
+      d3.selectAll("#alternate-histogram #read-count-histogram svg").remove();
+      d3.selectAll("#noncanonical-histogram #read-count-histogram svg").remove();
+
+      self.drawReadCountHistogram('#canonical-histogram', 'canonical', 'Canonical', {}, self.readCountRange);
+      self.drawReadCountHistogram('#alternate-histogram', 'alternate', 'Alternate', {}, self.readCountRange);
+      self.drawReadCountHistogram('#noncanonical-histogram', 'noncanonical', 'Non-canonical', {}, self.readCountRange);
     }
   }
 }
@@ -3165,6 +3597,7 @@ export default {
   justify-content: center;
   margin-left: 10px;
   width: 300px;
+  margin: auto;
 }
 
 #brushable-axis  text { 
@@ -3296,6 +3729,18 @@ div.tooltip {
 	stroke: #494949;
 	stroke-width: 1.5;
 }
+.cdf path {
+  stroke: #59638c9c;
+  stroke-width: 1;
+  fill: none;
+}
+.y-axis.right text {
+  color: #59638c9c;
+}
+.histogram-text.cdf {
+  fill: #59638c9c;
+}
+
 
 #transcript-menu-panel #transcript-menu-diagram {
 	overflow-y: scroll;
@@ -3515,6 +3960,21 @@ text.seq.T, rect.seq.T {
   font-size: 11px
   fill: rgb(73, 73, 73)
 
+#hist-button-group
+  height: 20px !important
+  margin-top: 0px
+  margin-bottom: 5px
+  .v-btn
+    height: 20px !important
+    .v-btn__content
+      font-size: 11px
+      font-weight: 600
+
+#all-histogram
+  #read-count-histogram
+    .histogram-bar
+      fill: gray
+
 #noncanonical-histogram
   #read-count-histogram
     .histogram-bar
@@ -3524,6 +3984,11 @@ text.seq.T, rect.seq.T {
   #read-count-histogram
     .histogram-bar
       fill: steelblue 
+
+#alternate-histogram
+  #read-count-histogram
+    .histogram-bar
+      fill: #db9625
 
 #read-count-histogram
   .mean-line
@@ -3535,4 +4000,21 @@ text.seq.T, rect.seq.T {
   .label 
     fill: #787878 !important
     font-size: 85% !important
+
+.hint-box
+  background-color: #f7eccd9e
+  border: 0.5px #a7a7a7 solid
+  width: max-content
+  margin: auto
+  padding: 2px 6px 2px 6px
+  display: flex
+  justify-content: center
+  align-items: center
+  i.mdi
+    margin-right: 4px
+    font-size: 17px
+  div
+    font-size: 11px
+    font-style: italic
+
 </style>

@@ -65,7 +65,7 @@
       geneModel: Object
     },
     data: () => ({
-      regionBuffer: 1000,
+      regionBuffer: 0,
       theGeneSource: 'gencode',
 
 

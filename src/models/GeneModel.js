@@ -852,6 +852,10 @@ class GeneModel {
         spliceKind = 'noncanonical'
       }
 
+      if (countSkippedExons > 0 && spliceKind == 'canonical') {
+        spliceKind = 'alternate'
+      }
+
       let donorLabel = "";
       if (donor.exon) {
         donorLabel =  'Exon ' + donor.exon.number 
@@ -907,6 +911,9 @@ class GeneModel {
         'junctionTranscript':        junctionTranscript,
         'isPreferredTranscript':     isPreferredTranscript
       }
+    })
+    .filter(function(spliceJunction) {
+      return spliceJunction.readCount > 0;
     })
 
     self.geneToSpliceJunctionObjects[geneObject.gene_name] = spliceJunctions;
