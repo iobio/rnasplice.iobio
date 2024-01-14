@@ -3083,9 +3083,8 @@ export default {
       
     },
 
-    getMaxLocalFrequency: function(numberBins) {
+    getMaxLocal: function(data, numberBins) {
       let self = this;
-      let data = self.geneModel.geneToSpliceJunctionObjects[self.selectedGene.gene_name]
 
       let groupedData = d3.group(data, function(d) {
         return d.spliceKind;
@@ -3112,16 +3111,22 @@ export default {
         var obj = {};
         obj["key"]       = key;
         obj["bins"]      = bins;
-        obj["max"]       = d3.max(bins, function(d) {
+        obj["maxFreq"]       = d3.max(bins, function(d) {
           return d.length;
+        });
+        obj["maxReadCount"]  = d3.max(bins, function(d) {
+          return d.x1;
         });
 
         histData.push(obj)
       }
       let maxFreq = d3.max(histData, function(d) {
-        return d.max;
+        return d.maxFreq;
       })
-      return maxFreq;
+      let maxReadCount = d3.max(histData, function(d) {
+        return d.maxReadCount;
+      })
+      return {'maxFreq': maxFreq, 'maxReadCount': maxReadCount }
     },
 
     drawReadCountHistogram: function(container, spliceKind, title, options, readCountRange) {
@@ -3137,28 +3142,35 @@ export default {
         let withinRange = readCountRange ? (spliceJunction.readCount >= readCountRange[0] && spliceJunction.readCount < readCountRange[1]) : true;
         return isKind && withinRange;
       })
-
-
-      let count = data.length;
-      let mean = Math.round(d3.mean(data, function(d) {
-        return d.readCount;
-      }))
-      let median = Math.round(d3.median(data, function(d) {
-        return d.readCount;
-      }))
-      let std = Math.round(d3.deviation(data, function(d) {
-        return d.readCount;
-      }))
-      let maxReadCount = d3.max(data, function(d) {
-        return +d.readCount;
+      let dataForRange = spliceJunctions.filter(function(spliceJunction) {
+        let withinRange = readCountRange ? (spliceJunction.readCount >= readCountRange[0] && spliceJunction.readCount < readCountRange[1]) : true;
+        return withinRange;
       })
+      let dataForSpliceKind = spliceJunctions.filter(function(spliceJunction) {
+        let isKind = spliceKind == null || spliceKind == spliceJunction.spliceKind;
+        return isKind;
+      })
+
+
+      let count = dataForSpliceKind.length;
+      let mean = Math.round(d3.mean(dataForSpliceKind, function(d) {
+        return d.readCount;
+      }))
+      let median = Math.round(d3.median(dataForSpliceKind, function(d) {
+        return d.readCount;
+      }))
+      let std = Math.round(d3.deviation(dataForSpliceKind, function(d) {
+        return d.readCount;
+      }))
 
       let numberBins = 30;
 
       // We set the max y to the highest frequency across all
       // bins across all three splice kinds. That will allow
       // a uniform y axis across the three histograms.
-      let maxY =  self.getMaxLocalFrequency(data, numberBins)
+      let maxLocal     =  self.getMaxLocal(dataForRange, numberBins)
+      let maxY         = maxLocal.maxFreq;
+      let maxReadCount = maxLocal.maxReadCount;
 
 
       // set the dimensions and margins of the graph
