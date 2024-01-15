@@ -8,7 +8,7 @@
     ></v-progress-circular>
   </div>
 
-      <div id="panel-heading" class="d-flex flex-row align-start mb-1" >
+      <div id="panel-heading" class="d-flex flex-row align-start flex-wrap mb-1" >
           <h2 class="mr-5" style="margin-top: 0px !important;margin-bottom: 0px !important;min-width: 150px;">
             Splice Junctions
           </h2>
@@ -29,36 +29,33 @@
           <div id="label-cb" class="" style="" >
 						<v-checkbox 
 						  hide-details="true"
+              density="compact"
 				      v-model="showLabels"
-				      label="Show read counts"
+				      label="Show read count labels"
 				    ></v-checkbox>
 			    </div>
 
-          <div id="show-noncanonical-only-cb" class=""  style="">
-						<v-checkbox 
-						  hide-details="true"
-				      v-model="showNonCanonicalOnly"
-				      label="Hide canonical splice junctions"
-				    ></v-checkbox>
-			    </div>
-
-          <div id="show-matching-strand-only-cb" class="" style="" >
-						<v-checkbox 
-						  hide-details="true"
-				      v-model="showSameStrandOnly"
-				      label="Hide junctions not matching gene strand"
-				    ></v-checkbox>
-			    </div>
       </div>
 
-      <div class="d-flex" style="margin-left:0px;margin-top:10px;margin-bottom:10px;justify-content:flex-start">
-
-          <div style="width:120px" class="mr-9" >
-            <v-text-field 
-            density="compact"
-            hide-details="auto" 
-            label="Min read count" 
-            v-model="minUniquelyMappedReads"/>
+      <div class="d-flex flex-wrap" style="margin-left:0px;margin-top:10px;margin-bottom:10px;justify-content:flex-start">
+          <div>
+            <h3>Read counts</h3>
+            <div class="d-flex">
+              <div style="width:80px"  >
+                <v-text-field
+                density="compact"
+                hide-details="auto"
+                label="Min"
+                v-model="minUniquelyMappedReads"/>
+              </div>
+              <div style="width:80px" class="ml-2 mr-5" >
+                <v-text-field
+                density="compact"
+                hide-details="auto"
+                label="Max"
+                v-model="maxUniquelyMappedReads"/>
+              </div>
+            </div>
           </div>
 
           <div  v-show="!showLoading && selectedGene">
@@ -270,6 +267,8 @@ export default {
 
 		clickedObject: null,
 
+    selectedSpliceKind: null,
+
 		regionIsSelected: false,
 
 		selectedTranscript: null,
@@ -289,9 +288,7 @@ export default {
     readCountRange: null,
 
 		showLabels: false,
-		showSameStrandOnly: false, 
 		junctionsToShow: null,
-		showNonCanonicalOnly: false,
     showTranscriptMenu: false,
 
     geneStart: null,
@@ -303,6 +300,7 @@ export default {
 		showLoading: false,
 
     minUniquelyMappedReads: 1,
+    maxUniquelyMappedReads: null,
     colorBy: 'spliceKind',
     arcColorScale: null,
 
@@ -423,6 +421,10 @@ export default {
       self.readCountMaxNocan = null;
 
   		if (self.spliceJunctionsForGene) {
+
+        self.maxUniquelyMappedReads = d3.max(self.spliceJunctionsForGene, function(d) {
+          return +d.readCount;
+        })
 
 				self.edgesForGene = self.filterSpliceJunctions()
 
@@ -566,7 +568,12 @@ export default {
       if (self.selectedGene) {
         let spliceJunctions = self.geneModel.geneToSpliceJunctionObjects[self.selectedGene.gene_name]
         let spliceJunctionsFiltered = spliceJunctions.filter(function(spliceJunction) {
-          return +spliceJunction.readCount >= self.minUniquelyMappedReads
+          let meetsBottomRange =  self.minUniquelyMappedReads == null || self.minUniquelyMappedReads == "" || +spliceJunction.readCount >= self.minUniquelyMappedReads
+          let meetsTopRange = self.maxUniquelyMappedReads == null || self.maxUniquelyMappedReads == "" || +spliceJunction.readCount <= self.maxUniquelyMappedReads
+          let matchesSpliceKind = self.selectedSpliceKind == null  || spliceJunction.spliceKind == self.selectedSpliceKind;
+          let matchesStrand = spliceJunction.strand == null || spliceJunction.strand == 'undefined' || self.selectedGene.strand == spliceJunction.strand
+
+          return meetsBottomRange && meetsTopRange && matchesSpliceKind && matchesStrand;
         });
         return spliceJunctionsFiltered;        
       } else {
@@ -652,9 +659,14 @@ export default {
       // Get the selection coordinate
       let extent = event.selection
       if (extent && extent.length == 2 && extent[0] != extent[1]) {
-        let binStart = self.xBrushableHist.invert(extent[0]);
-        let binEnd   = self.xBrushableHist.invert(extent[1]);
+        let binStart = Math.round(self.xBrushableHist.invert(extent[0]));
+        let binEnd   = Math.round(self.xBrushableHist.invert(extent[1]));
         self.readCountRange = [binStart, binEnd]
+
+        // Setting these variables will cause the arcs to be filtered based
+        // on the read count range from this brush event
+        self.minUniquelyMappedReads = binStart;
+        self.maxUniquelyMappedReads = binEnd;
 
         let x1   = self.xBrushableHist(binStart);
         let x2   = self.xBrushableHist(binEnd);
@@ -680,6 +692,12 @@ export default {
       } else {
         self.readCountRange = null;
         self.brushHist.extent([0,0])
+
+        self.minUniquelyMappedReads = 1;
+        self.maxUniquelyMappedReads = d3.max(self.spliceJunctionsForGene, function(d) {
+          return +d.readCount;
+        })
+
 
         d3.select("#canonical-histogram #read-count-histogram svg").remove();
         d3.select("#alternate-histogram #read-count-histogram svg").remove();
@@ -1293,7 +1311,7 @@ export default {
 
 		  var scaleArcWidth = d3.scaleLinear()
 		                    .domain([self.minUniquelyMappedReads, maxReadCount])
-		                    .range([1.5, 25])
+		                    .range([1.5, 10])
 
 
 		           
@@ -1828,6 +1846,83 @@ export default {
 
         let count = svg.selectAll("path").size()
         svg.attr("height", count*17)
+
+        if (self.colorBy == 'spliceKind') {
+          let coords = []
+          const regex = /translate\(\s(\d+.\d*)\,\s(\d+.\d*)\)/gm;
+          d3.select(".legendCells").selectAll(".cell text")
+          .each(function(d,i) {
+            let str = d3.select(this).attr("transform")
+            let m;
+            while ((m = regex.exec(str)) !== null) {
+                // This is necessary to avoid infinite loops with zero-width matches
+                if (m.index === regex.lastIndex) {
+                    regex.lastIndex++;
+                }
+                if (m.length == 3) {
+                  let x = m[1];
+                  let y = m[2];
+                  coords.push({'x': +x + 100, 'y': +y})
+                }
+            }
+          })
+
+          d3.select(container).selectAll("svg .legendCells .cell")
+          .each(function(d,i) {
+            d3.select(this).classed("hiding", function(d,i) {
+              if (self.selectedSpliceKind == null) {
+                return false;
+              } else if (d == self.selectedSpliceKind ) {
+                return false;
+              } else {
+                return true;
+              }
+            })
+            d3.select(this).classed("showing", function(d,i) {
+              if (self.selectedSpliceKind == null) {
+                return false;
+              } else if (d == self.selectedSpliceKind ) {
+                return true;
+              } else {
+                return false;
+              }
+            })
+            d3.select(this).append("text")
+            .attr("transform", function(d1,i1) {
+              let coord = coords[i]
+              return "translate(" + coord.x + "," + coord.y + ")";
+            })
+            .attr("class", "legend-cell-show")
+            .text(function(d,i) {
+              if (self.selectedSpliceKind && d == self.selectedSpliceKind) {
+                return 'showing';
+              } else {
+                return 'show';
+              }
+            })
+            .on("click", function(event, spliceKindToShow) {
+              let clicked = d3.select(this);
+              d3.select(container).selectAll(".legendCells .legend-cell-show")
+              .each(function(legendCellText) {
+                if (legendCellText == clicked.datum()) {
+                  if (clicked.text() == 'show') {
+                    self.selectedSpliceKind = spliceKindToShow;
+                  } else {
+                    self.selectedSpliceKind = null;
+                  }
+                }
+              })
+            })
+
+          })
+          let newWidth = +d3.select(container).select('svg').attr('width')
+          newWidth += 75
+          d3.select(container).select('svg').attr("width", newWidth)
+          let newHeight = +d3.select(container).select('svg').attr('height')
+          newHeight += 5
+          d3.select(container).select('svg').attr("height", newHeight)
+        }
+
       }
 
     },
@@ -3276,6 +3371,7 @@ export default {
             .range([height, 0])
             .domain([.01,maxY]);   // d3.hist has to be called before the Y axis obviously
       } else if (self.scaleYHist == 'normal') {
+
         y = d3.scaleLinear()
             .range([height, 0])
             .domain([0,maxY]);   // d3.hist has to be called before the Y axis obviously
@@ -3288,6 +3384,14 @@ export default {
       svg.append("g")
           .attr("class", "y-axis")
           .call(d3.axisLeft(y).ticks(5));
+
+
+      let getBarMinValue = function(val, max) {
+        if (val > 0 && maxY * .05 > val) {
+            val = maxY * .05;
+        }
+        return val;
+      }
 
       // Add a rect for each bin.
       svg.append("g")
@@ -3302,14 +3406,14 @@ export default {
             if (self.scaleYHist == 'density') {
               return y(d.cum)
             } else {
-              return  y(d.length);
+              return  y(getBarMinValue(d.length));
             }
           })
           .attr("height", function(d) {
             if (self.scaleYHist == 'density') {
               return height - y(d.cum);
             } else {
-              return height - y(d.length);
+              return height - y(getBarMinValue(d.length));
             }
           });
 
@@ -3561,7 +3665,13 @@ export default {
     spliceJunctionsForGene: function() {
   		this.onDataChanged();
   	},
+    selectedSpliceKind: function() {
+      this.onSettingsChanged();
+    },
     minUniquelyMappedReads: function() {
+      this.onSettingsChanged();
+    },
+    maxUniquelyMappedReads: function() {
       this.onSettingsChanged();
     },
     colorBy: function() {
@@ -3569,12 +3679,6 @@ export default {
     },
     showLabels: function() {
     	d3.selectAll("#arc-diagram").classed("hide-labels", !this.showLabels)
-    },
-    showSameStrandOnly: function() {
-    	d3.selectAll("#arc-diagram").classed("hide-strand-mismatches", this.showSameStrandOnly)
-    },
-    showNonCanonicalOnly: function() {
-    	d3.selectAll("#arc-diagram").classed("hide-canonical", this.showNonCanonicalOnly)
     },
     variants: function() {
       if (this.variants && this.variants.length > 0) {
@@ -3927,7 +4031,7 @@ text.seq.T, rect.seq.T {
 }
 
 #zoomed-diagrams .junction {
-  opacity: .3
+  opacity: 1
 }
 
 
@@ -4012,6 +4116,27 @@ text.seq.T, rect.seq.T {
   .label 
     fill: #787878 !important
     font-size: 85% !important
+  .legend-cell-show
+    fill: rgb(24, 103, 192) !important
+    font-size: 85% !important
+    font-weight: 600 !important
+    cursor: pointer !important
+    font-style: normal !important
+
+
+  .cell.hiding
+    .label
+      font-weight: 500 !important
+      fill: #9c9b9b !important
+    .legend-cell-show
+      font-weight: 600 !important
+      font-style: normal !important
+  .cell.showing
+    .legend-cell-show
+      font-weight: 700 !important
+      font-style: italic !important
+
+
 
 .hint-box
   background-color: #f7eccd9e
@@ -4028,5 +4153,9 @@ text.seq.T, rect.seq.T {
   div
     font-size: 11px
     font-style: italic
+
+.v-input__control
+  input
+    font-size: 14px !important
 
 </style>
