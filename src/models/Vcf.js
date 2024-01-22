@@ -774,23 +774,26 @@ export default function Vcf(theGlobalApp) {
 
             // Parse the vcf record into its fields
             var fields = record.split('\t');
-            var pos    = fields[1];
-            var id     = fields[2];
-            var ref    = fields[3];
-            var alt    = fields[4];
-            var qual   = fields[5];
-            var filter = fields[6];
-            var info   = fields[7];
-            var format = fields[8];
-            var genotypes = [];
+            if (fields.length >= 10) {
+              var pos    = fields[1];
+              var id     = fields[2];
+              var ref    = fields[3];
+              var alt    = fields[4];
+              var qual   = fields[5];
+              var filter = fields[6];
+              var info   = fields[7];
+              var format = fields[8];
+              var genotypes = [];
 
-            for (var i = 9; i < fields.length; i++) {
-              genotypes.push(fields[i]);
+              for (var i = 9; i < fields.length; i++) {
+                genotypes.push(fields[i]);
+              }
+              // Turn vcf record into a JSON object and add it to an array
+              var vcfObject = {'pos': pos, 'id': id, 'ref': ref, 'alt': alt,
+                               'qual': qual, 'filter': filter, 'info': info, 'format':format, 'genotypes': genotypes};
+              vcfObjects.push(vcfObject);
+
             }
-            // Turn vcf record into a JSON object and add it to an array
-            var vcfObject = {'pos': pos, 'id': id, 'ref': ref, 'alt': alt,
-                             'qual': qual, 'filter': filter, 'info': info, 'format':format, 'genotypes': genotypes};
-            vcfObjects.push(vcfObject);
           }
         });
 
