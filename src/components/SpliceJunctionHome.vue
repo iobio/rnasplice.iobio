@@ -263,9 +263,38 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
             self.$emit('splice-junctions-loaded', self.selectedGene.gene_name, spliceJunctions, summary)
           })
           .catch(function(error) {
-            self.loadInProgress = false;
-            self.$emit("add-alert", 'error', error.message, self.selectedGene.gene_name, error.details ? [error.details] : null)
+            if (error && error.message && error.message == 'No data returned from backend service bedRegion') {
+              self.loadInProgress = true;
+              // strip chr
+              let chr = self.selectedGene.chr.split("chr")[1]
+              let region = {'refName': chr,
+                             'start':   self.selectedGene.start,
+                             'end':     self.selectedGene.end };
+              self.endpoint.promiseGetBedRegion(self.loadInfo.bedURL,
+                                                self.loadInfo.bedIndexURL,
+                                                region)
+              .then(function(bedRecords) {
+                self.loadInProgess = false;
+                let spliceJunctions = self.geneModel.createSpliceJunctions(bedRecords, self.selectedGene, self.selectedTranscript);
+                let summary = self.geneModel.geneToSpliceJunctionSummary[self.selectedGene.gene_name]
+
+
+                //self.geneModel.geneToSpliceJunctionRecords[self.selectedGene.gene_name] = spliceJunctionRecords;
+                //let spliceJunctions  = {'gene': self.selectedGene.gene_name,
+                 //                       'spliceJunctions': spliceJunctions}
+                self.$emit('splice-junctions-loaded', self.selectedGene.gene_name, spliceJunctions, summary)
+              })
+              .catch(function(error) {
+                self.loadInProgress = false;
+                self.$emit("add-alert", 'error', error.message, self.selectedGene.gene_name, error.details ? [error.details] : null)
+              })
+
+            } else {
+              self.loadInProgress = false;
+              self.$emit("add-alert", 'error', error.message, self.selectedGene.gene_name, error.details ? [error.details] : null)
+            }
           })
+
 
         }
 
@@ -374,7 +403,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       },
 
       selectSpliceJunction: function(spliceJunction) {
-        // this is called when the user clicked on a non-canonical
+        // this is called when the user clicked on a cryptic-site
         // splice junction in the genes panel. This should result in
         // the splice junction being selected in the main arc diagram
         if (this.$refs.ref_SpliceJunctionD3) {

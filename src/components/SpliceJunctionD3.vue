@@ -100,12 +100,12 @@
                 </div>
               </div>
 
-              <div id="alternate-histogram" class="d-flex ml-1">
+              <div id="exon-skipping-histogram" class="d-flex ml-1">
                 <div id="read-count-histogram" style="margin-left: 0px">
                 </div>
               </div>
 
-              <div id="noncanonical-histogram" class="d-flex ml-1">
+              <div id="cryptic-site-histogram" class="d-flex ml-1">
                 <div id="read-count-histogram" style="margin-left: 0px">
                 </div>
               </div>
@@ -235,6 +235,24 @@
   	</div>
   </div>
 
+  <v-snackbar
+      v-model="snackbarShow"
+      location="top"
+      multi-line
+      timeout="4000"
+  >
+    {{ snackbarText }}
+
+    <template v-slot:actions>
+      <v-btn
+        color="red"
+        variant="text"
+        @click="snackbarShow = false"
+      >
+        Close
+      </v-btn>
+    </template>
+  </v-snackbar>
   
 </div>
 
@@ -272,7 +290,7 @@ export default {
 		regionIsSelected: false,
 
 		selectedTranscript: null,
-		edgesForGene: null,
+		filteredSpliceJunctions: null,
 
 		xArcDiagram: null,
 		xTranscriptChart: null,
@@ -341,8 +359,11 @@ export default {
     { title: 'n/a',         props: {subtitle: ''}, 'value': 'none' }, 
     { title: 'Strand',      props: {subtitle: ''}, 'value': 'strand' }, 
     { title: 'Motif',       props: {subtitle: ''}, 'value': 'motif' }, 
-    { title: 'Splice kind', props: {subtitle: 'Canonical, Alternate, Non-canonical'}, 'value': 'spliceKind' }
-    ]
+    { title: 'Splice kind', props: {subtitle: 'Canonical, Exon-skipping, Cryptic-site'}, 'value': 'spliceKind' }
+    ],
+
+    snackbarText: '',
+    snackbarShow: false
 
 	}),
   methods: {
@@ -373,7 +394,7 @@ export default {
   		let self = this;
   		if (this.tab == 'tab-2' && this.selectedGene) {
   			self.$nextTick(function() {
-		  		self.edgesForGene = self.filterSpliceJunctions()
+		  		self.filteredSpliceJunctions = self.filterSpliceJunctions()
 
 			    self.geneStart = self.selectedGene.start - self.REGION_BUFFER;
 			    self.geneEnd   = self.selectedGene.end   + self.REGION_BUFFER;
@@ -383,7 +404,7 @@ export default {
 			    d3.selectAll('#diagrams #arc-diagram svg').remove();
 			    d3.selectAll('#zoomed-diagrams #arc-diagram svg').remove();
           self.showZoomPanel = false;
-			    self.drawArcDiagram('#diagrams', self.edgesForGene, self.geneStart, self.geneEnd, 
+			    self.drawArcDiagram('#diagrams', self.filteredSpliceJunctions, self.geneStart, self.geneEnd,
 			    	{'createBrush': false, 'isZoomedRegion': false});	
           self.drawArcColorLegend('#arc-color-legend')
 
@@ -395,15 +416,24 @@ export default {
   		let self = this;
 
 		  this.determineExons(this.selectedGene);
-
+      self.selectedTranscript = null;
 		  this.selectedGene.transcripts.forEach(function(transcript) {
 		    if (transcript.is_mane_select) {
 		      transcript.isSelected = true;
 		      self.selectedTranscript = transcript;
 		      self.$emit('transcript-selected', self.selectedTranscript);
 		    }
-		  })
-  	},
+      })
+      if (this.selectedTranscript == null) {
+        this.selectedTranscript = this.geneModel.getCanonicalTranscript(self.selectedGene);
+        if (this.selectedTranscript) {
+          this.selectedTranscript.isSelected = true;
+          self.$emit('transcript-selected', self.selectedTranscript);
+        }
+      }
+
+    },
+
 
   	loadDiagram: function() {
   		let self = this;
@@ -426,7 +456,7 @@ export default {
           return +d.readCount;
         })
 
-				self.edgesForGene = self.filterSpliceJunctions()
+				self.filteredSpliceJunctions = self.filterSpliceJunctions()
 
         
 		    self.geneStart = self.selectedGene.start - self.REGION_BUFFER;
@@ -439,7 +469,7 @@ export default {
 
 		    self.drawBrushableAxis("#diagrams", self.geneStart, self.geneEnd)
         self.showZoomPanel = false;
-		    self.drawArcDiagram('#diagrams', self.edgesForGene, self.geneStart, self.geneEnd, 
+		    self.drawArcDiagram('#diagrams', self.filteredSpliceJunctions, self.geneStart, self.geneEnd,
 		    	{'createBrush': false, 'isZoomedRegion': false});
         self.drawArcColorLegend('#arc-color-legend')
 
@@ -457,9 +487,9 @@ export default {
 
         self.drawReadCountHistogram('#canonical-histogram', 'canonical', 'Canonical', {}, self.readCountRange);
 
-        self.drawReadCountHistogram('#alternate-histogram', 'alternate', 'Alternate', {}, self.readCountRange);
+        self.drawReadCountHistogram('#exon-skipping-histogram', 'exon-skipping', 'Exon-skipping', {}, self.readCountRange);
 
-        self.drawReadCountHistogram('#noncanonical-histogram', 'noncanonical', 'Non-canonical', {}, self.readCountRange);
+        self.drawReadCountHistogram('#cryptic-site-histogram', 'cryptic-site', 'Cryptic-site', {}, self.readCountRange);
 
   		} else {
   			console.log("Problem encountered. Splice junctions gene does not match selected gene.")
@@ -603,7 +633,7 @@ export default {
 		    d3.select("#zoomed-diagrams").select("#transcript-diagram svg").remove();
         
 		    if (event.type == 'end') {
-			    let filteredEdges = self.edgesForGene.filter(function(edge) {
+			    let filteredEdges = self.filteredSpliceJunctions.filter(function(edge) {
 			       return (edge.donor.pos >= regionStart && edge.donor.pos <=regionEnd) ||
                     (edge.acceptor.pos >= regionStart && edge.acceptor.pos <=regionEnd)
 			    })
@@ -615,7 +645,7 @@ export default {
           self.showZoomPanel = true;
 			    self.drawArcDiagram("#zoomed-diagrams", filteredEdgesClone, regionStart, regionEnd, 
             {'createBrush': false, 
-             'allEdges': self.edgesForGene, 
+             'allEdges': self.filteredSpliceJunctions,
              'showXAxis': true,
              'marginRight': 0,
              'showJunctionArrow': true,
@@ -633,7 +663,8 @@ export default {
               return variant;
             })
             self.vcf.pileupVariants(filteredVariants, regionStart, regionEnd, self.$el.offsetWidth - 20)
-            self.drawVariantDiagram("#zoomed-diagrams #variant-diagram", regionStart, regionEnd, filteredVariants)            
+            self.drawVariantDiagram("#zoomed-diagrams #variant-diagram", regionStart, regionEnd, filteredVariants)
+
           }
 
 		    }
@@ -682,12 +713,12 @@ export default {
         if (event.type == 'end') {
 
           d3.select("#canonical-histogram #read-count-histogram svg").remove();
-          d3.select("#alternate-histogram #read-count-histogram svg").remove();
-          d3.select("#noncanonical-histogram #read-count-histogram svg").remove();
+          d3.select("#exon-skipping-histogram #read-count-histogram svg").remove();
+          d3.select("#cryptic-site-histogram #read-count-histogram svg").remove();
 
           self.drawReadCountHistogram('#canonical-histogram', 'canonical', 'Canonical', {}, self.readCountRange);
-          self.drawReadCountHistogram('#alternate-histogram', 'alternate', 'Alternate', {}, self.readCountRange);
-          self.drawReadCountHistogram('#noncanonical-histogram', 'noncanonical', 'Non-canonical', {}, self.readCountRange);
+          self.drawReadCountHistogram('#exon-skipping-histogram', 'exon-skipping', 'Exon-skipping', {}, self.readCountRange);
+          self.drawReadCountHistogram('#cryptic-site-histogram', 'cryptic-site', 'Cryptic-site', {}, self.readCountRange);
         }
       } else {
         self.readCountRange = null;
@@ -700,12 +731,12 @@ export default {
 
 
         d3.select("#canonical-histogram #read-count-histogram svg").remove();
-        d3.select("#alternate-histogram #read-count-histogram svg").remove();
-        d3.select("#noncanonical-histogram #read-count-histogram svg").remove();
+        d3.select("#exon-skipping-histogram #read-count-histogram svg").remove();
+        d3.select("#cryptic-site-histogram #read-count-histogram svg").remove();
 
         self.drawReadCountHistogram('#canonical-histogram', 'canonical', 'Canonical', {}, null);
-        self.drawReadCountHistogram('#alternate-histogram', 'alternate', 'Alternate', {}, null);
-        self.drawReadCountHistogram('#noncanonical-histogram', 'noncanonical', 'Non-canonical', {}, null);
+        self.drawReadCountHistogram('#exon-skipping-histogram', 'exon-skipping', 'Exon-skipping', {}, null);
+        self.drawReadCountHistogram('#cryptic-site-histogram', 'cryptic-site', 'Cryptic-site', {}, null);
 
         d3.select(container).select(".bounding-box.active").classed("active", false)
 
@@ -1149,7 +1180,7 @@ export default {
     	d3.selectAll('#transcript-diagram .transcript.selected .exon-' + exon.number).classed("clicked",options.click);
 
     	let count = 0;
-    	let donorSpliceJunctions = self.edgesForGene.filter(function(edge) {
+    	let donorSpliceJunctions = self.filteredSpliceJunctions.filter(function(edge) {
     		if (edge.donor.exon && edge.donor.exon.number == exon.number) {
     			return true;
     		} else {
@@ -1164,7 +1195,7 @@ export default {
     		return $.extend(sj, spliceJunction)
     	})
     	count = 0;
-    	let acceptorSpliceJunctions = self.edgesForGene.filter(function(edge) {
+    	let acceptorSpliceJunctions = self.filteredSpliceJunctions.filter(function(edge) {
     		if (edge.acceptor.exon && edge.acceptor.exon.number == exon.number) {
     			return true;
     		} else {
@@ -1391,7 +1422,7 @@ export default {
 	                   .range(arcColors);
 		  } else if (self.colorBy == 'spliceKind') {
         self.arcColorScale = d3.scaleOrdinal()
-                     .domain(['canonical', 'alternate', 'noncanonical'])
+                     .domain(['canonical', 'exon-skipping', 'cryptic-site'])
                      .range(['steelblue', '#db9625', '#7ba852']);
       }  else {
         self.arcColorScale = null;
@@ -1954,13 +1985,53 @@ export default {
 		 */
     selectSpliceJunction: function(d) {
     	let self = this;
+
+      var delaySelection = false;
+      self.snackbarText = ""
+      // Turn off the splice kind filter if it is set to exclude cryptic-site
+      if (self.selectedSpliceKind != null && self.selectedSpliceKind != 'cryptic-site') {
+        self.selectedSpliceKind = null;
+        self.snackbarText = "Removing splice junction kind filter in order to show selected splice junction."
+        delaySelection = true;
+
+      }
+      if (self.minUniquelyMappedReads != null || self.minUniquelyMappedReads > 0 || self.maxUniquelyMappedReads != null || self.maxUniquelyMappedReads > 0) {
+        let meetsBottomRange =  self.minUniquelyMappedReads == null || self.minUniquelyMappedReads == "" || +d.readCount >= self.minUniquelyMappedReads
+        let meetsTopRange = self.maxUniquelyMappedReads == null || self.maxUniquelyMappedReads == "" || +d.readCount <= self.maxUniquelyMappedReads
+        if (!meetsBottomRange || !meetsTopRange) {
+          self.minUniquelyMappedReads = meetsBottomRange ? self.minUniquelyMappedReads : 1;
+          self.maxUniquelyMappedReads = meetsTopRange ? self.maxUniquelyMappedReads : "";
+          self.readCountRange = null;
+          self.brushHist.extent([0,0])
+          d3.select("#all-histogram").select(".bounding-box.active").classed("active", false)
+
+          self.snackbarText += "\n\nRemoving splice junction read count filter in order to show selected splice junction."
+          delaySelection = true;
+
+        }
+      }
+
+      if (delaySelection) {
+        self.snackbarShow = true;
+        self.$nextTick(function() {
+          setTimeout(function() {
+            self._selectSpliceJunctionImpl(d)
+          }, 1000)
+        })
+      } else {
+        self._selectSpliceJunctionImpl(d)
+      }
+    },
+
+    _selectSpliceJunctionImpl: function(d) {
+      let self = this;
       self.showZoomPanel = true;
 
       // If this is the zoomed diagram, find the counterpart arc in the main chart
       let junctionMainChart = null;
       let nodeMainChart = null;
-     
-      let theSpliceJunctions = self.edgesForGene;
+
+      let theSpliceJunctions = self.filteredSpliceJunctions;
       if (theSpliceJunctions) {
      	  let matched = theSpliceJunctions.filter(function(edge) {
      		  return edge.key == d.key;
@@ -2451,8 +2522,8 @@ export default {
         .duration(200)
         .style("opacity", .9); 
 
-        // Show marker below donor pointer if site is noncanonical
-        if (self.clickedObject.donor.status && self.clickedObject.donor.status == 'noncanonical') {
+        // Show marker below donor pointer if site is cryptic-site
+        if (self.clickedObject.donor.status && self.clickedObject.donor.status == 'cryptic-site') {
           groupExon
           .select(".donor-problem")
           .attr("x", function(d1) {
@@ -2503,8 +2574,8 @@ export default {
         .duration(200)
         .style("opacity", .9); 
 
-        // Show marker below acceptor pointer if acceptor site is noncanonical
-        if (self.clickedObject.acceptor.status && self.clickedObject.acceptor.status == 'noncanonical') {
+        // Show marker below acceptor pointer if acceptor site is cryptic-site
+        if (self.clickedObject.acceptor.status && self.clickedObject.acceptor.status == 'cryptic-site') {
           groupSeq
           .select(".acceptor-problem")
           .attr("x", function(d1) {
@@ -2535,7 +2606,7 @@ export default {
 	    d3.selectAll("#zoomed-diagrams svg").remove()
 	    self.drawArcDiagram("#zoomed-diagrams", filteredEdgesClone, regionStart, regionEnd, 
           {'createBrush': false, 
-           'allEdges': self.edgesForGene, 
+           'allEdges': self.filteredSpliceJunctions,
            'showXAxis': true, 
            'marginRight': 0,
            'showJunctionArrow': true,
@@ -2576,15 +2647,15 @@ export default {
 			      .duration(200)
 			      .style("opacity", .9); 
 
-		      // Show an * below donor pointer if donor site is noncanonical
-		      if (d.donor.status && d.donor.status == 'noncanonical') {
+		      // Show an * below donor pointer if donor site is cryptic-site
+		      if (d.donor.status && d.donor.status == 'cryptic-site') {
 		     		d3.selectAll("#diagrams #transcript-diagram .donor-problem-small")
 		     		  .attr("x", function(d1) {
 									return (self.xTranscriptChart(d.donor.pos) ) 
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
               .text(function(d1) {
-                return d.donor.delta && d.donor.delta != 0 ? d.donor.delta : "!";
+                return d.donor.delta && d.donor.delta != 0 ? ((d.donor.delta > 0 ? '+' : '') + d.donor.delta) : "!";
               })
 							.transition()
 		      		.duration(200)
@@ -2602,15 +2673,15 @@ export default {
 			      .duration(200)
 			      .style("opacity", .9); 
 
-		      // Show an * below acceptor pointer if acceptor site is noncanonical
-		      if (d.acceptor.status && d.acceptor.status == 'noncanonical') {
+		      // Show an * below acceptor pointer if acceptor site is cryptic-site
+		      if (d.acceptor.status && d.acceptor.status == 'cryptic-site') {
 		     		d3.selectAll("#diagrams #transcript-diagram .acceptor-problem-small")
 		     		  .attr("x", function(d1) {
 									return (self.xTranscriptChart(d.acceptor.pos) ) 
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
               .text(function(d1) {
-                return d.acceptor.delta && d.acceptor.delta != 0 ? d.acceptor.delta : "!";
+                return d.acceptor.delta && d.acceptor.delta != 0 ? ((d.acceptor.delta > 0 ? '+' : '') + d.acceptor.delta) : "!";
               })
 							.transition()
 		      		.duration(200)
@@ -2632,15 +2703,15 @@ export default {
 			      .duration(200)
 			      .style("opacity", .9); 
 
-		      // Show an * below donor pointer if donor site is noncanonical
-		      if (d.donor.status && d.donor.status == 'noncanonical') {
+		      // Show an * below donor pointer if donor site is cryptic-site
+		      if (d.donor.status && d.donor.status == 'cryptic-site') {
 		     		d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-problem-small")
 		     		  .attr("x", function(d1) {
 									return (self.xTranscriptChartZoomed(d.donor.pos) ) 
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
               .text(function(d1) {
-                return d.donor.delta && d.donor.delta != 0 ? d.donor.delta : "!";
+                return d.donor.delta && d.donor.delta != 0 ? ((d.donor.delta > 0 ? '+' : '') + d.donor.delta) : "!";
               })							
               .transition()
 		      		.duration(200)
@@ -2659,15 +2730,15 @@ export default {
 			      .duration(200)
 			      .style("opacity", .9); 
 
-		      // Show an * below acceptor pointer if acceptor site is noncanonical
-		      if (d.acceptor.status && d.acceptor.status == 'noncanonical') {
+		      // Show an * below acceptor pointer if acceptor site is cryptic-site
+		      if (d.acceptor.status && d.acceptor.status == 'cryptic-site') {
 		     		d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-problem-small")
 		     		  .attr("x", function(d1) {
 									return (self.xTranscriptChartZoomed(d.acceptor.pos) ) 
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
               .text(function(d1) {
-                return d.acceptor.delta && d.acceptor.delta != 0 ? d.acceptor.delta : "!";
+                return d.acceptor.delta && d.acceptor.delta != 0 ? ((d.acceptor.delta > 0 ? '+' : '') + d.acceptor.delta) : "!";
               })							.transition()
 		      		.duration(200)
 		      		.style("opacity", .9); 
@@ -2693,15 +2764,15 @@ export default {
 			      .style("opacity", .9); 
 
 
-		      // Show an * below donor pointer if donor site is noncanonical
-		      if (d.donor.status && d.donor.status == 'noncanonical') {
+		      // Show an * below donor pointer if donor site is cryptic-site
+		      if (d.donor.status && d.donor.status == 'cryptic-site') {
 		     		d3.selectAll("#diagrams #transcript-diagram .donor-problem")
 		     		  .attr("x", function(d1) {
 									return (self.xTranscriptChart(d.donor.pos)) 
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerHeight + 2)
               .text(function(d1) {
-                return d.donor.delta && d.donor.delta != 0 ? d.donor.delta : "!";
+                return d.donor.delta && d.donor.delta != 0 ? ((d.donor.delta > 0 ? '+' : '') + d.donor.delta) : "!";
               })
 							.transition()
 		      		.duration(200)
@@ -2721,15 +2792,15 @@ export default {
 			      .style("opacity", .9); 
 
 
-		      // Show an * below acceptor pointer if acceptor site is noncanonical
-		      if (d.acceptor.status && d.acceptor.status == 'noncanonical') {
+		      // Show an * below acceptor pointer if acceptor site is cryptic-site
+		      if (d.acceptor.status && d.acceptor.status == 'cryptic-site') {
 		     		d3.selectAll("#diagrams #transcript-diagram .acceptor-problem")
 		     		  .attr("x", function(d1) {
 									return (self.xTranscriptChart(d.acceptor.pos) ) 
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerHeight + 2)
               .text(function(d1) {
-                return d.acceptor.delta && d.acceptor.delta != 0 ? d.acceptor.delta : "!";
+                return d.acceptor.delta && d.acceptor.delta != 0 ? ((d.acceptor.delta > 0 ? '+' : '') + d.acceptor.delta) : "!";
               })
 							.transition()
 		      		.duration(200)
@@ -2750,8 +2821,8 @@ export default {
 			      .style("opacity", .9);
 
 
-		      // Show an * below donor pointer if donor site is noncanonical
-		      if (d.donor.status && d.donor.status == 'noncanonical') {
+		      // Show an * below donor pointer if donor site is cryptic-site
+		      if (d.donor.status && d.donor.status == 'cryptic-site') {
 		     		d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-problem")
 		     		  .attr("x", function(d1) {
 									return (self.xTranscriptChartZoomed(d.donor.pos) ) 
@@ -2762,7 +2833,7 @@ export default {
 		      		.style("opacity", .9); 
             d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-problem") 
               .text(function(d1) {
-                return d.donor.delta && d.donor.delta != 0 ? d.donor.delta : "!";
+                return d.donor.delta && d.donor.delta != 0 ? ((d.donor.delta > 0 ? '+' : '') + d.donor.delta) : "!";
               })
 		      }
 
@@ -2776,8 +2847,8 @@ export default {
 			      .duration(200)
 			      .style("opacity", .9); 
 
-		      // Show an * below acceptor pointer if acceptor site is noncanonical
-		      if (d.acceptor.status && d.acceptor.status == 'noncanonical') {
+		      // Show an * below acceptor pointer if acceptor site is cryptic-site
+		      if (d.acceptor.status && d.acceptor.status == 'cryptic-site') {
 		     		d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-problem")
 		     		  .attr("x", function(d1) {
 									return (self.xTranscriptChartZoomed(d.acceptor.pos) ) 
@@ -2788,7 +2859,7 @@ export default {
 		      		.style("opacity", .9); 
             d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-problem") 
             .text(function(d1) {
-              return d.acceptor.delta && d.acceptor.delta != 0 ? d.acceptor.delta : "!";
+              return d.acceptor.delta && d.acceptor.delta != 0 ? ((d.acceptor.delta > 0 ? '+' : '') + d.acceptor.delta) : "!";
             })
   
 		      }
@@ -3507,7 +3578,7 @@ export default {
 
 
       // set the dimensions and margins of the graph
-      var margin = {top: 5, right: 0, bottom: 35, left: 75},
+      var margin = {top: 5, right: 0, bottom: 35, left: 80},
           width = 250 - margin.left - margin.right,
           height = 120 - margin.top - margin.bottom;
 
@@ -3536,7 +3607,7 @@ export default {
 
 
       let y = d3.scaleBand()
-        .domain(['canonical', 'alternate', 'noncanonical'])
+        .domain(['canonical', 'exon-skipping', 'cryptic-site'])
         .rangeRound([0, height])
         .paddingInner(.1)
         .align(.5)
@@ -3586,8 +3657,8 @@ export default {
         .attr("y", function(d) { return y(d.key);})
         .attr("fill", function(d) {
           let keyToColor = {'canonical': 'steelblue',
-                            'alternate': '#db9625',
-                            'noncanonical': '#7ba852'};
+                            'exon-skipping': '#db9625',
+                            'cryptic-site': '#7ba852'};
           return keyToColor[d.key]
         })
         .attr("stroke", "#000")
@@ -3681,19 +3752,25 @@ export default {
     	d3.selectAll("#arc-diagram").classed("hide-labels", !this.showLabels)
     },
     variants: function() {
+      let self = this;
       if (this.variants && this.variants.length > 0) {
-        this.drawVariantDiagram('#diagrams #variant-diagram', this.geneStart, this.geneEnd, this.variants)
+        self.$nextTick(function() {
+          setTimeout(function() {
+            self.drawVariantDiagram('#diagrams #variant-diagram', self.geneStart, self.geneEnd, self.variants)
+
+          }, 2000)
+        })
       }
     },
     scaleYHist: function() {
       let self = this;
       d3.selectAll("#canonical-histogram #read-count-histogram svg").remove();
-      d3.selectAll("#alternate-histogram #read-count-histogram svg").remove();
-      d3.selectAll("#noncanonical-histogram #read-count-histogram svg").remove();
+      d3.selectAll("#exon-skipping-histogram #read-count-histogram svg").remove();
+      d3.selectAll("#cryptic-site-histogram #read-count-histogram svg").remove();
 
       self.drawReadCountHistogram('#canonical-histogram', 'canonical', 'Canonical', {}, self.readCountRange);
-      self.drawReadCountHistogram('#alternate-histogram', 'alternate', 'Alternate', {}, self.readCountRange);
-      self.drawReadCountHistogram('#noncanonical-histogram', 'noncanonical', 'Non-canonical', {}, self.readCountRange);
+      self.drawReadCountHistogram('#exon-skipping-histogram', 'exon-skipping', 'Exon-skipping', {}, self.readCountRange);
+      self.drawReadCountHistogram('#cryptic-site-histogram', 'cryptic-site', 'Cryptic-site', {}, self.readCountRange);
     }
   }
 }
@@ -3756,39 +3833,38 @@ svg path.junction {
 
 
 svg .junction.selected {
-	stroke: #03a9f4;
   opacity: 1;
+  fill: #fed3574d;
 }
 svg .junction.selected.clicked {
-	stroke: #03a9f4;
+  fill: #fcc10059;
   opacity: 1;
 }
-svg .junction.end.selected.clicked {
-  fill: #03a9f4 !important;
-}
+
 svg .junction.clicked {
-	stroke: #03a9f4;
+  fill: #fcc10059;
+  opacity: 1;
+}
+
+
+#zoomed-diagrams svg .junction.clicked {
+  fill: #fcc10059 !important;
+  opacity: 1;
+}
+#zoomed-diagrams svg .junction.selected {
+  fill: #fed3574d;
   opacity: 1;
 }
 
 svg text.junction.selected {
-	font-weight: 600;
-	fill: #03a9f4;
-	font-size: 12px;
+  font-weight: 600;
+  fill: #03a9f4;
+  font-size: 12px;
 }
 svg text.junction.clicked {
-	font-weight: 600;
-	fill: #03a9f4;
-	font-size: 13px;
-}
-
-#zoomed-diagrams svg .junction.clicked {
-  stroke: #03a9f4;
-  opacity: 1;
-}
-#zoomed-diagrams svg .junction.selected {
-  stroke: #03a9f4;
-  opacity: 1;
+  font-weight: 600;
+  fill: #03a9f4;
+  font-size: 13px;
 }
 
 
@@ -3949,13 +4025,13 @@ text.junction {
 	display: none;
 }
 
-#label-cb, #show-matching-strand-only-cb, #show-noncanonical-only-cb {
+#label-cb, #show-matching-strand-only-cb, #show-cryptic-site-only-cb {
 	height: 45px;
 }
 #show-matching-strand-only-cb {
 	width: 200px;
 }
-#label-cb label, #show-matching-strand-only-cb label, #show-noncanonical-only-cb label  {
+#label-cb label, #show-matching-strand-only-cb label, #show-cryptic-site-only-cb label  {
 	font-size: 13px !important;
   padding-top: 3px !important;
   line-height: 15px !important
@@ -4031,7 +4107,7 @@ text.seq.T, rect.seq.T {
 }
 
 #zoomed-diagrams .junction {
-  opacity: 1
+  opacity: .7
 }
 
 
@@ -4091,7 +4167,7 @@ text.seq.T, rect.seq.T {
     .histogram-bar
       fill: gray
 
-#noncanonical-histogram
+#cryptic-site-histogram
   #read-count-histogram
     .histogram-bar
       fill: #7ba852
@@ -4101,7 +4177,7 @@ text.seq.T, rect.seq.T {
     .histogram-bar
       fill: steelblue 
 
-#alternate-histogram
+#exon-skipping-histogram
   #read-count-histogram
     .histogram-bar
       fill: #db9625

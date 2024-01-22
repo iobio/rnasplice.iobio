@@ -389,7 +389,7 @@ export default {
 
     },
     selectSpliceJunction: function(spliceJunction) {
-      // this is called when the user clicked on a non-canonical
+      // this is called when the user clicked on a cryptic-site
       // splice junction in the genes panel. This should result in
       // the splice junction being selected in the main arc diagram
       if (this.$refs.ref_SpliceJunctionHome) {

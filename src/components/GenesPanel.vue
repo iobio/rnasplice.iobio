@@ -43,9 +43,9 @@
           </template>
           <template v-slot:text>
             <div v-if="getSummary(geneName)">
-              <h3 style="color: #7ba852 !important;">Non-canonical splice junctions
+              <h3 style="color: #7ba852 !important;">Cryptic-site splice junctions
                 <v-chip v-if="getSummary(geneName)" color="#7ba852" class="ml-8" size="small" >
-                      {{ getSummary(geneName).noncanonical.length }}
+                      {{ getSummary(geneName).crypticSite.length }}
                 </v-chip>
                     
               </h3>
@@ -64,7 +64,7 @@
 
 
 
-                <div  v-for="spliceJunction, idx in getSummary(geneName).noncanonical"
+                <div  v-for="spliceJunction, idx in getSummary(geneName).crypticSite"
                   :key="spliceJunction.key" 
                   :class="`d-flex splice-junction-entry` + (selectedObject && selectedObject.key == spliceJunction.key ? ` selected` : ``)"
                    @click="onSelectSpliceJunction(spliceJunction, geneName)" flat density="compact">

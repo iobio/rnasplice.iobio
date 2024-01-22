@@ -104,7 +104,7 @@ import RNASeqIGV   from './RNASeqIGV.vue'
                   labelIsAnnotatedJunction: " [A]",
                   hideAnnotatedJunctions: false,
                   hideUnannotatedJunctions: false,
-                  hideMotifs: ['GT/AT', 'non-canonical'], //options: 'GT/AG', 'CT/AC', 'GC/AG', 'CT/GC', 'AT/AC', 'GT/AT', 'non-canonical'
+                  hideMotifs: ['GT/AT', 'cryptic-site'], //options: 'GT/AG', 'CT/AC', 'GC/AG', 'CT/GC', 'AT/AC', 'GT/AT', 'cryptic-site'
               }
 
             ]          

@@ -75,6 +75,11 @@
             </div>
             
           </v-card-text>
+          <div class="d-flex">
+            <v-btn variant="text" density="compact" @click="demoNumber='demo2';onTryDemoBed()">Demo</v-btn>
+            <v-btn variant="text" density="compact" @click="demoNumber='demo1';onTryDemoBed()">1099</v-btn>
+            <v-btn variant="text" density="compact" @click="demoNumber='demo3';onTryDemoBed()">R2003</v-btn>
+          </div>
           <v-card-actions  class="mt-4">
             <v-btn type="submit" class="mt-1" v-if="false" density="compact" size="medium" color="primary" variant="tonal" @click="onTryDemoBed">Load demo data</v-btn>
 
@@ -106,6 +111,7 @@ export default {
         vcfURL: null,
         tbiURL: null,
         selectedSampleName: null,
+        demoNumber: 'demo3',
 
         urlRegExp: /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi,
             
@@ -120,6 +126,11 @@ export default {
             'bedURL': "splice_junction_track_test_cases_sampleA.chr15-92835700-93031800.SJ.out.bed.gz?dl=0",
             'bedIndexURL': "https://www.dropbox.com/s/iv5tcg3t8v3xu23/splice_junction_track_test_cases_sampleA.chr15-92835700-93031800.SJ.out.bed.gz.tbi?dl=0",
             'bigwigURL': "https://www.dropbox.com/s/8j2uf0hsqprusnc/splice_junction_track_test_cases_sampleA.chr15-92835700-93031800.bigWig?dl=0"
+          },
+          'demo3': {
+            'bedURL': "https://s3.amazonaws.com/tony.splicejunction.bed/R2003-01.SJ.out.bed.gz",
+            "bedIndexURL": "https://s3.amazonaws.com/tony.splicejunction.bed/R2003-01.SJ.out.bed.gz.tbi",
+            'bigwigURL': "https://s3.amazonaws.com/tony.splicejunction.bed/R2003-01.Aligned.out.bw"
           }
         },
 
@@ -246,8 +257,9 @@ export default {
         this.$emit("cancel" )
       },
       onTryDemoBed: function() {
-        this.bedURL = this.demoInfo.demo1.bedURL;
-        this.bigwigURL = this.demoInfo.demo1.bigwigURL;
+        let self = this;
+        this.bedURL = this.demoInfo[self.demoNumber].bedURL;
+        this.bigwigURL = this.demoInfo[self.demoNumber].bigwigURL;
       }
     },
     watch: {

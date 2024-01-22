@@ -848,12 +848,12 @@ class GeneModel {
         } 
       }
 
-      if (donor.status == 'noncanonical' || acceptor.status == 'noncanonical') {
-        spliceKind = 'noncanonical'
+      if (donor.status == 'cryptic-site' || acceptor.status == 'cryptic-site') {
+        spliceKind = 'cryptic-site'
       }
 
       if (countSkippedExons > 0 && spliceKind == 'canonical') {
-        spliceKind = 'alternate'
+        spliceKind = 'exon-skipping'
       }
 
       let donorLabel = "";
@@ -913,7 +913,7 @@ class GeneModel {
       }
     })
     .filter(function(spliceJunction) {
-      return spliceJunction.readCount > 0;
+      return spliceJunction.readCount > 0 && (spliceJunction.strand == 'undefined' || spliceJunction.strand == "" || geneObject.strand == spliceJunction.strand) ;
     })
 
     self.geneToSpliceJunctionObjects[geneObject.gene_name] = spliceJunctions;
@@ -934,15 +934,15 @@ class GeneModel {
     let spliceJunctions = self.geneToSpliceJunctionObjects[geneObject.gene_name];
     if (spliceJunctions) {
       
-      let nonCanonicalSplice = spliceJunctions.filter(function(spliceJunction) {
-        return spliceJunction.spliceKind == 'noncanonical';
+      let crypticSiteSplice = spliceJunctions.filter(function(spliceJunction) {
+        return spliceJunction.spliceKind == 'cryptic-site';
       })
       .sort(function(a,b) {
         return b.readCount - a.readCount;
       })
 
-      let alternateSplice = spliceJunctions.filter(function(spliceJunction) {
-        return spliceJunction.spliceKind == 'canonical' && spliceJunction.countSkippedExons > 0;
+      let exonSkippingSplice = spliceJunctions.filter(function(spliceJunction) {
+        return spliceJunction.spliceKind == 'exon-skipping';
       })
       let canonicalSplice = spliceJunctions.filter(function(spliceJunction) {
         return spliceJunction.spliceKind == 'canonical';
@@ -952,15 +952,15 @@ class GeneModel {
       let minReadCountCanonical  = d3.min(canonicalSplice, d => d.readCount)
       let maxReadCountCanonical  = d3.max(canonicalSplice, d => d.readCount)
 
-      let meanReadCountNoncanonical = Math.round(d3.mean(nonCanonicalSplice, d => +d.readCount))
-      let stdReadCountNoncanonical  = Math.round(d3.deviation(nonCanonicalSplice, d => +d.readCount))
-      let minReadCountNoncanonical  = d3.min(nonCanonicalSplice, d => d.readCount)
-      let maxReadCountNoncanonical  = d3.max(nonCanonicalSplice, d => d.readCount)
+      let meanReadCountCrypticSite = Math.round(d3.mean(crypticSiteSplice, d => +d.readCount))
+      let stdReadCountCrypticSite  = Math.round(d3.deviation(crypticSiteSplice, d => +d.readCount))
+      let minReadCountCrypticSite  = d3.min(crypticSiteSplice, d => d.readCount)
+      let maxReadCountCrypticSite  = d3.max(crypticSiteSplice, d => d.readCount)
 
       summary = {
           'canonical':              canonicalSplice,
-          'noncanonical':           nonCanonicalSplice, 
-          'alternateSplice':        alternateSplice,
+          'crypticSite':            crypticSiteSplice,
+          'exonSkippingSplice':     exonSkippingSplice,
           'count':                  spliceJunctions.length,
 
           'meanReadCountCanonical': meanReadCountCanonical,
@@ -968,10 +968,10 @@ class GeneModel {
           'minReadCountCanonical':  minReadCountCanonical,
           'maxReadCountCanonical':  maxReadCountCanonical,
 
-          'meanReadCountNoncanonical': meanReadCountNoncanonical,
-          'stdReadCountNoncanonical':  stdReadCountNoncanonical,
-          'minReadCountNoncanonical':  minReadCountNoncanonical,
-          'maxReadCountNoncanonical':  maxReadCountNoncanonical
+          'meanReadCountCrypticSite': meanReadCountCrypticSite,
+          'stdReadCountCrypticSite':  stdReadCountCrypticSite,
+          'minReadCountCrypticSite':  minReadCountCrypticSite,
+          'maxReadCountCrypticSite':  maxReadCountCrypticSite
       }
       self.geneToSpliceJunctionSummary[geneObject.gene_name] = summary;
     }
@@ -1094,7 +1094,7 @@ class GeneModel {
             // The acceptor site is 1 bp after the exon end.
             start = isExact ? +exon.end + 1 : +exon.start;
             end   = isExact ? +exon.end + 1 : +exon.end; 
-            delta = thePosition - end;
+            delta = (thePosition - end);
           } else {
             // The acceptor site is 2 bp before the exon start
             start = isExact ? +exon.start - 2 : +exon.start;
@@ -1106,7 +1106,7 @@ class GeneModel {
             // The donor site is 2 bp before the exon start
             start = isExact ? +exon.start - 2 : +exon.start;
             end   = isExact ? +exon.start - 2 : +exon.end;
-            delta = thePosition - start;
+            delta = (thePosition - start);
           } else {
             // The donor site is 1 bp after the exon end
             start = isExact ? +exon.end + 1 : +exon.start;
@@ -1125,7 +1125,7 @@ class GeneModel {
                 'delta': matched[0].delta,
                 'boundaryStart': matched[0].start, 
                 'boundaryEnd': matched[0].end, 
-                'status': isExact ? 'canonical' : 'noncanonical' };
+                'status': isExact ? 'canonical' : 'cryptic-site' };
       } else {
         return null;
       }      
@@ -1179,7 +1179,7 @@ class GeneModel {
     return {'transcript': transcript, 
             'closestExon': exonClosest, 
             'betweenExons': betweenExons,
-            'status': 'noncanonical'};
+            'status': 'cryptic-site'};
   }
 
   getCanonicalTranscriptOld(theGeneObject) {

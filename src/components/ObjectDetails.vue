@@ -8,8 +8,8 @@
           <div class="d-flex flex-row align-center"> 
             Splice Junction
             <div class="d-flex flex-row ml-4" style="height:26px;">
-              <v-chip color="#7ba852"  size="small" v-if="selectedObject.spliceKind == 'noncanonical'">Non-canonical splice</v-chip>
-              <v-chip color="primary"  size="small" v-if="selectedObject.spliceKind=='canonical' && selectedObject.countSkippedExons > 0">Alternate splice</v-chip>
+              <v-chip color="#7ba852"  size="small" v-if="selectedObject.spliceKind == 'cryptic-site'">Cryptic-site splice</v-chip>
+              <v-chip color="#c57a02"  size="small" v-if="selectedObject.spliceKind=='exon-skipping'">Exon-skipping</v-chip>
             </div>
           </div>
         </h2>
@@ -36,12 +36,12 @@
         <div class="d-flex flex-row">
           <div class="so-label">
             Donor
-            <v-chip size="x-small" color="#7ba852" v-if="selectedObject.donor.status == 'noncanonical'">{{ `noncanonical`}}
+            <v-chip size="x-small" color="#7ba852" v-if="selectedObject.donor.status == 'cryptic-site'">{{ `cryptic-site`}}
              </v-chip>
           </div>
           <div class="so-value">
              {{ selectedObject.donor.label }}
-             <span v-if="debug && selectedObject.donor.exon && selectedObject.donor.status == 'noncanonical' "> 
+             <span v-if="debug && selectedObject.donor.exon && selectedObject.donor.status == 'cryptic-site' ">
                  <span :style="selectedGene.strand == `-` ? `font-style:italic;color:red` : ``">                 
                   {{ selectedObject.donor.exon.start }}
                  </span>
@@ -62,8 +62,8 @@
           <div class="so-value">{{ selectedObject.donor.pos }} </div>
         </div>
         <div v-if="selectedObject.donor.delta && selectedObject.donor.delta != 0" class="d-flex flex-row">
-          <div class="so-label indent ">Distance to canonical site</div>
-          <div class="so-value">{{ selectedObject.donor.delta * -1 > 0 ? '+': ''}}{{ selectedObject.donor.delta * -1 }} bp</div>
+          <div class="so-label indent ">Pos relative to exon boundary</div>
+          <div class="so-value">{{ selectedObject.donor.delta }}{{ selectedObject.donor.delta  > 0 ? ' (donor site is upstream the exon boundary)': ' donor site is downstream the exon boundary)'}}</div>
         </div>
         <div v-if="selectedObject.donor.exonClosest" class="d-flex flex-row">
           <div class="so-label indent">Closest exon to donor</div>
@@ -75,12 +75,12 @@
         <div class="d-flex flex-row">
           <div class="so-label">
              Acceptor
-             <v-chip size="x-small" color="#7ba852" v-if="selectedObject.acceptor.status == 'noncanonical'">{{ `noncanonical`}}
+             <v-chip size="x-small" color="#7ba852" v-if="selectedObject.acceptor.status == 'cryptic-site'">{{ `cryptic-site`}}
              </v-chip>
           </div>
           <div class="so-value">
              {{ selectedObject.acceptor.label }}
-             <span v-if="debug && selectedObject.acceptor.exon && selectedObject.acceptor.status == 'noncanonical'"> 
+             <span v-if="debug && selectedObject.acceptor.exon && selectedObject.acceptor.status == 'cryptic-site'">
                  <span :style="selectedGene.strand == `+` ? `font-style:italic;color:red` : ``">                 
                   {{ selectedObject.acceptor.exon.start }}
                  </span>
@@ -100,8 +100,8 @@
           <div class="so-value">{{ selectedObject.acceptor.pos }}</div>
         </div>
         <div v-if="selectedObject.acceptor.delta && selectedObject.acceptor.delta != 0" class="d-flex flex-row">
-          <div class="so-label indent">Distance to canonical site</div>
-          <div class="so-value">{{ selectedObject.acceptor.delta * -1 > 0 ? '+': ''}}{{ selectedObject.acceptor.delta * -1 }} bp</div>
+          <div class="so-label indent">Pos relative to exon boundary</div>
+          <div class="so-value">{{ selectedObject.acceptor.delta }}{{ selectedObject.acceptor.delta  > 0 ? ' (acceptor site is  upstream exon boundary)': '  (acceptor site is downstream the exon boundary)'}}</div>
         </div>
 
         <div v-if="selectedObject.acceptor.exonClosest" class="d-flex flex-row">
