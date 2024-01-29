@@ -8,7 +8,11 @@
 
         <v-card style="width:900px">
           <v-card-title> 
-            Load data files
+              <div class="d-flex" style="align-items:center">
+                Load data files
+                <v-btn style="margin-left:40px" variant="text" density="compact" @click="demoNumber='demo1';onTryDemoBed()">Load 1099</v-btn>
+                <v-btn variant="text" density="compact" @click="demoNumber='demo3';onTryDemoBed()">Load R2003</v-btn>
+              </div>
           </v-card-title>
           <v-card-text id="load-data-dialog-content">
 
@@ -75,11 +79,6 @@
             </div>
             
           </v-card-text>
-          <div class="d-flex">
-            <v-btn variant="text" density="compact" @click="demoNumber='demo2';onTryDemoBed()">Demo</v-btn>
-            <v-btn variant="text" density="compact" @click="demoNumber='demo1';onTryDemoBed()">1099</v-btn>
-            <v-btn variant="text" density="compact" @click="demoNumber='demo3';onTryDemoBed()">R2003</v-btn>
-          </div>
           <v-card-actions  class="mt-4">
             <v-btn type="submit" class="mt-1" v-if="false" density="compact" size="medium" color="primary" variant="tonal" @click="onTryDemoBed">Load demo data</v-btn>
 
@@ -111,7 +110,7 @@ export default {
         vcfURL: null,
         tbiURL: null,
         selectedSampleName: null,
-        demoNumber: 'demo3',
+        demoNumber: 'demo1',
 
         urlRegExp: /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi,
             

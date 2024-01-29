@@ -137,6 +137,9 @@
 	  <div id="arc-diagram" class="hide-labels" style="margin-top:-7px">
 	  </div>
 
+    <div id="coverage-diagram">
+    </div>
+
     <div id="selected-transcript-panel" v-show="showTranscriptMenu" style="margin-top:-7px">
 
 		  <div id="transcript-diagram" >
@@ -259,6 +262,9 @@
 </template>
 <script>
 
+
+import AreaChart               from '@/components/AreaChart.js'
+
 export default {
   name: 'SpliceJunctionD3',
   components: {
@@ -275,7 +281,8 @@ export default {
     variants: Array,
     variantHeight: Number,
     variantWidth: Number,
-    vcf: Object
+    vcf: Object,
+    covData: Array
   },
   data: () => ({
 		// GLOBALS
@@ -363,7 +370,7 @@ export default {
     ],
 
     snackbarText: '',
-    snackbarShow: false
+    snackbarShow: false,
 
 	}),
   methods: {
@@ -379,9 +386,10 @@ export default {
 	  				self.showLoading = false;
 	  				self.loadDiagram();
 	  			} else {
-	  				d3.selectAll('#diagrams svg').remove();
-				    d3.selectAll('#zoomed-diagrams svg').remove();
-            d3.selectAll('#site-diagrams svg').remove();
+            d3.selectAll('#diagrams #arc-diagram svg').remove();
+            d3.selectAll('#diagrams #selected-transcript-panel svg').remove();
+            d3.selectAll('#diagrams #variant-diagram svg').remove();
+            d3.selectAll('#diagrams #brushable-axis svg').remove();
 				    self.showLoading = true;
 
 	  			}
@@ -464,11 +472,15 @@ export default {
 
 		    self.xArcDiagram = null;
 
-		    d3.selectAll('#diagrams svg').remove();
-		    d3.selectAll('#zoomed-diagrams svg').remove();
+        d3.selectAll('#diagrams #arc-diagram svg').remove();
+        d3.selectAll('#diagrams #selected-transcript-panel svg').remove();
+        d3.selectAll('#diagrams #variant-diagram svg').remove();
+		    d3.selectAll('#diagrams #brushable-axis svg').remove();
+        d3.selectAll('#zoomed-diagrams svg').remove();
 
 		    self.drawBrushableAxis("#diagrams", self.geneStart, self.geneEnd)
         self.showZoomPanel = false;
+
 		    self.drawArcDiagram('#diagrams', self.filteredSpliceJunctions, self.geneStart, self.geneEnd,
 		    	{'createBrush': false, 'isZoomedRegion': false});
         self.drawArcColorLegend('#arc-color-legend')
@@ -481,7 +493,6 @@ export default {
 		    self.drawTranscriptDiagram('#transcript-menu-panel #transcript-menu-diagram', self.selectedGene, self.geneStart, self.geneEnd, 
 		    	{'selectedTranscriptOnly': false, 'allowSelection': true});	
         self.showTranscriptMenu = true;
-
 
         self.drawBrushableHistAxis('#all-histogram');
 
@@ -1297,6 +1308,24 @@ export default {
 	    pathStr += ' L ' + d.x + ' ' + parseInt(height + arrowHeight)/2;
 	    return pathStr;
 	  },
+
+    drawCoverageDiagram: function(container, regionStart, regionEnd, options) {
+      let self = this;
+      /*
+      d3.select(container).select('svg').remove();
+      self.areaChart = AreaChart(self.covData, {
+                                 container: container,
+                                 x: d => d[0],
+                                 y: d => d[1],
+                                 yLabel: "Coverage",
+                                 width: self.$el.offsetWidth - 20,
+                                 yDomain: [0, d3.max(self.covData, d=> d[1])],
+                                 height: 130,
+                                 color: "steelblue"
+                                })
+      */
+
+    },
 		
 		drawArcDiagram: function(container, edges, regionStart, regionEnd, options) {
 			let self = this;
@@ -2199,8 +2228,8 @@ export default {
 
 		  // dimensions
 			var width =  self.$el.offsetWidth/2;
-		  var height = 100;
-		  var margin = {top: 20, right: 10, bottom: 0, left: 15};
+		  var height = 115;
+		  var margin = {top: 20, right: 10, bottom: 15, left: 15};
 
 		  var innerWidth  = width - margin.left - margin.right;
 		  var innerHeight = height - margin.top - margin.bottom;
@@ -3721,6 +3750,13 @@ export default {
   	selectedGene: function() {
   		this.onDataChanged();
   	},
+    covData: function() {
+      if (this.covData && this.covData.length > 0) {
+        this.drawCoverageDiagram('#coverage-diagram')
+      } else {
+        d3.select('#coverage-diagram svg').remove();
+      }
+    },
   	tab: function() {
       if (this.tab == 'tab-2') {
         this.onDataChanged();
@@ -4233,5 +4269,12 @@ text.seq.T, rect.seq.T {
 .v-input__control
   input
     font-size: 14px !important
+
+#coverage-diagram
+  svg
+    path
+      fill: #5757578f
+      stroke: black
+      stroke-width: .5
 
 </style>

@@ -191,6 +191,83 @@ export default class EndpointCmd {
     })
   }
 
+  promiseGetBamCoverage(url, indexUrl, refName, regionStart, regionEnd, maxPoints) {
+    const self = this;
+    return new Promise(function(resolve, reject) {
+
+      const region = {refName, start: regionStart, end: regionEnd};
+
+      let cmd = self.api.streamCommand('alignmentCoverage', {
+          'url': url,
+          'indexUrl': indexUrl,
+          'samtoolsRegion': region,
+          'maxPoints': maxPoints,
+          'coverageRegions': []
+      });
+
+      var covData = "";
+      cmd.on('data', function(data) {
+        if (data == undefined) {
+          return;
+        }
+
+        covData += data;
+      });
+
+      cmd.on('end', function() {
+
+        if (covData != "") {
+          var coverage = null;
+          var coverageForPoints = [];
+          var coverageForRegion = [];
+          var lines = covData.split('\n');
+          lines.forEach(function(line) {
+            if (line.indexOf("#specific_points") == 0) {
+              coverage = coverageForPoints;
+            } else if (line.indexOf("#reduced_points") == 0 ) {
+              coverage = coverageForRegion;
+            } else {
+              var fields = line.split('\t');
+              var pos = -1;
+              var depth = -1;
+              if (fields[0] != null && fields[0] != '') {
+                var pos   = +fields[0];
+              }
+              if (fields[1] != null && fields[1] != '') {
+                var depth = +fields[1];
+              }
+              if (coverage){
+                if (pos > -1  && depth > -1) {
+                  coverage.push([pos, depth]);
+                }
+              }
+            }
+          });
+        }
+        var coverageForRegionSum = 0;
+        coverageForRegion.forEach(function(d) {
+          coverageForRegionSum += d[1]
+        })
+        if (coverageForRegionSum > 0) {
+          resolve({'coverageForRegion': coverageForRegion,
+                   'coverageForPoints': coverageForPoints,})
+        } else {
+          reject({'message': "No data returned from backend service getBamCoverage",
+                  'details': 'Zero coverage returned from backend service getBamCoverage'})
+        }
+      });
+
+      cmd.on('error', function(error) {
+        let msgObj = {'message': "Backend service getBamCoverage failed",
+                        'details': error.toString()}
+          reject(msgObj);
+      });
+
+      cmd.run();
+    })
+  }
+
+
   getRevelUrl(build) {
     return './vep-cache/' + build + '_revel_all_chromosomes_for_vep.tsv.gz';
   }
