@@ -8,7 +8,7 @@
           <div class="d-flex flex-row align-center"> 
             Splice Junction
             <div class="d-flex flex-row ml-4" style="height:26px;">
-              <v-chip color="#7ba852"  size="small" v-if="selectedObject.spliceKind == 'cryptic-site'">Cryptic-site splice</v-chip>
+              <v-chip color="#e66a7f"  size="small" v-if="selectedObject.spliceKind == 'cryptic-site'">Cryptic-site splice</v-chip>
               <v-chip color="#c57a02"  size="small" v-if="selectedObject.spliceKind=='exon-skipping'">Exon-skipping</v-chip>
             </div>
           </div>
@@ -36,7 +36,7 @@
         <div class="d-flex flex-row">
           <div class="so-label">
             Donor
-            <v-chip size="x-small" color="#7ba852" v-if="selectedObject.donor.status == 'cryptic-site'">{{ `cryptic-site`}}
+            <v-chip size="x-small" color="#e66a7f" v-if="selectedObject.donor.status == 'cryptic-site'">{{ `cryptic-site`}}
              </v-chip>
           </div>
           <div class="so-value">
@@ -75,7 +75,7 @@
         <div class="d-flex flex-row">
           <div class="so-label">
              Acceptor
-             <v-chip size="x-small" color="#7ba852" v-if="selectedObject.acceptor.status == 'cryptic-site'">{{ `cryptic-site`}}
+             <v-chip size="x-small" color="#e66a7f" v-if="selectedObject.acceptor.status == 'cryptic-site'">{{ `cryptic-site`}}
              </v-chip>
           </div>
           <div class="so-value">

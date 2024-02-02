@@ -43,8 +43,8 @@
           </template>
           <template v-slot:text>
             <div v-if="getSummary(geneName)">
-              <h3 style="color: #7ba852 !important;">Cryptic-site splice junctions
-                <v-chip v-if="getSummary(geneName)" color="#7ba852" class="ml-8" size="small" >
+              <h3 style="color: #e66a7f !important;">Cryptic-site splice junctions
+                <v-chip v-if="getSummary(geneName)" color="#e66a7f" class="ml-8" size="small" >
                       {{ getSummary(geneName).crypticSite.length }}
                 </v-chip>
                     

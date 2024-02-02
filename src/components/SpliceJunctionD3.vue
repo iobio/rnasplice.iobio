@@ -30,8 +30,8 @@
 						<v-checkbox 
 						  hide-details="true"
               density="compact"
-				      v-model="showLabels"
-				      label="Show read count labels"
+				      v-model="showReadCounts"
+				      label="Show read counts"
 				    ></v-checkbox>
 			    </div>
 
@@ -134,7 +134,7 @@
       <svg/>
     </div>
 
-	  <div id="arc-diagram" class="hide-labels" style="margin-top:-7px">
+	  <div id="arc-diagram" class="hide-read-counts" style="margin-top:-7px">
 	  </div>
 
     <div id="coverage-diagram">
@@ -183,7 +183,7 @@
     <div id="variant-diagram">
       <svg/>
     </div>
-    <div id="arc-diagram" class="hide-labels">
+    <div id="arc-diagram" class="hide-read-counts">
 	    <svg/>
 	  </div>
 	  <div id="transcript-diagram">
@@ -295,6 +295,8 @@ export default {
     selectedSpliceKind: null,
 
 		regionIsSelected: false,
+    brushRegionStart: null,
+    brushRegionEnd: null,
 
 		selectedTranscript: null,
 		filteredSpliceJunctions: null,
@@ -312,7 +314,7 @@ export default {
     scaleYHist: 'normal',
     readCountRange: null,
 
-		showLabels: false,
+		showReadCounts: false,
 		junctionsToShow: null,
     showTranscriptMenu: false,
 
@@ -632,6 +634,8 @@ export default {
 		  	self.regionIsSelected = true;
 		    let regionStart = self.xBrushable.invert(extent[0]);
 		    let regionEnd   = self.xBrushable.invert(extent[1]);
+        self.brushRegionStart = regionStart;
+        self.brushRegionEnd = regionEnd;
 
 		    self.showSelectionBox("#diagrams #arc-diagram svg", regionStart, regionEnd, 
 		    	                    self.xArcDiagram )
@@ -662,6 +666,7 @@ export default {
              'showJunctionArrow': true,
              'isZoomedRegion': true})
 
+
 			    self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram", self.selectedGene, regionStart, regionEnd, 
 			      {'selectedTranscriptOnly': true, 'allowSelection': false, 'marginRight': 0})
 
@@ -685,6 +690,8 @@ export default {
 		    d3.select("#zoomed-diagrams").select("#transcript-diagram svg").remove();
         d3.select("#zoomed-diagrams").select("#variant-diagram svg").remove();
 		    self.regionIsSelected = false;
+        self.brushRegionStart = null;
+        self.brushRegionEnd = null;
 		    d3.select("#diagrams #arc-diagram svg .bounding-box.active").classed("active", false)
 		    d3.select("#diagrams #transcript-diagram svg .bounding-box.active").classed("active", false)
         d3.select("#diagrams #variant-diagram svg .bounding-box.active").classed("active", false)
@@ -789,6 +796,8 @@ export default {
 		  d3.select("#diagrams").selectAll(".handle").remove();
 		  
 		  self.regionIsSelected = false;
+      self.brushRegionStart = null;
+      self.brushRegionEnd = null;
 		},
 
 		addBrushing: function() {
@@ -1343,7 +1352,7 @@ export default {
 		  }
 
 		  // dimensions
-		  var margin = {top: (options.showXAxis ? 35 : 10), 
+		  var margin = {top: (options.showXAxis ? 40 : 10),
                    right: (options.hasOwnProperty('marginRight') ? options.marginRight : 5), 
                    bottom: 0, 
                    left: 0};
@@ -1390,7 +1399,7 @@ export default {
       var axisGroup = svg  
       .append("g")
       .attr("transform",
-            "translate(" + margin.left + "," + (margin.top - 10) + ")")
+            "translate(" + margin.left + "," + (margin.top - 15) + ")")
 
       if (options.showXAxis) {
         var tickFormatter = function(d) {
@@ -1415,7 +1424,7 @@ export default {
             .attr('d', function(d) {
               return self.centerArrow(d, innerHeight, 15)
             })
-            .style('transform', 'translate(-10px, -' + (margin.top - 3) + 'px)') 
+            .style('transform', 'translate(-10px, -' + (margin.top - 10) + 'px)')
       }
 
 		  if (options && options.createBrush) {
@@ -1426,8 +1435,7 @@ export default {
 		      )       
 		  }
 
-
-      var arcColors = ['#7ba852', '#59749e', '#6491cb', '#db9625', '#FD7049' ]
+      var arcColors = ['#e66a7f', '#59749e', '#6491cb', '#db9625', '#FD7049' ]
 
 		  if (self.colorBy == 'motif') {
 			  let motifMap = {};
@@ -1452,7 +1460,7 @@ export default {
 		  } else if (self.colorBy == 'spliceKind') {
         self.arcColorScale = d3.scaleOrdinal()
                      .domain(['canonical', 'exon-skipping', 'cryptic-site'])
-                     .range(['steelblue', '#db9625', '#7ba852']);
+                     .range(['steelblue', '#db9625', '#e66a7f']);
       }  else {
         self.arcColorScale = null;
       }
@@ -1807,13 +1815,7 @@ export default {
 		      	return position < 5 ? 5 : position;
 		      })
 		      .text(function(d) {
-		      	let counts = d.readCount;
-		      	if ((counts / 1000000) >= 1)
-				      return Math.round(counts / 1000000) + "M";
-				    else if ((counts / 1000) >= 1)
-				      return Math.round(counts / 1000) + "K";
-				    else 
-				      return counts;
+            return d.readCount;
 		      })
 
 		 svg.selectAll("rect.bounding-box").remove();
@@ -1839,6 +1841,18 @@ export default {
 		 	  self.unclickSpliceJunction()
 		 	}) 
 
+     svg.selectAll(".arc-pointer-line").remove();
+     svg
+     .append("line")
+     .attr("class", "arc-pointer-line")
+     .attr("x1", 0)
+     .attr("x2", 0)
+     .attr("y1", 0)
+     .attr("y2", 0)
+     .style("opacity", 0)
+     .on('click', function(d) {
+        self.unclickSpliceJunction()
+      })
     
     
 
@@ -1859,6 +1873,16 @@ export default {
 			      .transition()
 			      .duration(200)
 			      .style("opacity", .9); 
+         svg.select(".arc-pointer-line")
+            .attr("x1", theClicked.arcXCenter)
+            .attr("x2", theClicked.arcXCenter)
+            .attr("y1", (theClicked.arcYTop - self.arcPointerHeight))
+            .attr("y2", (theClicked.arcYTop - self.arcPointerHeight) - 10)
+            .style("opacity", 1)
+         svg.select("text.junction.clicked").attr("y", (theClicked.arcYTop - self.arcPointerHeight) - 52)
+         svg.select("text.junction.clicked").text(function(clickedJunction) {
+          return clickedJunction.readCount + (clickedJunction.readCount == 1 ? " read" : " reads");
+         })
 		 	}
 
 		 }
@@ -1991,6 +2015,8 @@ export default {
 			let self = this;
 	    d3.selectAll("#arc-diagram .junction").classed("selected", false);
  	 	  d3.selectAll("#arc-diagram .junction").classed("clicked", false);
+      d3.selectAll("#zoomed-diagrams #arc-diagram .junction").classed("greyout", false);
+
  	 	  d3.selectAll("#transcript-diagram .transcript.selected .selected")
  	 	    .classed("selected",false);
  	 	  d3.selectAll("#transcript-diagram .transcript.selected .clicked")
@@ -2000,6 +2026,8 @@ export default {
  	 	  d3.selectAll(".arc-pointer")
          .style("opacity", 0)
       d3.selectAll(".arc-pointer-small")
+         .style("opacity", 0)
+      d3.selectAll(".arc-pointer-line")
          .style("opacity", 0)
 			self.hideSitePointersOnTranscriptChart("select")         
 			self.hideSitePointersOnTranscriptChart("click")         
@@ -2105,6 +2133,15 @@ export default {
 	      .duration(200)
 	      .style("opacity", .9); 
 
+        d3.selectAll("#diagrams #arc-diagram").select(".arc-pointer-line")
+        .attr("x1", arcXCenter)
+        .attr("x2", arcXCenter)
+        .attr("y1", arcYTop - self.arcPointerHeight)
+        .attr("y2", 10)
+        .style("opacity", 1)
+        d3.select("#diagrams #arc-diagram").select("text.junction.clicked").attr("y", 0)
+
+
 	   	  d3.selectAll("#diagrams #arc-diagram").select(".arc-pointer-small")
 	         .style("opacity", 0)   
 
@@ -2135,13 +2172,18 @@ export default {
 
 	      let regionStart = null;
 	      let regionEnd = null;
-	      if (self.selectedGene.strand == '-') {
-	      	regionStart = d.acceptor.pos - 1000;
-	      	regionEnd = d.donor.pos + 1000;
-      	} else {
-	      	regionStart = d.donor.pos - 1000;
-	      	regionEnd = d.acceptor.pos + 1000;
-      	}
+        if (self.regionIsSelected) {
+          regionStart = self.brushRegionStart;
+          regionEnd   = self.brushRegionEnd;
+        } else {
+          if (self.selectedGene.strand == '-') {
+            regionStart = d.acceptor.pos - 1000;
+            regionEnd = d.donor.pos + 1000;
+          } else {
+            regionStart = d.donor.pos - 1000;
+            regionEnd = d.acceptor.pos + 1000;
+          }
+        }
 	      self.selectZoomedSpliceJunction(d, theSpliceJunctions, regionStart, regionEnd)
 
     		self.showDonorPanel = true;
@@ -2453,7 +2495,7 @@ export default {
       )
       .enter()
       .append("rect")
-      .attr("x", function(d){ return(x(d.start))})
+      .attr("x", function(d){ return Math.round((x(d.start)))})
       .attr("y", function(d,i) {
         if (d.feature_type.toLowerCase() == 'utr') {
           return 30 + 7;
@@ -2623,8 +2665,14 @@ export default {
     	let self = this;
 
 			let filteredEdges = theSpliceJunctions.filter(function(edge) {
-	      return (edge.donor.pos >= regionStart && edge.donor.pos <=regionEnd) ||
-               (edge.acceptor.pos >= regionStart && edge.acceptor.pos <=regionEnd) 
+	      let matchesKey = (edge.key == d.key);
+        let matchesRegion =  false;
+        if (regionStart && regionEnd) {
+          matchesRegion = (edge.donor.pos >= regionStart && edge.donor.pos <=regionEnd) ||
+                          (edge.acceptor.pos >= regionStart && edge.acceptor.pos <=regionEnd);
+        }
+        return matchesKey || matchesRegion;
+
 	    })
 	    let filteredEdgesClone = [];
 	    filteredEdges.forEach(function(d) {
@@ -2640,6 +2688,15 @@ export default {
            'marginRight': 0,
            'showJunctionArrow': true,
            'isZoomedRegion': true})
+
+      d3.selectAll("#zoomed-diagrams #arc-diagram path.junction")
+        .classed("greyout", function(arc) {
+          return arc.key != d.key
+        })
+      d3.selectAll("#zoomed-diagrams #arc-diagram text.junction")
+        .classed("greyout", function(arc) {
+          return arc.key != d.key
+        })
 
 	    self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram", self.selectedGene, regionStart, regionEnd, 
 	      {'selectedTranscriptOnly': true, 'allowSelection': false, marginRight: 0})
@@ -3687,7 +3744,7 @@ export default {
         .attr("fill", function(d) {
           let keyToColor = {'canonical': 'steelblue',
                             'exon-skipping': '#db9625',
-                            'cryptic-site': '#7ba852'};
+                            'cryptic-site': '#e66a7f'};
           return keyToColor[d.key]
         })
         .attr("stroke", "#000")
@@ -3784,8 +3841,8 @@ export default {
     colorBy: function() {
       this.onSettingsChanged();
     },
-    showLabels: function() {
-    	d3.selectAll("#arc-diagram").classed("hide-labels", !this.showLabels)
+    showReadCounts: function() {
+    	d3.selectAll("#arc-diagram").classed("hide-read-counts", !this.showReadCounts)
     },
     variants: function() {
       let self = this;
@@ -3863,44 +3920,46 @@ svg rect.UTR, svg rect.CDS, svg rect.exon {
 }
 
 svg path.junction {
-  
   fill: none;
 }
 
 
 svg .junction.selected {
   opacity: 1;
-  fill: #fed3574d;
 }
 svg .junction.selected.clicked {
-  fill: #fcc10059;
   opacity: 1;
 }
 
 svg .junction.clicked {
-  fill: #fcc10059;
   opacity: 1;
 }
 
 
 #zoomed-diagrams svg .junction.clicked {
-  fill: #fcc10059 !important;
   opacity: 1;
 }
 #zoomed-diagrams svg .junction.selected {
-  fill: #fed3574d;
   opacity: 1;
 }
 
 svg text.junction.selected {
-  font-weight: 600;
-  fill: #03a9f4;
+  font-weight: 700;
+  fill: #049ee3;
   font-size: 12px;
 }
 svg text.junction.clicked {
-  font-weight: 600;
-  fill: #03a9f4;
+  font-weight: 700;
+  fill: #049ee3;
   font-size: 13px;
+}
+
+svg .junction.greyout {
+  opacity: .2 !important;
+  stroke: lightgray !important;
+}
+svg text.junction.greyout {
+  opacity: .1 !important;
 }
 
 
@@ -4010,7 +4069,7 @@ div.tooltip {
 }
 
 .transcript.selected .transcript-label {
-	font-weight: 600;
+	font-weight: 700;
 }
 
 .utr:hover,
@@ -4037,11 +4096,21 @@ div.tooltip {
 	stroke-width: 1;
 }
 
+.arc-pointer-line {
+  stroke-width: 3;
+  stroke: black;
+}
+
+#zoomed-diagrams .arc-pointer,
+#zoomed-diagrams .arc-pointer-line {
+
+}
+
 
 
 .donor-problem, .acceptor-problem, .donor-problem-small, .acceptor-problem-small  {
-	fill: #03a9f4 !important;
-	font-weight: 600 !important;
+	fill: #049ee3 !important;
+	font-weight: 700 !important;
 	font-size: 13px !important;
 	text-anchor: middle !important;
 }
@@ -4057,8 +4126,11 @@ text.junction {
 	font-size: 11px;
 }
 
-.hide-labels text.junction {
+.hide-read-counts text.junction {
 	display: none;
+}
+#zoomed-diagrams .hide-read-counts text.junction.clicked {
+  display: initial !important;
 }
 
 #label-cb, #show-matching-strand-only-cb, #show-cryptic-site-only-cb {
@@ -4085,8 +4157,8 @@ text.junction {
 
 text.seq {
 	fill: black;
-	font-size: 13px;
-  font-weight: 600;
+	font-size: 12px;
+  font-weight: 500;
 }
 text.seq.A, rect.seq.A {
   fill: #00b107;
@@ -4105,8 +4177,9 @@ text.seq.T, rect.seq.T {
 }
 
 #sequence text.site {
-	font-weight: 900;
-  text-decoration: underline
+	font-weight: 800;
+  text-decoration: underline;
+  font-size: 13px;
 }
 
 #sequence rect.site {
@@ -4143,7 +4216,6 @@ text.seq.T, rect.seq.T {
 }
 
 #zoomed-diagrams .junction {
-  opacity: .7
 }
 
 
@@ -4206,7 +4278,7 @@ text.seq.T, rect.seq.T {
 #cryptic-site-histogram
   #read-count-histogram
     .histogram-bar
-      fill: #7ba852
+      fill: #e66a7f
 
 #canonical-histogram
   #read-count-histogram
