@@ -2,7 +2,7 @@ export default function AreaChart(data, {
   container,
   x = ([x]) => x, // given d in data, returns the  x-value
   y = ([, y]) => y, // given d in data, returns the (quantitative) y-value
-  curve = d3.curveLinear, // how to interpolate between points
+  curve = d3.curveStep, // how to interpolate between points
   marginTop = 20, // top margin, in pixels
   marginRight = 30, // right margin, in pixels
   marginBottom = 30, // bottom margin, in pixels
@@ -16,12 +16,14 @@ export default function AreaChart(data, {
   yDomain, // [ymin, ymax]
   yRange = [height - marginBottom, marginTop], // [bottom, top]
   color = "currentColor", // stroke color of line
-  strokeLinecap = "round", // stroke line cap of the line
-  strokeLinejoin = "round", // stroke line join of the line
+  strokeLinecap = "butt", // stroke line cap of the line
+  strokeLinejoin = "butt", // stroke line join of the line
   strokeWidth = 1.5, // stroke width of line, in pixels
   strokeOpacity = 1, // stroke opacity of line
   yFormat = ",", // a format specifier string for the y-axis
-  yLabel // a label for the y-axis
+  yLabel = "", // a label for the y-axis,
+  showXAxis = true,
+  showYAxis = true
 } = {}) {
 
   // Compute values.
@@ -37,8 +39,16 @@ export default function AreaChart(data, {
   // Construct scales and axes.
   const xScale = xType(xDomain, xRange);
   const yScale = yType(yDomain, yRange);
-  const xAxis = d3.axisBottom(xScale).ticks(width / 100).tickSizeOuter(0);
-  const yAxis = d3.axisLeft(yScale).ticks(6)
+  const xAxis = d3.axisBottom(xScale).ticks(width / 100)
+  const yAxis = d3.axisRight(yScale)
+                  .ticks(6)
+                  .tickFormat(function (d) {
+                    if ((d / 1000000) >= 1)
+                      d = d / 1000000 + "M";
+                    else if ((d / 1000) >= 1)
+                      d = d / 1000 + "K";
+                    return d;
+                  })
 
   // Construct a line generator.
   const line = d3.line()
@@ -51,7 +61,8 @@ export default function AreaChart(data, {
   const area = d3.area()
       .x(i => xScale(X[i]))
       .y0(yScale(0))
-      .y1(i => yScale(Y[i]));
+      .y1(i => yScale(Y[i]))
+      .curve(curve);
 
   const svg = d3.select(container).append("svg")
       .attr("width", width)
@@ -59,26 +70,31 @@ export default function AreaChart(data, {
       .attr("viewBox", [0, 0, width, height])
       .attr("style", "max-width: 100%; height: auto; height: intrinsic;");
 
-  svg.append("g")
-      .attr("transform", `translate(0,${yScale(yDomain[0])})`)
-      .call(xAxis);
+  if (showXAxis) {
+    svg.append("g")
+        .attr("transform", `translate(0,${yScale(yDomain[0])})`)
+        .call(xAxis);
+  }
 
-  svg.append("g")
-      .attr("transform", `translate(${marginLeft},0)`)
-      .call(yAxis)
-      .call(g => g.select(".domain").remove())
-      .call(g => g.selectAll(".tick line").clone()
-          .attr("x2", width - marginLeft - marginRight)
-          .attr("stroke-opacity", 0.1))
-      .call(g => g.append("text")
-          .attr("x", -marginLeft)
-          .attr("y", 10)
-          .attr("fill", "currentColor")
-          .attr("text-anchor", "start")
-          .text(yLabel));
+  if (showYAxis) {
+    svg.append("g")
+        .attr("transform", `translate(${marginLeft},0)`)
+        .call(yAxis)
+        .call(g => g.select(".domain").remove())
+        .call(g => g.selectAll(".tick line").clone()
+            .attr("class", "grid-line")
+            .attr("x2", width - marginLeft - marginRight)
+            .attr("stroke-opacity", 0.1))
+        .call(g => g.append("text")
+            .attr("x", -marginLeft)
+            .attr("y", 10)
+            .attr("fill", "currentColor")
+            .attr("text-anchor", "start")
+            .text(yLabel));
+  }
 
   svg.append("path")
-      .attr("fill", "none")
+      .attr("fill", color)
       .attr("stroke", color)
       .attr("stroke-width", strokeWidth)
       .attr("stroke-linecap", strokeLinecap)

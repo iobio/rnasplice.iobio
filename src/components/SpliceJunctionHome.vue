@@ -440,41 +440,26 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       },
       getCoverage() {
         let self = this;
-
-
-
-
-        //let url = 'https://mosaic.chpc.utah.edu/api/v1/files/serve/43307726-a0a4-4f60-a0fc-30f0220e48e9.cram'
-        //let indexURL = 'https://mosaic.chpc.utah.edu/api/v1/files/serve/0783bc5a-cd39-4219-9f07-0253bb1d9928.cram.crai'
-
-
-        let url = 'https://mosaic.chpc.utah.edu/api/i/files/serve/d97ec9d5-6164-40ff-bc4f-b687b5cfe756.bam'
-        let indexURL = 'https://mosaic.chpc.utah.edu/api/i/files/serve/bfa629e0-da16-41e5-9cba-195c33f04388.bam.bai'
-
         self.covData = [];
 
-        self.endpoint.promiseGetBamCoverage(url,
-                                            indexURL,
-                                            self.selectedGene.chr,
-                                            self.selectedGene.start,
-                                            self.selectedGene.end,
-                                            2000)
+        self.endpoint.promiseGetBigWigCoverage(self.loadInfo.bigwigURL,
+                                              self.selectedGene.chr,
+                                              self.selectedGene.start,
+                                              self.selectedGene.end)
         .then(function(covData) {
-          self.covData = covData.coverageForRegion;
+          self.covData = covData;
           //self.$emit('coverage-loaded', self.selectedGene.gene_name, covData.coverageForRegion)
         })
         .catch(function(error) {
-          if (error && error.message && error.message == 'No data returned from backend service getBamCoverage') {
+          if (error && error.message && error.message == 'No data returned from backend service bigWigDepther') {
             // strip chr
             let chr = self.selectedGene.chr.split("chr")[1]
-            self.endpoint.promiseGetBamCoverage(url,
-                                            indexURL,
+            self.endpoint.promiseGetBigWigCoverage(self.loadInfo.bigwigURL,
                                             chr,
                                             self.selectedGene.start,
-                                            self.selectedGene.end,
-                                            2000)
+                                            self.selectedGene.end)
             .then(function(covData) {
-              self.covData = covData.coverageForRegion;
+              self.covData = covData;
               //self.$emit('coverage-loaded', self.selectedGene.gene_name, covData.coverageForRegion)
             })
             .catch(function(error) {
@@ -509,7 +494,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       selectedTranscript: function() {
         let self = this;
         if (self.loadInfo && self.selectedGene) {
-          //self.getCoverage()
+          self.getCoverage()
           self.getSpliceJunctionRecords()
           self.promiseGetVariants()
         }

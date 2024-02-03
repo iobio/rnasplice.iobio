@@ -134,11 +134,11 @@
       <svg/>
     </div>
 
-	  <div id="arc-diagram" class="hide-read-counts" style="margin-top:-7px">
-	  </div>
-
     <div id="coverage-diagram">
     </div>
+
+	  <div id="arc-diagram" class="hide-read-counts" style="margin-top:-135px">
+	  </div>
 
     <div id="selected-transcript-panel" v-show="showTranscriptMenu" style="margin-top:-7px">
 
@@ -178,12 +178,14 @@
 
 	</div>
 
-	<div id="zoomed-diagrams"  style="margin-top:20px;z-index:1000;border-top: solid 4px #e7e7e7">
-    <h2 v-if="clickedObject || regionIsSelected" style="margin-bottom:20px !important;margin-top:10px !important">Selected Region</h2>
+	<div id="zoomed-diagrams"  style="margin-top:30px;z-index:1000;border-top: solid 4px #e7e7e7">
+    <h2 v-if="clickedObject || regionIsSelected" style="margin-bottom:10px !important;margin-top:10px !important">Selected Region</h2>
     <div id="variant-diagram">
       <svg/>
     </div>
-    <div id="arc-diagram" class="hide-read-counts">
+    <div id="coverage-diagram" style="margin-top:30px">
+    </div>
+    <div id="arc-diagram" style="margin-top: -135px" class="hide-read-counts">
 	    <svg/>
 	  </div>
 	  <div id="transcript-diagram">
@@ -392,6 +394,7 @@ export default {
             d3.selectAll('#diagrams #selected-transcript-panel svg').remove();
             d3.selectAll('#diagrams #variant-diagram svg').remove();
             d3.selectAll('#diagrams #brushable-axis svg').remove();
+            d3.selectAll('#diagrams #coverage-diagram svg').remove();
 				    self.showLoading = true;
 
 	  			}
@@ -478,6 +481,7 @@ export default {
         d3.selectAll('#diagrams #selected-transcript-panel svg').remove();
         d3.selectAll('#diagrams #variant-diagram svg').remove();
 		    d3.selectAll('#diagrams #brushable-axis svg').remove();
+        d3.selectAll('#diagrams #coverage-diagram svg').remove();
         d3.selectAll('#zoomed-diagrams svg').remove();
 
 		    self.drawBrushableAxis("#diagrams", self.geneStart, self.geneEnd)
@@ -666,6 +670,9 @@ export default {
              'showJunctionArrow': true,
              'isZoomedRegion': true})
 
+          self.drawCoverageDiagram("#zoomed-diagrams #coverage-diagram", regionStart, regionEnd,
+            {'marginRight': 0})
+
 
 			    self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram", self.selectedGene, regionStart, regionEnd, 
 			      {'selectedTranscriptOnly': true, 'allowSelection': false, 'marginRight': 0})
@@ -685,19 +692,12 @@ export default {
 
 		    }
 		  } else {
-        self.showZoomPanel = false;
-		    d3.select("#zoomed-diagrams").select("#arc-diagram svg").remove();
-		    d3.select("#zoomed-diagrams").select("#transcript-diagram svg").remove();
-        d3.select("#zoomed-diagrams").select("#variant-diagram svg").remove();
-		    self.regionIsSelected = false;
-        self.brushRegionStart = null;
-        self.brushRegionEnd = null;
-		    d3.select("#diagrams #arc-diagram svg .bounding-box.active").classed("active", false)
-		    d3.select("#diagrams #transcript-diagram svg .bounding-box.active").classed("active", false)
-        d3.select("#diagrams #variant-diagram svg .bounding-box.active").classed("active", false)
-
+        if (event.type == 'end') {
+          self.resetZoom();
+        }
 		  }
 		},
+
 
     // Function that is triggered when brushing on histogram is performed
     onBrushHist:  function(event) {
@@ -783,21 +783,52 @@ export default {
 
 	  },
 
+    resetZoom: function() {
+      let self = this;
+      self.showZoomPanel = false;
+      self.regionIsSelected = false;
+      self.brushRegionStart = null;
+      self.brushRegionEnd = null;
+
+      d3.select("#zoomed-diagrams").select("#arc-diagram svg").remove();
+      d3.select("#zoomed-diagrams").select("#transcript-diagram svg").remove();
+      d3.select("#zoomed-diagrams").select("#variant-diagram svg").remove();
+      d3.select("#zoomed-diagrams").select("#coverage-diagram svg").remove();
+
+
+      d3.select("#diagrams #arc-diagram svg .bounding-box.active").classed("active", false)
+      d3.select("#diagrams #transcript-diagram svg .bounding-box.active").classed("active", false)
+      d3.select("#diagrams #variant-diagram svg .bounding-box.active").classed("active", false)
+
+      d3.select("#diagrams #brushable-axis svg .selection").style("display", "none")
+
+
+    },
+
+
 		clearZoom: function() {
 			let self = this;
 			self.brush.extent([0,0])
 
 			d3.select("#zoomed-diagrams").select("#arc-diagram svg").remove();
 		  d3.select("#zoomed-diagrams").select("#transcript-diagram svg").remove();
+      d3.select("#zoomed-diagrams").select("#variant-diagram svg").remove();
 
 		  d3.select("#diagrams").select(".brush").remove();
 		  d3.select("#diagrams").select(".overlay").remove();
 		  d3.select("#diagrams").select(".selection").remove();
 		  d3.select("#diagrams").selectAll(".handle").remove();
-		  
+
+      d3.select("#diagrams #arc-diagram svg .bounding-box.active").classed("active", false)
+      d3.select("#diagrams #transcript-diagram svg .bounding-box.active").classed("active", false)
+      d3.select("#diagrams #variant-diagram svg .bounding-box.active").classed("active", false)
+
 		  self.regionIsSelected = false;
       self.brushRegionStart = null;
       self.brushRegionEnd = null;
+
+      self.showZoomPanel = false;
+
 		},
 
 		addBrushing: function() {
@@ -976,7 +1007,10 @@ export default {
 		    .selectAll("rect.exon")
 		    .data(function(d) { 
 		        return d['exons'].filter(function(exon) {
-		          return +exon.start >= +regionStart && +exon.end <= +regionEnd
+		          let exonInRegion      = +exon.start >= +regionStart && +exon.end <= +regionEnd
+              let exonStartInRegion = +exon.start >= +regionStart && +exon.start <= +regionEnd
+              let exonEndInRegion   = +exon.end   >= +regionStart && +exon.end <= +regionEnd
+              return exonInRegion || exonStartInRegion || exonEndInRegion;
 		        })
 		    }, 
 		          function(d) {return d.feature_type + "-" + d.seq_id + "-" + d.start + "-" + d.end;}
@@ -1022,8 +1056,12 @@ export default {
 		  if (options && options.selectedTranscriptOnly) {
 
 		  	let exons = self.selectedTranscript.features.filter(function(feature) {
-          let matchesRegion = +feature.start >= +regionStart && +feature.end <= +regionEnd;
-        	return feature.feature_type.toLowerCase() == 'exon' && matchesRegion;
+          let featureInRegion      = +feature.start >= +regionStart && +feature.end <= +regionEnd
+          let featureStartInRegion = +feature.start >= +regionStart && +feature.start <= +regionEnd
+          let featureEndInRegion   = +feature.end   >= +regionStart && +feature.end <= +regionEnd
+
+        	return feature.feature_type.toLowerCase() == 'exon' &&
+                                                       (featureInRegion || featureStartInRegion || featureEndInRegion);
 		  	})
 		  	let factor = exons.length / 50 > 1 ? Math.round(exons.length/25) : 1
 		  	let count = 0;
@@ -1320,19 +1358,27 @@ export default {
 
     drawCoverageDiagram: function(container, regionStart, regionEnd, options) {
       let self = this;
-      /*
+
+      let filteredCovData = self.covData.filter(function(d) {
+        return d[0] >= regionStart && d[0] <= regionEnd
+      })
+
       d3.select(container).select('svg').remove();
-      self.areaChart = AreaChart(self.covData, {
+      self.areaChart = AreaChart(filteredCovData, {
                                  container: container,
                                  x: d => d[0],
                                  y: d => d[1],
                                  yLabel: "Coverage",
                                  width: self.$el.offsetWidth - 20,
                                  yDomain: [0, d3.max(self.covData, d=> d[1])],
-                                 height: 130,
-                                 color: "steelblue"
+                                 xDomain: [regionStart, regionEnd],
+                                 height: options && options.height ? options.height : 100,
+                                 marginLeft:  options && options.marginLeft >= 0 ? options.marginLeft : 0,
+                                 marginRight: options && options.marginRight >= 0 ? options.marginRight : 5,
+                                 color: "#146fbb75",
+                                 showXAxis: options && options.showXAxis ? options.showXAxis : false
                                 })
-      */
+
 
     },
 		
@@ -2052,6 +2098,22 @@ export default {
         delaySelection = true;
 
       }
+      // Turn off brush (region selection)
+      let downstreamExon = self.selectedGene.strand == '+'
+                            ? (d.donor.exon    ? d.donor.exon    : d.donor.exonClosest)
+                            : (d.acceptor.exon ? d.acceptor.exon : d.acceptor.exonClosest);
+      let upstreamExon   = self.selectedGene.strand == '+'
+                            ? (d.acceptor.exon ? d.acceptor.exon : d.acceptor.exonClosest)
+                            : (d.donor.exon    ? d.donor.exon    : d.donor.exonClosest);
+
+      if (self.regionIsSelected) {
+        // If junction is not in brush region
+        if (downstreamExon.start < self.brushRegionStart || upstreamExon.end > self.brushRegionEnd) {
+          self.resetZoom();
+          self.snackbarText = "Removing region filter (zoom) in order to show selected splice junction."
+          delaySelection = true;
+        }
+      }
       if (self.minUniquelyMappedReads != null || self.minUniquelyMappedReads > 0 || self.maxUniquelyMappedReads != null || self.maxUniquelyMappedReads > 0) {
         let meetsBottomRange =  self.minUniquelyMappedReads == null || self.minUniquelyMappedReads == "" || +d.readCount >= self.minUniquelyMappedReads
         let meetsTopRange = self.maxUniquelyMappedReads == null || self.maxUniquelyMappedReads == "" || +d.readCount <= self.maxUniquelyMappedReads
@@ -2176,13 +2238,15 @@ export default {
           regionStart = self.brushRegionStart;
           regionEnd   = self.brushRegionEnd;
         } else {
-          if (self.selectedGene.strand == '-') {
-            regionStart = d.acceptor.pos - 1000;
-            regionEnd = d.donor.pos + 1000;
-          } else {
-            regionStart = d.donor.pos - 1000;
-            regionEnd = d.acceptor.pos + 1000;
-          }
+
+          let downstreamExon = self.selectedGene.strand == '+'
+                                ? (d.donor.exon    ? d.donor.exon    : d.donor.exonClosest)
+                                : (d.acceptor.exon ? d.acceptor.exon : d.acceptor.exonClosest);
+          let upstreamExon   = self.selectedGene.strand == '+'
+                                ? (d.acceptor.exon ? d.acceptor.exon : d.acceptor.exonClosest)
+                                : (d.donor.exon    ? d.donor.exon    : d.donor.exonClosest);
+          regionStart = downstreamExon.start - 1000;
+          regionEnd   = upstreamExon.end + 1000;
         }
 	      self.selectZoomedSpliceJunction(d, theSpliceJunctions, regionStart, regionEnd)
 
@@ -2689,6 +2753,9 @@ export default {
            'showJunctionArrow': true,
            'isZoomedRegion': true})
 
+      self.drawCoverageDiagram("#zoomed-diagrams #coverage-diagram", regionStart, regionEnd,
+        {'marginRight': 0})
+
       d3.selectAll("#zoomed-diagrams #arc-diagram path.junction")
         .classed("greyout", function(arc) {
           return arc.key != d.key
@@ -2697,8 +2764,10 @@ export default {
         .classed("greyout", function(arc) {
           return arc.key != d.key
         })
-
-	    self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram", self.selectedGene, regionStart, regionEnd, 
+	    self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram",
+        self.selectedGene,
+        regionStart,
+        regionEnd,
 	      {'selectedTranscriptOnly': true, 'allowSelection': false, marginRight: 0})
 
 
@@ -3808,10 +3877,11 @@ export default {
   		this.onDataChanged();
   	},
     covData: function() {
-      if (this.covData && this.covData.length > 0) {
-        this.drawCoverageDiagram('#coverage-diagram')
+      let self = this;
+      if (self.covData && self.covData.length > 0) {
+        self.drawCoverageDiagram('#diagrams #coverage-diagram', self.geneStart, self.geneEnd, {'height': 130})
       } else {
-        d3.select('#coverage-diagram svg').remove();
+        d3.select('#diagrams #coverage-diagram svg').remove();
       }
     },
   	tab: function() {
@@ -3921,6 +3991,7 @@ svg rect.UTR, svg rect.CDS, svg rect.exon {
 
 svg path.junction {
   fill: none;
+  opacity: .8;
 }
 
 
@@ -4345,8 +4416,8 @@ text.seq.T, rect.seq.T {
 #coverage-diagram
   svg
     path
-      fill: #5757578f
-      stroke: black
-      stroke-width: .5
+      fill: rgb(40 105 167 / 40%)
+      stroke: #09344f
+      stroke-width: 0.5
 
 </style>
