@@ -76,11 +76,11 @@
                       <div  v-show="!showLoading && selectedGene">
                         <div v-if="readCountRange == null" class="hint-box">
                           <v-icon>mdi-select-drag</v-icon>
-                          <div>Drag to zoom into histogram region</div>
+                          <div>Drag to zoom in</div>
                         </div>
                         <div v-if="readCountRange != null" class="hint-box">
                           <v-icon>mdi-restore</v-icon>
-                          <div>Click outside selection to restore</div>
+                          <div>Click outside to restore</div>
                         </div>
                         <div id="all-histogram" class="d-flex mr-9 mt-1">
                           <div id="read-count-histogram" style="margin-left: 0px">
@@ -1457,7 +1457,7 @@ export default {
 
 		  var scaleArcWidth = d3.scaleLinear()
 		                    .domain([self.minUniquelyMappedReads, maxReadCount])
-		                    .range([1.5, 10])
+		                    .range([2, 10])
 
 
 		           
@@ -4434,13 +4434,14 @@ text.seq.T, rect.seq.T {
   border: 0.5px #a7a7a7 solid
   width: max-content
   margin: auto
-  padding: 2px 6px 2px 6px
+  padding: 0px 4px 0px 4px
   display: flex
   justify-content: center
   align-items: center
+  line-height: 13px
   i.mdi
     margin-right: 4px
-    font-size: 17px
+    font-size: 16px
   div
     font-size: 11px
     font-style: italic
@@ -4452,7 +4453,7 @@ text.seq.T, rect.seq.T {
 #coverage-diagram
   svg
     path
-      fill: rgb(40 105 167 / 40%)
+      fill: rgb(45 45 45 / 45%)
       stroke: #09344f
       stroke-width: 0.5
 
