@@ -8,7 +8,7 @@
     ></v-progress-circular>
   </div>
 
-      <div id="panel-heading" class="d-flex flex-row align-start flex-wrap mb-1" >
+      <div id="panel-heading" class="d-flex flex-row justify-space-between align-start flex-wrap mb-1" >
           <h2 class="mr-5" style="margin-top: 0px !important;margin-bottom: 0px !important;min-width: 150px;">
             Splice Junctions
           </h2>
@@ -26,20 +26,17 @@
           <div id="arc-color-legend">
           </div>
 
-          <div id="label-cb" class="" style="" >
+          <div id="label-cb" class="mr-6" style="width: 150px" >
 						<v-checkbox 
 						  hide-details="true"
               density="compact"
 				      v-model="showReadCounts"
-				      label="Show read counts"
+				      label="Label junctions with read counts"
 				    ></v-checkbox>
 			    </div>
 
-      </div>
-
-      <div class="d-flex flex-wrap" style="margin-left:0px;margin-top:10px;margin-bottom:10px;justify-content:flex-start">
-          <div>
-            <h3>Read counts</h3>
+          <div class="">
+            <div class="label-subheader">Read counts</div>
             <div class="d-flex">
               <div style="width:80px"  >
                 <v-text-field
@@ -58,60 +55,92 @@
             </div>
           </div>
 
-          <div  v-show="!showLoading && selectedGene">
-            <div v-if="readCountRange == null" class="hint-box">
-              <v-icon>mdi-select-drag</v-icon>
-              <div>Drag to zoom into histogram region</div>
-            </div>
-            <div v-if="readCountRange != null" class="hint-box">
-              <v-icon>mdi-restore</v-icon>
-              <div>Click outside selection to restore</div>
-            </div>
-            <div id="all-histogram" class="d-flex ml-1 mt-1">
-              <div id="read-count-histogram" style="margin-left: 0px">
+
+          <v-card style="padding:0 !important;margin:0 !important" class="" variant="flat">
+            <v-card-actions style="min-height:30px !important;padding:0 !important;margin:0 !important">
+              <v-btn color="#30638e" density="compact"  @click="exploreReadCounts = !exploreReadCounts" variant="icon">
+                <v-icon class="mr-1">mdi-poll</v-icon>
+                 <span style="font-size:13px">Read count distributions</span>
+              </v-btn>
+              <v-btn density="compact"
+                :icon="exploreReadCounts ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+                @click="exploreReadCounts = !exploreReadCounts"
+              ></v-btn>
+            </v-card-actions>
+
+            <v-expand-transition>
+              <div v-show="exploreReadCounts">
+                <v-card-text style="padding:0 !important">
+
+                    <div class="d-flex">
+                      <div  v-show="!showLoading && selectedGene">
+                        <div v-if="readCountRange == null" class="hint-box">
+                          <v-icon>mdi-select-drag</v-icon>
+                          <div>Drag to zoom into histogram region</div>
+                        </div>
+                        <div v-if="readCountRange != null" class="hint-box">
+                          <v-icon>mdi-restore</v-icon>
+                          <div>Click outside selection to restore</div>
+                        </div>
+                        <div id="all-histogram" class="d-flex mr-9 mt-1">
+                          <div id="read-count-histogram" style="margin-left: 0px">
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="d-flex flex-column">
+
+
+                        <div class="d-flex justify-center">
+
+                         <v-btn-toggle id="hist-button-group"
+                            v-show="!showLoading && selectedGene"
+                            v-model="scaleYHist"
+                            color="primary"
+                            mandatory divided
+                            variant="elevated"
+
+                          >
+                            <v-btn density="compact" value="normal">Normal</v-btn>
+                            <v-btn density="compact" value="log">Log</v-btn>
+                            <v-btn density="compact" value="density">Density</v-btn>
+                          </v-btn-toggle>
+                        </div>
+
+                        <div class="d-flex">
+                          <div id="canonical-histogram" class="d-flex ml-9">
+                            <div id="read-count-histogram" style="margin-left: 0px">
+                            </div>
+                          </div>
+
+                          <div id="exon-skipping-histogram" class="d-flex ml-9">
+                            <div id="read-count-histogram" style="margin-left: 0px">
+                            </div>
+                          </div>
+
+                          <div id="cryptic-site-histogram" class="d-flex ml-9">
+                            <div id="read-count-histogram" style="margin-left: 0px">
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+
+
+
+                </v-card-text>
               </div>
-            </div>
-          </div>
-
-
-
-          <div class="d-flex flex-column">
-
-
-            <div class="d-flex justify-center">
-
-             <v-btn-toggle id="hist-button-group"
-                v-show="!showLoading && selectedGene"
-                v-model="scaleYHist"
-                color="primary"
-                mandatory divided
-                variant="elevated"
-
-              >
-                <v-btn density="compact" value="normal">Normal</v-btn>
-                <v-btn density="compact" value="log">Log</v-btn>
-                <v-btn density="compact" value="density">Density</v-btn>
-              </v-btn-toggle>
-            </div>
-
-            <div class="d-flex">
-              <div id="canonical-histogram" class="d-flex ml-1">
-                <div id="read-count-histogram" style="margin-left: 0px">
-                </div>
-              </div>
-
-              <div id="exon-skipping-histogram" class="d-flex ml-1">
-                <div id="read-count-histogram" style="margin-left: 0px">
-                </div>
-              </div>
-
-              <div id="cryptic-site-histogram" class="d-flex ml-1">
-                <div id="read-count-histogram" style="margin-left: 0px">
-                </div>
-              </div>
-            </div>
-          </div>
+            </v-expand-transition>
+          </v-card>
       </div>
+
+
+
+
+
+
+
 
 	<div id="diagrams">
 	  <div  class="d-flex flex-column align-start">
@@ -375,6 +404,8 @@ export default {
 
     snackbarText: '',
     snackbarShow: false,
+
+    exploreReadCounts: false
 
 	}),
   methods: {
@@ -4206,6 +4237,11 @@ text.junction {
 
 #label-cb, #show-matching-strand-only-cb, #show-cryptic-site-only-cb {
 	height: 45px;
+  font-weight: 500;
+}
+.label-subheader {
+  font-weight: 600;
+  color: #808080;
 }
 #show-matching-strand-only-cb {
 	width: 200px;

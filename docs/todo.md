@@ -10,3 +10,5 @@
 3. Look for genes in other region when considering if splice junction belongs to gene
 
 4. Legend needs to show splice junction symbol
+
+5. IGV pileup view
