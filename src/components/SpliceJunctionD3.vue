@@ -13,6 +13,21 @@
             Splice Junctions
           </h2>
 
+          <div class="">
+            <div class="d-flex align-center">
+              <div style="width:210px;padding-top:5px;"  >
+                <v-text-field
+                density="compact"
+                hide-details="auto"
+                variant="underlined"
+                label="Zoom to coordinates"
+                v-model="highlightRegionCoord"
+                @blur="highlightRegion"/>
+              </div>
+            </div>
+          </div>
+
+
           <div style="width:155px" class="">
             <v-select 
               v-model="colorBy"
@@ -35,21 +50,22 @@
 				    ></v-checkbox>
 			    </div>
 
-          <div class="">
-            <div class="label-subheader">Read counts</div>
+          <div class="" style="padding-top:5px;">
             <div class="d-flex">
-              <div style="width:80px"  >
+              <div style="width:110px"  >
                 <v-text-field
                 density="compact"
                 hide-details="auto"
-                label="Min"
+                variant="underlined"
+                label="Min read count"
                 v-model="minUniquelyMappedReads"/>
               </div>
-              <div style="width:80px" class="ml-2 mr-5" >
+              <div style="width:110px" class="ml-2 mr-5" >
                 <v-text-field
                 density="compact"
                 hide-details="auto"
-                label="Max"
+                variant="underlined"
+                label="Max read count"
                 v-model="maxUniquelyMappedReads"/>
               </div>
             </div>
@@ -58,7 +74,7 @@
 
           <v-card style="padding:0 !important;margin:0 !important" class="" variant="flat">
             <v-card-actions style="min-height:30px !important;padding:0 !important;margin:0 !important">
-              <v-btn color="#30638e" density="compact"  @click="exploreReadCounts = !exploreReadCounts" variant="icon">
+              <v-btn color="#30638e" density="compact"  @click="exploreReadCounts = !exploreReadCounts" variant="tonal">
                 <v-icon class="mr-1">mdi-poll</v-icon>
                  <span style="font-size:13px">Read count distributions</span>
               </v-btn>
@@ -163,7 +179,7 @@
       <svg/>
     </div>
 
-    <div id="coverage-diagram">
+    <div id="coverage-diagram" style="min-height:100px">
     </div>
 
 	  <div id="arc-diagram" class="hide-read-counts" style="margin-top:-135px">
@@ -212,7 +228,7 @@
     <div id="variant-diagram">
       <svg/>
     </div>
-    <div id="coverage-diagram" style="margin-top:30px">
+    <div id="coverage-diagram" style="margin-top:30px;min-height:100px">
     </div>
     <div id="arc-diagram" style="margin-top: -135px" class="hide-read-counts">
 	    <svg/>
@@ -321,6 +337,8 @@ export default {
 		UTR_HEIGHT: 10,
 		CDS_HEIGHT: 20,
 
+    highlightRegionCoord: null,
+
 		clickedObject: null,
 
     selectedSpliceKind: null,
@@ -426,6 +444,8 @@ export default {
             d3.selectAll('#diagrams #variant-diagram svg').remove();
             d3.selectAll('#diagrams #brushable-axis svg').remove();
             d3.selectAll('#diagrams #coverage-diagram svg').remove();
+            self.resetZoom();
+
 				    self.showLoading = true;
 
 	  			}
@@ -514,6 +534,7 @@ export default {
 		    d3.selectAll('#diagrams #brushable-axis svg').remove();
         d3.selectAll('#diagrams #coverage-diagram svg').remove();
         d3.selectAll('#zoomed-diagrams svg').remove();
+        self.resetZoom();
 
 		    self.drawBrushableAxis("#diagrams", self.geneStart, self.geneEnd)
         self.showZoomPanel = false;
@@ -658,6 +679,103 @@ export default {
         return [];
       }
 		},
+
+    highlightRegion: function() {
+      let self = this;
+      let regionStart = null;
+      let regionEnd = null;
+      let point = null;
+
+      let stripCommas = function(v) {
+        let nv = v.replaceAll(",", "")
+        return +nv;
+      }
+
+      // Parse out region start and end, ignore chromosome
+      const regex = /([chr\d]*?)(\:*?)(?<start>[\d\,]*?)(\-*?)(?<end>[\d\,]*?)$/gm;
+      let m;
+      while ((m = regex.exec(self.highlightRegionCoord)) !== null) {
+        // This is necessary to avoid infinite loops with zero-width matches
+        if (m.index === regex.lastIndex) {
+          regex.lastIndex++;
+        }
+        if (m.groups.start && m.groups.end) {
+          regionStart = stripCommas(m.groups.start);
+          regionEnd   = stripCommas(m.groups.end);
+          break;
+        } else if (m.groups.end) {
+          regionStart = stripCommas(m.groups.end);
+          break;
+        } else if (m.groups.start) {
+          regionStart = stripCommas(m.groups.start);
+          break;
+        }
+      }
+
+
+
+      // If region end not provided, default highlight region to 1/10 of gene size
+      if (regionEnd == null) {
+        let span = Math.round((+self.selectedGene.end - +self.selectedGene.start) / 10)
+        point = regionStart;
+        regionStart = point - (span/2)
+        regionEnd   = point + (span/2)
+      } else {
+        let span = (regionEnd - regionStart);
+        point = regionStart + (span/2);
+      }
+
+      if (regionStart != null && regionEnd != null && regionStart >= self.selectedGene.start && regionEnd <= self.selectedGene.end) {
+
+        let theExtent = [self.xBrushable(regionStart),
+                         self.xBrushable(regionEnd)]
+
+        d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
+
+        let xPoint = self.xBrushable(point)
+        d3.select("#diagrams #arc-diagram svg .arc-pointer")
+              .attr("transform", function(d) {
+                return "translate(" + (xPoint - self.arcPointerWidth/self.ARC_FACTOR)
+                + ","
+                + "20" + ")"
+               })
+              .transition()
+              .duration(200)
+              .style("opacity", .9);
+         d3.select("#diagrams #arc-diagram svg .arc-pointer-line")
+              .attr("x1", xPoint)
+              .attr("x2", xPoint)
+              .attr("y1", 20)
+              .attr("y2", -10)
+              .style("opacity", 1)
+
+        //setTimeout(function() {
+        self.$nextTick(function() {
+          let xPointZoom = self.xTranscriptChartZoomed(point)
+          d3.select("#zoomed-diagrams #arc-diagram svg .arc-pointer")
+                .attr("transform", function(d) {
+                  return "translate(" + (xPointZoom - self.arcPointerWidth/self.ARC_FACTOR)
+                  + ","
+                  + "40" + ")"
+                 })
+                .transition()
+                .duration(200)
+                .style("opacity", .9);
+           d3.select("#zoomed-diagrams #arc-diagram svg .arc-pointer-line")
+                .attr("x1", xPointZoom)
+                .attr("x2", xPointZoom)
+                .attr("y1", 30)
+                .attr("y2", 40)
+                .style("opacity", 1)
+
+        })
+
+
+      } else {
+        alert("Coordinates must be within gene region " + self.selectedGene.start + "-" + self.selectedGene.end)
+      }
+
+    },
 
 		// Function that is triggered when brushing above arc diagram is performed
 		onBrush:  function(event) {
@@ -820,6 +938,9 @@ export default {
       self.regionIsSelected = false;
       self.brushRegionStart = null;
       self.brushRegionEnd = null;
+      self.highlightRegionCoord = null;
+      self.showAcceptorPanel = false;
+      self.showDonorPanel = false;
 
       d3.select("#zoomed-diagrams").select("#arc-diagram svg").remove();
       d3.select("#zoomed-diagrams").select("#transcript-diagram svg").remove();
@@ -2107,7 +2228,10 @@ export default {
       d3.selectAll(".arc-pointer-line")
          .style("opacity", 0)
 			self.hideSitePointersOnTranscriptChart("select")         
-			self.hideSitePointersOnTranscriptChart("click")         
+			self.hideSitePointersOnTranscriptChart("click")
+
+      self.showAcceptorPanel = false;
+      self.showDonorPanel = false;
       
  	 	  self.clickedObject = false;
 		},
@@ -3910,7 +4034,13 @@ export default {
     covData: function() {
       let self = this;
       if (self.covData && self.covData.length > 0) {
-        self.drawCoverageDiagram('#diagrams #coverage-diagram', self.geneStart, self.geneEnd, {'height': 130})
+        setTimeout(function() {
+          self.drawCoverageDiagram('#diagrams #coverage-diagram',
+            self.geneStart,
+            self.geneEnd,
+            {'height': 130})
+
+        },1000)
       } else {
         d3.select('#diagrams #coverage-diagram svg').remove();
       }
@@ -4448,7 +4578,11 @@ text.seq.T, rect.seq.T {
 
 .v-input__control
   input
-    font-size: 14px !important
+    font-size: 13px !important
+  .v-field__field
+    .v-label.v-field-label
+      font-size: 13px
+
 
 #coverage-diagram
   svg
