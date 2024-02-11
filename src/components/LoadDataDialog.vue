@@ -273,11 +273,19 @@ export default {
       },
       vcfURL: function() {
         if (this.vcfURL) {
+          this.vcfURL = this.vcfURL.trim();
+          if (this.tbiURL) {
+            this.tbiURL = this.tbiURL.trim();
+          }
           this.$emit("vcf-url-entered", this.vcfURL, this.tbiURL)
         }
       },
       tbiURL: function(){
         if (this.vcfURL) {
+          this.vcfURL = this.vcfURL.trim();
+          if (this.tbiURL) {
+            this.tbiURL = this.tbiURL.trim();
+          }
           this.$emit("vcf-url-entered", this.vcfURL, this.tbiURL)
         }
       }
