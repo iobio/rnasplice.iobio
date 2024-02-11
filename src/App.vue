@@ -81,6 +81,7 @@
           :geneToAlerts="geneToAppAlerts"
           :spliceJunctionsForGene="spliceJunctionsForGene"
           :junctionSiteSeqRange="junctionSiteSeqRange"
+          :junctionSitePan="junctionSitePan"
           @add-alert="addAlert"
           @gene-selected="onGeneSelected"
           @reinit="onReinit"
@@ -88,6 +89,7 @@
           @splice-junctions-loaded="onSpliceJunctionsLoaded"
           @object-selected="onObjectSelected"
           @set-site-zoom-factor="onSetSiteZoomFactor"
+          @set-site-pan="onSetSitePan"
           @sample-names-loaded="onSampleNamesLoaded"/>
 
 
@@ -152,6 +154,7 @@ export default {
 
 
     junctionSiteSeqRange:      30,
+    junctionSitePan:            0,
 
     showLegendDrawer: false
 
@@ -240,6 +243,9 @@ export default {
       if (this.junctionSiteSeqRange <= 0) {
         this.junctionSiteSeqRange = 1;
       }
+    },
+    onSetSitePan: function(pan) {
+      this.junctionSitePan = this.junctionSitePan + pan;
     },
     onSampleNamesLoaded: function(sampleNames) {
       this.sampleNames = sampleNames;

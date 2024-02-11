@@ -22,6 +22,7 @@
             :tab="tab"
             :loadInProgress="loadInProgress"
             :junctionSiteSeqRange="junctionSiteSeqRange"
+            :junctionSitePan="junctionSitePan"
             :variantHeight="variantHeight"
             :variantWidth="variantWidth"
             :vcf="vcf"
@@ -30,7 +31,8 @@
             @object-selected="onObjectSelected"
             @transcript-selected="onTranscriptSelected"
             @splice-junction-selected="onSpliceJunctionSelected"
-            @set-site-zoom-factor="onSetSiteZoomFactor"/>
+            @set-site-zoom-factor="onSetSiteZoomFactor"
+            @set-site-pan="onSetSitePan"/>
 
        
     </v-card>
@@ -110,6 +112,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       geneToAlerts: Object,
 
       junctionSiteSeqRange: Number,
+      junctionSitePan: Number,
 
     },
     data: () => ({
@@ -220,6 +223,9 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       },
       onSetSiteZoomFactor: function(factor) {
         this.$emit("set-site-zoom-factor", factor)
+      },
+      onSetSitePan: function(factor) {
+        this.$emit("set-site-pan", factor)
       },
       clearAndReload: function(geneNameToLoad) {
         let self = this;
@@ -335,16 +341,16 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         let promises = [];
         let p = self.promiseGetReferenceSequence('donor', 
           self.selectedGene.chr, 
-          spliceJunction.donor.pos - self.junctionSiteSeqRange, 
-          spliceJunction.donor.pos + self.junctionSiteSeqRange)
+          spliceJunction.donor.pos - self.junctionSiteSeqRange + self.junctionSitePan,
+          spliceJunction.donor.pos + self.junctionSiteSeqRange + self.junctionSitePan)
         .then(function(sequenceData) {
           self.donorReferenceSequence = sequenceData;
         })
         promises.push(p)
         p = self.promiseGetReferenceSequence('acceptor', 
           self.selectedGene.chr, 
-          spliceJunction.acceptor.pos - self.junctionSiteSeqRange, 
-          spliceJunction.acceptor.pos + self.junctionSiteSeqRange)
+          spliceJunction.acceptor.pos - self.junctionSiteSeqRange + self.junctionSitePan,
+          spliceJunction.acceptor.pos + self.junctionSiteSeqRange + self.junctionSitePan)
         .then(function(sequenceData) {
           self.acceptorReferenceSequence = sequenceData;
         })
@@ -357,12 +363,12 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
           let acceptorVariants = null;
           if (self.variants) {
             donorVariants = self.variants.filter(function(d) {
-              return d.start >= spliceJunction.donor.pos - self.junctionSiteSeqRange && 
-                     d.start <= spliceJunction.donor.pos + self.junctionSiteSeqRange
+              return d.start >= spliceJunction.donor.pos - self.junctionSiteSeqRange + self.junctionSitePan &&
+                     d.start <= spliceJunction.donor.pos + self.junctionSiteSeqRange + self.junctionSitePan
             })
             acceptorVariants = self.variants.filter(function(d) {
-              return d.start >= spliceJunction.acceptor.pos - self.junctionSiteSeqRange && 
-                     d.start <= spliceJunction.acceptor.pos + self.junctionSiteSeqRange
+              return d.start >= spliceJunction.acceptor.pos - self.junctionSiteSeqRange + self.junctionSitePan &&
+                     d.start <= spliceJunction.acceptor.pos + self.junctionSiteSeqRange + self.junctionSitePan
             })
 
           }

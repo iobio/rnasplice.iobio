@@ -22,7 +22,7 @@
                 variant="underlined"
                 label="Zoom to coordinates"
                 v-model="highlightRegionCoord"
-                @blur="highlightRegion"/>
+                @blur="highlightRegionFromCoord"/>
               </div>
             </div>
           </div>
@@ -225,6 +225,23 @@
 
 	<div id="zoomed-diagrams"  style="margin-top:30px;z-index:1000;border-top: solid 4px #e7e7e7">
     <h2 v-if="clickedObject || regionIsSelected" style="margin-bottom:10px !important;margin-top:10px !important">Selected Region</h2>
+    <div class="d-flex" style="margin-top:-25px">
+
+      <div class="d-flex" v-if="clickedObject || regionIsSelected" style="margin:auto;justify-content: center;">
+        <v-btn icon="mdi-plus" class="zoom-button" @click="zoomIn" density="compact" size="medium" style="margin-right:20px;">
+        </v-btn>
+
+        <v-btn icon="mdi-minus" class="zoom-button" @click="zoomOut" density="compact" size="medium" >
+        </v-btn>
+
+        <v-btn icon="mdi-chevron-left" class="zoom-button" @click="panLeft" density="compact" size="medium" style="margin-left:100px; margin-right:20px;">
+        </v-btn>
+
+        <v-btn icon="mdi-chevron-right" class="zoom-button" @click="panRight" density="compact" size="medium" >
+        </v-btn>
+      </div>
+
+    </div>
     <div id="variant-diagram">
       <svg/>
     </div>
@@ -241,10 +258,19 @@
 
  
  <div class="d-flex" v-if="showDonorPanel || showAcceptorPanel" style="justify-content: center;padding:10px;border-top: solid 4px #e7e7e7;margin-top:20px">
-   <v-btn class="zoom-button" @click="zoomOutSite" density="compact" size="medium" variant="tonal" color="#094792" >Zoom out
-          </v-btn>
-  <v-btn class="zoom-button" @click="zoomInSite" density="compact" size="medium" variant="tonal" color="#094792" >Zoom in
-  </v-btn>
+    <v-btn icon="mdi-plus" class="zoom-button" @click="zoomInSite" density="compact" size="medium"  style="margin-right:20px">
+    </v-btn>
+
+    <v-btn icon="mdi-minus" class="zoom-button" @click="zoomOutSite" density="compact" size="medium" >
+    </v-btn>
+
+
+    <v-btn icon="mdi-chevron-left" class="zoom-button" @click="panLeftSite" density="compact" size="medium" style="margin-left:100px; margin-right:20px;">
+    </v-btn>
+
+    <v-btn icon="mdi-chevron-right" class="zoom-button" @click="panRightSite" density="compact" size="medium" >
+    </v-btn>
+
  </div>
 
  <div id="site-diagrams" class="d-flex plus" 
@@ -325,6 +351,7 @@ export default {
     tab: String,
     loadInProgress: Boolean,
     junctionSiteSeqRange: Number,
+    junctionSitePan: Number,
     variants: Array,
     variantHeight: Number,
     variantWidth: Number,
@@ -680,7 +707,24 @@ export default {
       }
 		},
 
-    highlightRegion: function() {
+    highlightRegionFromCoord: function() {
+      let self = this;
+
+      if (self.highlightRegionCoord == null || self.highlightRegionCoord.trim() == "") {
+        if (self.clickedObject) {
+          self.unclickSpliceJunction()
+        }
+        self.resetZoom();
+      } else {
+        let parsedRegion = self.parseRegionCoords();
+        self.highlightRegionImpl(parsedRegion.point, parsedRegion.regionStart, parsedRegion.regionEnd)
+      }
+    },
+    highlightRegion: function(point, regionStart, regionEnd) {
+      let self = this;
+      self.highlightRegionImpl(point, regionStart, regionEnd)
+    },
+    parseRegionCoords: function() {
       let self = this;
       let regionStart = null;
       let regionEnd = null;
@@ -711,9 +755,6 @@ export default {
           break;
         }
       }
-
-
-
       // If region end not provided, default highlight region to 1/10 of gene size
       if (regionEnd == null) {
         let span = Math.round((+self.selectedGene.end - +self.selectedGene.start) / 10)
@@ -724,56 +765,61 @@ export default {
         let span = (regionEnd - regionStart);
         point = regionStart + (span/2);
       }
+      return {'point': point, 'regionStart': regionStart, 'regionEnd': regionEnd}
+    },
 
-      if (regionStart != null && regionEnd != null && regionStart >= self.selectedGene.start && regionEnd <= self.selectedGene.end) {
+    highlightRegionImpl: function(point, regionStart, regionEnd) {
+      let self = this;
+      if (regionStart <= self.selectedGene.start || regionEnd >= self.selectedGene.end) {
+        alert("Coordinates must be within gene region " + self.selectedGene.start + "-" + self.selectedGene.end)
+        return;
+      } else if (point <= self.selectedGene.start || point >= self.selectedGene.end) {
+        alert("Point must be within specified region start and end " + regionStart + "-" + self.regionEnd)
+        return;
+      }
 
-        let theExtent = [self.xBrushable(regionStart),
-                         self.xBrushable(regionEnd)]
+      let theExtent = [self.xBrushable(regionStart),
+                       self.xBrushable(regionEnd)]
 
-        d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
+      d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
 
-        let xPoint = self.xBrushable(point)
-        d3.select("#diagrams #arc-diagram svg .arc-pointer")
+      let xPoint = self.xBrushable(point)
+      d3.select("#diagrams #arc-diagram svg .arc-pointer")
+            .attr("transform", function(d) {
+              return "translate(" + (xPoint - self.arcPointerWidth/self.ARC_FACTOR)
+              + ","
+              + "20" + ")"
+             })
+            .transition()
+            .duration(200)
+            .style("opacity", .9);
+       d3.select("#diagrams #arc-diagram svg .arc-pointer-line")
+            .attr("x1", xPoint)
+            .attr("x2", xPoint)
+            .attr("y1", 20)
+            .attr("y2", -10)
+            .style("opacity", 1)
+
+      self.$nextTick(function() {
+        let xPointZoom = self.xTranscriptChartZoomed(point)
+        d3.select("#zoomed-diagrams #arc-diagram svg .arc-pointer")
               .attr("transform", function(d) {
-                return "translate(" + (xPoint - self.arcPointerWidth/self.ARC_FACTOR)
+                return "translate(" + (xPointZoom - self.arcPointerWidth/self.ARC_FACTOR)
                 + ","
-                + "20" + ")"
+                + "40" + ")"
                })
               .transition()
               .duration(200)
               .style("opacity", .9);
-         d3.select("#diagrams #arc-diagram svg .arc-pointer-line")
-              .attr("x1", xPoint)
-              .attr("x2", xPoint)
-              .attr("y1", 20)
-              .attr("y2", -10)
+         d3.select("#zoomed-diagrams #arc-diagram svg .arc-pointer-line")
+              .attr("x1", xPointZoom)
+              .attr("x2", xPointZoom)
+              .attr("y1", 30)
+              .attr("y2", 40)
               .style("opacity", 1)
 
-        //setTimeout(function() {
-        self.$nextTick(function() {
-          let xPointZoom = self.xTranscriptChartZoomed(point)
-          d3.select("#zoomed-diagrams #arc-diagram svg .arc-pointer")
-                .attr("transform", function(d) {
-                  return "translate(" + (xPointZoom - self.arcPointerWidth/self.ARC_FACTOR)
-                  + ","
-                  + "40" + ")"
-                 })
-                .transition()
-                .duration(200)
-                .style("opacity", .9);
-           d3.select("#zoomed-diagrams #arc-diagram svg .arc-pointer-line")
-                .attr("x1", xPointZoom)
-                .attr("x2", xPointZoom)
-                .attr("y1", 30)
-                .attr("y2", 40)
-                .style("opacity", 1)
+      })
 
-        })
-
-
-      } else {
-        alert("Coordinates must be within gene region " + self.selectedGene.start + "-" + self.selectedGene.end)
-      }
 
     },
 
@@ -947,13 +993,16 @@ export default {
       d3.select("#zoomed-diagrams").select("#variant-diagram svg").remove();
       d3.select("#zoomed-diagrams").select("#coverage-diagram svg").remove();
 
-
       d3.select("#diagrams #arc-diagram svg .bounding-box.active").classed("active", false)
       d3.select("#diagrams #transcript-diagram svg .bounding-box.active").classed("active", false)
       d3.select("#diagrams #variant-diagram svg .bounding-box.active").classed("active", false)
 
       d3.select("#diagrams #brushable-axis svg .selection").style("display", "none")
 
+      if (self.clickedObject == null) {
+        d3.select("#diagrams #arc-diagram svg .arc-pointer").style("opacity", 0)
+        d3.select("#diagrams #arc-diagram svg .arc-pointer-line").style("opacity", 0)
+      }
 
     },
 
@@ -2416,21 +2465,87 @@ export default {
       }
 
     },
+    highlightSelectedJunctionRegion: function() {
+      let self = this;
+      let zoomRegionStart = null;
+      let zoomRegionEnd = null;
+      let downstreamExon = self.selectedGene.strand == '+'
+                              ? (self.clickedObject.donor.exon    ? self.clickedObject.donor.exon    : self.clickedObject.donor.exonClosest)
+                              : (self.clickedObject.acceptor.exon ? self.clickedObject.acceptor.exon : self.clickedObject.acceptor.exonClosest);
+      let upstreamExon   = self.selectedGene.strand == '+'
+                              ? (self.clickedObject.acceptor.exon ? self.clickedObject.acceptor.exon : self.clickedObject.acceptor.exonClosest)
+                              : (self.clickedObject.donor.exon    ? self.clickedObject.donor.exon    : self.clickedObject.donor.exonClosest);
+      zoomRegionStart = downstreamExon.start - 1000;
+      zoomRegionEnd   = upstreamExon.end + 1000;
+      self.highlightRegion(zoomRegionStart + ((zoomRegionEnd - zoomRegionStart)/2), zoomRegionStart, zoomRegionEnd)
+    },
+    zoomIn: function() {
+      let self = this;
+      if (self.regionIsSelected) {
+        let theExtent = [self.xBrushable(self.brushRegionStart + 100),
+                         self.xBrushable(self.brushRegionEnd - 100)]
+
+        d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
+
+      } else if (self.clickedObject) {
+        self.highlightSelectedJunctionRegion()
+        //self.$nextTick(function() {
+        //  if (self.isRegionSelected) {
+        //    self.zoomIn();
+        //  }
+        //})
+      }
+    },
+    zoomOut: function() {
+      let self = this;
+      if (self.regionIsSelected) {
+        let theExtent = [self.xBrushable(self.brushRegionStart - 100),
+                         self.xBrushable(self.brushRegionEnd + 100)]
+
+        d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
+      } else if (self.clickedObject) {
+        self.highlightSelectedJunctionRegion()
+      }
+    },
+    panRight: function() {
+      let self = this;
+      let theExtent = [self.xBrushable(self.brushRegionStart + 100),
+                       self.xBrushable(self.brushRegionEnd + 100)]
+
+      d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
+    },
+    panLeft: function() {
+      let self = this;
+      let theExtent = [self.xBrushable(self.brushRegionStart - 100),
+                       self.xBrushable(self.brushRegionEnd - 100)]
+
+      d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
+    },
 
     zoomOutSite: function() {
       let self = this;
-      //self.zoomFactor = self.zoomFactor + 10
       self.$emit("set-site-zoom-factor", +10)
       self.$nextTick(function() {
         self.$emit("splice-junction-selected", self.clickedObject)
       })
     },
-    
-
     zoomInSite: function() {
       let self = this;
-      //self.zoomFactor = self.zoomFactor - 10
       self.$emit("set-site-zoom-factor", -10)
+      self.$nextTick(function() {
+        self.$emit("splice-junction-selected", self.clickedObject)
+      })
+    },
+    panLeftSite: function() {
+      let self = this;
+      self.$emit("set-site-pan", -10)
+      self.$nextTick(function() {
+        self.$emit("splice-junction-selected", self.clickedObject)
+      })
+    },
+    panRightSite: function() {
+      let self = this;
+      self.$emit("set-site-pan", +10)
       self.$nextTick(function() {
         self.$emit("splice-junction-selected", self.clickedObject)
       })
@@ -2456,8 +2571,8 @@ export default {
         'donor',
         donorSiteContainer, 
       	donorSequence, 
-      	self.clickedObject.donor.pos - self.junctionSiteSeqRange, 
-      	self.clickedObject.donor.pos + self.junctionSiteSeqRange,
+      	self.clickedObject.donor.pos - self.junctionSiteSeqRange + self.junctionSitePan,
+      	self.clickedObject.donor.pos + self.junctionSiteSeqRange + self.junctionSitePan,
       	self.selectedGene.strand == "+" ? self.clickedObject.donor.pos+1 : self.clickedObject.donor.pos,
       	self.selectedGene.strand == "+" ? self.clickedObject.donor.pos+2 : self.clickedObject.donor.pos-1,
       	donorExons,
@@ -2475,8 +2590,8 @@ export default {
         'acceptor',
         acceptorSiteContainer, 
       	acceptorSequence, 
-      	self.clickedObject.acceptor.pos - self.junctionSiteSeqRange,
-      	self.clickedObject.acceptor.pos + self.junctionSiteSeqRange,
+      	self.clickedObject.acceptor.pos - self.junctionSiteSeqRange + self.junctionSitePan,
+      	self.clickedObject.acceptor.pos + self.junctionSiteSeqRange + self.junctionSitePan,
       	self.selectedGene.strand == "+" ? self.clickedObject.acceptor.pos-1 : self.clickedObject.acceptor.pos+1,
       	self.selectedGene.strand == "+" ? self.clickedObject.acceptor.pos : self.clickedObject.acceptor.pos+2,
       	acceptorExons,
@@ -4431,12 +4546,6 @@ text.seq.T, rect.seq.T {
   display: none;
 }
 
-.zoom-button {
-  height: 25px !important;
-  margin-right: 20px;
-  padding: 3px 8px;
-  font-size: 13px;
-}
 
 #sequence .exon-label {
   font-size: 11px !important;
@@ -4591,4 +4700,10 @@ text.seq.T, rect.seq.T {
       stroke: #09344f
       stroke-width: 0.5
 
+.zoom-button
+  background-color: #728dac !important
+  .v-btn__content
+    i
+      font-size: 26px
+      color: white !important
 </style>
