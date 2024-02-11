@@ -56,6 +56,8 @@
       absolute
       location="right"
       width="200"
+      temporary="true"
+      scrim="false"
       >
         <v-btn id="legend-drawer-close-button" class="toolbar-button" flat @click="showLegendDrawer = false">
           <v-icon >mdi-close</v-icon>
@@ -310,6 +312,9 @@ export default {
         this.appAlertCounts.total += 1
         
       } 
+      if (type == 'error' || type == 'warning') {
+        this.onShowAlertPanel();
+      }
     },
     onClearAlert: function(key) {
       let self = this;

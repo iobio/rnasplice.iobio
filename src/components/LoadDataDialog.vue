@@ -277,7 +277,9 @@ export default {
           if (this.tbiURL) {
             this.tbiURL = this.tbiURL.trim();
           }
-          this.$emit("vcf-url-entered", this.vcfURL, this.tbiURL)
+          if (this.vcfURL && this.tbiURL) {
+            this.$emit("vcf-url-entered", this.vcfURL, this.tbiURL)
+          }
         }
       },
       tbiURL: function(){
@@ -286,7 +288,9 @@ export default {
           if (this.tbiURL) {
             this.tbiURL = this.tbiURL.trim();
           }
-          this.$emit("vcf-url-entered", this.vcfURL, this.tbiURL)
+          if (this.vcfURL && this.tbiURL) {
+            this.$emit("vcf-url-entered", this.vcfURL, this.tbiURL)
+          }
         }
       }
 

@@ -2,7 +2,7 @@
   <v-navigation-drawer 
       id="alert-panel"
       v-model="showAlertPanel"
-      permanent
+      temporary="true"
       location="right"
       style="margin-left: 5px; margin-right: 5px; padding: 5px;height: calc(100% - 65px);">
 
