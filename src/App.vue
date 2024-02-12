@@ -56,7 +56,7 @@
       absolute
       location="right"
       width="200"
-      temporary="true"
+      temporary
       scrim="false"
       >
         <v-btn id="legend-drawer-close-button" class="toolbar-button" flat @click="showLegendDrawer = false">
@@ -92,7 +92,8 @@
           @object-selected="onObjectSelected"
           @set-site-zoom-factor="onSetSiteZoomFactor"
           @set-site-pan="onSetSitePan"
-          @sample-names-loaded="onSampleNamesLoaded"/>
+          @sample-names-loaded="onSampleNamesLoaded"
+          @load-data-from-url-params="onLoadDataFromURL"/>
 
 
       </v-main>
@@ -181,12 +182,14 @@ export default {
 
       // TODO - Remove. This is temporary code until we have worked out 
       // how the app is launched
-      setTimeout(function() {
-        if (self.$refs && self.$refs.ref_Navigation) {
-          self.$refs.ref_Navigation.onShowLoadDataDialog()
-        }
+      if (self.loadInfo == null) {
+        setTimeout(function() {
+          if (self.$refs && self.$refs.ref_Navigation) {
+            self.$refs.ref_Navigation.onShowLoadDataDialog()
+          }
 
-      }, 1000)
+        }, 1000)
+      }
 
     },
     onGeneClicked: function(geneName) {
@@ -217,6 +220,29 @@ export default {
     onLoadData: function(loadInfo) {
       let self = this;
       this.loadInfo = loadInfo;
+
+      // The user has specified the URLs for the splice junctions (bed), and optionally,
+      // the URLs for coverage (bigwig) and variants (vcf). If the user
+      // provided the vcf URL, the user would have selected a sample name from a dropdown.
+      // Create query parameters to capture this.
+      let queryObject = {};
+      ['bedURL', 'bedIndexURL', 'bigwigURL', 'vcfURL', 'tbiURL', 'sampleName', 'buildName']
+      .forEach(function(param) {
+        if (loadInfo[param]) {
+          queryObject[param] = loadInfo[param];
+        }
+      })
+      let urlPath = window.location.origin + "?" + qs.stringify(queryObject)
+      window.history.pushState({},"", urlPath);
+    },
+    onLoadDataFromURL: function(theLoadInfo) {
+      let self = this;
+      self.loadInfo = theLoadInfo;
+      if (self.loadInfo.vcfURL && self.loadInfo.tbiURL) {
+        self.$nextTick(function() {
+          self.onVcfURLEntered(self.loadInfo.vcfURL, self.loadInfo.tbiURL)
+        })
+      }
     },
     onReinit: function() {
       let self = this;

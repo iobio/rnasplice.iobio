@@ -165,7 +165,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
 
         self.globalApp.initServices(self.launchedFromMosaic)
 
-        self.urlParams = new URLSearchParams(window.location.search);
+        self.loadURLParameters();
 
         self.genomeBuildHelper = new GenomeBuildHelper(self.globalApp, 
                                                        true, 
@@ -188,6 +188,23 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         self.vcf.setGenomeBuildHelper(self.genomeBuildHelper)
         
        
+
+      },
+
+      loadURLParameters: function() {
+        let self = this;
+        self.urlParams = new URLSearchParams(window.location.search);
+
+        let theLoadInfo = {};
+        ['bedURL', 'bedIndexURL', 'bigwigURL', 'vcfURL', 'tbiURL', 'sampleName', 'buildName']
+        .forEach(function(param) {
+          if (self.urlParams.has(param)) {
+            theLoadInfo[param] = self.urlParams.get(param)
+          }
+        })
+        if (theLoadInfo.bedURL) {
+          self.$emit('load-data-from-url-params', theLoadInfo)
+        }
 
       },
       loadGene: function(geneName) {

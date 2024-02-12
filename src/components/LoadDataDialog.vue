@@ -31,10 +31,19 @@
                   v-model="bedURL"
                   :rules="bedRules"
                   density="compact" 
-                  label="Splice Junction URL (.bed.gz)">
+                  label="Splice Junction BED URL (.bed.gz)">
+                </v-text-field>
+              </div>
+              <div class="pt-4">
+                <v-text-field id="bed-index-url-text"
+                  v-model="bedIndexURL"
+                  :rules="bedIndexRules"
+                  density="compact"
+                  label="Splice Junction BED Index URL (.bed.gz.tbi)">
                 </v-text-field>
               </div>
 
+              <v-divider/>
 
               <div class="pt-4">
                 <v-text-field id="bigwig-url-text" 
@@ -106,6 +115,7 @@ export default {
         isFormValid: null,
         buildName: 'GRCh38',
         bedURL: null,
+        bedIndexURL: null,
         bigwigURL: null,
         vcfURL: null,
         tbiURL: null,
@@ -153,6 +163,26 @@ export default {
             } else {
               return 'Invalid URL';
             } 
+          }
+        ],
+        bedIndexRules: [
+          v => {
+            if (v && v.toLowerCase().indexOf('.bed.gz.tbi') > 0) {
+              return true;
+            } else if (v) {
+              return 'The index file file must have extension .bed.gz.tbi'
+            } else {
+              return true;
+            }
+          },
+          v => {
+            if (v && v.match(new RegExp(self.urlRegExp))) {
+              return true;
+            } else if (v) {
+              return 'Invalid URL';
+            } else {
+              return true;
+            }
           }
         ],
         bigwigRules: [
@@ -245,7 +275,7 @@ export default {
       onLoad: function() {
         let loadInfo = {'buildName': this.buildName, 
                         'bedURL': this.bedURL.trim(), 
-                        'bedIndexURL': this.bedURL.trim() + '.tbi',
+                        'bedIndexURL': this.bedIndexURL ? this.bedIndexURL.trim() : this.bedURL.trim() + '.tbi',
                         'bigwigURL': this.bigwigURL ? this.bigwigURL.trim() : null,
                         'vcfURL': this.vcfURL ? this.vcfURL.trim() : null,
                         'tbiURL': this.tbiURL ? this.tbiURL.trim() : null,
@@ -300,6 +330,7 @@ export default {
 
 <style>
 #load-data-dialog-content #bed-url-text,
+#load-data-dialog-content #bed-index-url-text,
 #load-data-dialog-content #bigwig-url-text,
 #load-data-dialog-content #vcf-url-text,
 #load-data-dialog-content #tbi-url-text

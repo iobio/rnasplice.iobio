@@ -28,11 +28,11 @@
           </div>
 
 
-          <div style="width:155px" class="">
+          <div style="width:170px" class="">
             <v-select 
               v-model="colorBy"
               hide-details="auto"
-              label="Color by"
+              label="Color junctions by"
               density="compact"
               :items="colorByItems"
             ></v-select>
@@ -46,7 +46,7 @@
 						  hide-details="true"
               density="compact"
 				      v-model="showReadCounts"
-				      label="Label junctions with read counts"
+				      label="Show read counts"
 				    ></v-checkbox>
 			    </div>
 
@@ -225,16 +225,16 @@
 
 	<div id="zoomed-diagrams"  style="margin-top:30px;z-index:1000;border-top: solid 4px #e7e7e7">
     <h2 v-if="clickedObject || regionIsSelected" style="margin-bottom:10px !important;margin-top:10px !important">Selected Region</h2>
-    <div class="d-flex" style="margin-top:-25px">
+    <div class="d-flex" style="margin-top:-25px;margin-bottom:20px">
 
       <div class="d-flex" v-if="clickedObject || regionIsSelected" style="margin:auto;justify-content: center;">
-        <v-btn icon="mdi-plus" class="zoom-button" @click="zoomIn" density="compact" size="medium" style="margin-right:20px;">
-        </v-btn>
-
         <v-btn icon="mdi-minus" class="zoom-button" @click="zoomOut" density="compact" size="medium" >
         </v-btn>
 
-        <v-btn icon="mdi-chevron-left" class="zoom-button" @click="panLeft" density="compact" size="medium" style="margin-left:100px; margin-right:20px;">
+        <v-btn icon="mdi-plus" class="zoom-button" @click="zoomIn" density="compact" size="medium" style="margin-left:10px;">
+        </v-btn>
+
+        <v-btn icon="mdi-chevron-left" class="zoom-button" @click="panLeft" density="compact" size="medium" style="margin-left:50px; margin-right:10px;">
         </v-btn>
 
         <v-btn icon="mdi-chevron-right" class="zoom-button" @click="panRight" density="compact" size="medium" >
@@ -257,15 +257,15 @@
 	</div>
 
  
- <div class="d-flex" v-if="showDonorPanel || showAcceptorPanel" style="justify-content: center;padding:10px;border-top: solid 4px #e7e7e7;margin-top:20px">
-    <v-btn icon="mdi-plus" class="zoom-button" @click="zoomInSite" density="compact" size="medium"  style="margin-right:20px">
-    </v-btn>
+ <div class="d-flex" v-if="showDonorPanel || showAcceptorPanel" style="justify-content: center;padding:10px;border-top: solid 4px #e7e7e7;margin-top:20px;">
 
     <v-btn icon="mdi-minus" class="zoom-button" @click="zoomOutSite" density="compact" size="medium" >
     </v-btn>
+    <v-btn icon="mdi-plus" class="zoom-button" @click="zoomInSite" density="compact" size="medium"  style="margin-left:10px">
+    </v-btn>
 
 
-    <v-btn icon="mdi-chevron-left" class="zoom-button" @click="panLeftSite" density="compact" size="medium" style="margin-left:100px; margin-right:20px;">
+    <v-btn icon="mdi-chevron-left" class="zoom-button" @click="panLeftSite" density="compact" size="medium" style="margin-left:50px; margin-right:10px;">
     </v-btn>
 
     <v-btn icon="mdi-chevron-right" class="zoom-button" @click="panRightSite" density="compact" size="medium" >
@@ -273,7 +273,7 @@
 
  </div>
 
- <div id="site-diagrams" class="d-flex plus" 
+ <div id="site-diagrams" class="d-flex plus mt-9"
    v-if="selectedGene && selectedGene.strand == '+'" >
   	<div class="donor-site" v-if="showDonorPanel" style="width:50%">
       <div class="d-flex" style="justify-content:center;margin-bottom: 20px !important;margin-top:-34px" >
@@ -1637,6 +1637,15 @@ export default {
 		  .append("svg")
 		    .attr("width", innerWidth)
 		    .attr("height", height)
+
+
+      if (options == null || !options.showXAxis) {
+        svg.append("text")
+        .attr("x", 0)
+        .attr("y", 10)
+        .text("Splice Junctions")
+      }
+
 
       var arcGroup = svg  
 		  .append("g")

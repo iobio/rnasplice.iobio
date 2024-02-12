@@ -87,7 +87,7 @@ export default function AreaChart(data, {
             .attr("stroke-opacity", 0.1))
         .call(g => g.append("text")
             .attr("x", -marginLeft)
-            .attr("y", 10)
+            .attr("y", 20)
             .attr("fill", "currentColor")
             .attr("text-anchor", "start")
             .text(yLabel));
