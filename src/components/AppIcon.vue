@@ -65,8 +65,14 @@
       </svg>
 
 
+
+      <svg v-if="icon == 'junction-non-mane-transcript'"  id="junction-non-mane-transcript-symbol" :style="iconStyle" viewBox="0 0 24 24">
+        <path d="M 28.05173108094 60 A 1 , 1.0636829569948605 0 0 , 0 5.48861691033665 , 60" class="junction canonical strand-matches" stroke-width="6" stroke="gray"
+        style="stroke-dasharray: 8 2 2;transform: translate(-5px,-45px);" ></path>
+      </svg>
+
       <svg v-if="icon == 'junction-strand-mismatch'"  id="junction-strand-mismatch-symbol" :style="iconStyle" viewBox="0 0 24 24">
-        <path d="M 28.05173108094 60 A 1 , 1.0636829569948605 0 0 , 0 5.48861691033665 , 60" class="junction canonical strand-matches" stroke-width="6" stroke="#e66a7f"
+        <path d="M 28.05173108094 60 A 1 , 1.0636829569948605 0 0 , 0 5.48861691033665 , 60" class="junction canonical strand-matches" stroke-width="6" stroke="gray"
         style="stroke-dasharray: 3;transform: translate(-5px,-45px);" ></path>
       </svg>
 

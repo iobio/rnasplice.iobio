@@ -382,6 +382,8 @@ export default {
 		regionIsSelected: false,
     brushRegionStart: null,
     brushRegionEnd: null,
+    zoomRegionStart: null,
+    zoomRegionEnd: null,
 
 		selectedTranscript: null,
 		filteredSpliceJunctions: null,
@@ -758,11 +760,12 @@ export default {
 
       let stripCommas = function(v) {
         let nv = v.replaceAll(",", "")
+        nv = nv.trim();
         return +nv;
       }
 
       // Parse out region start and end, ignore chromosome
-      const regex = /([chr\d]*?)(\:*?)(?<start>[\d\,]*?)(\-*?)(?<end>[\d\,]*?)$/gm;
+      const regex = /([chr\d]*?)(\:*?)(?<start>[\d\,\s]*?)(\-*?)(?<end>[\d\,\s]*?)$/gm;
       let m;
       while ((m = regex.exec(self.highlightRegionCoord)) !== null) {
         // This is necessary to avoid infinite loops with zero-width matches
@@ -782,7 +785,7 @@ export default {
         }
       }
       // If region end not provided, default highlight region to 1/10 of gene size
-      let span = Math.min(200, Math.round((+self.selectedGene.end - +self.selectedGene.start) / 10))
+      let span = Math.max(1000, Math.round((+self.selectedGene.end - +self.selectedGene.start) / 10))
 
       if (regionEnd == null) {
         // Adjust the region so that it stays within the gene region
@@ -792,7 +795,7 @@ export default {
             regionStart = point - (span/2)
             regionEnd   = point + (span/2)
           } else {
-            span = regionStart - self.selectedGene.start;
+            span = Math.abs(regionStart - self.selectedGene.start);
             point = regionStart;
             regionStart = point - (span/2);
             regionEnd = point + (span/2);
@@ -899,7 +902,9 @@ export default {
 			    	filteredEdgesClone.push(edge);
 			    })
           self.showZoomPanel = true;
-			    self.drawArcDiagram("#zoomed-diagrams", filteredEdgesClone, regionStart, regionEnd, 
+          self.zoomRegionStart = regionStart;
+          self.zoomRegionEnd = regionEnd;
+			    self.drawArcDiagram("#zoomed-diagrams", filteredEdgesClone, self.zoomRegionStart, self.zoomRegionEnd,
             {'createBrush': false, 
              'allEdges': self.filteredSpliceJunctions,
              'showXAxis': true,
@@ -907,11 +912,12 @@ export default {
              'showJunctionArrow': true,
              'isZoomedRegion': true})
 
-          self.drawCoverageDiagram("#zoomed-diagrams #coverage-diagram", regionStart, regionEnd,
+          self.drawCoverageDiagram("#zoomed-diagrams #coverage-diagram", self.zoomRegionStart, self.zoomRegionEnd,
             {'marginRight': 0})
 
 
-			    self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram", self.selectedGene, regionStart, regionEnd, 
+			    self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram", self.selectedGene,
+            self.zoomRegionStart, self.zoomRegionEnd,
 			      {'selectedTranscriptOnly': true, 'allowSelection': false, 'marginRight': 0})
 
           if (self.variants && self.variants.length > 0) {
@@ -922,8 +928,9 @@ export default {
               variant.level = 0;
               return variant;
             })
-            self.vcf.pileupVariants(filteredVariants, regionStart, regionEnd, self.$el.offsetWidth - 20)
-            self.drawVariantDiagram("#zoomed-diagrams #variant-diagram", regionStart, regionEnd, filteredVariants)
+            self.vcf.pileupVariants(filteredVariants, self.zoomRegionStart, self.zoomRegionEnd,
+              self.$el.offsetWidth - 20)
+            self.drawVariantDiagram("#zoomed-diagrams #variant-diagram", self.zoomRegionStart, self.zoomRegionEnd, filteredVariants)
 
           }
 
@@ -1037,6 +1044,9 @@ export default {
       d3.select("#diagrams #brushable-axis svg .selection").style("display", "none")
 
       if (self.clickedObject == null) {
+        self.zoomRegionStart = null;
+        self.zoomRegionEnd = null;
+
         d3.select("#diagrams #arc-diagram svg .arc-pointer").style("opacity", 0)
         d3.select("#diagrams #arc-diagram svg .arc-pointer-line").style("opacity", 0)
 
@@ -1191,19 +1201,8 @@ export default {
           d3.select("#diagrams #selected-transcript-panel #transcript-diagram svg").remove();
 
           let selectedTranscriptId = this.parentNode.__data__.transcript_id;
-          gene.transcripts.forEach(function(transcript) {
-          	if (transcript.transcript_id == selectedTranscriptId) {
-          		self.selectedTranscript = transcript;
-          		self.selectedTranscript.isSelected = true;
-          	} else {
-          		transcript.isSelected = false;
-          	}
-          })
+          self.switchTranscripts(selectedTranscriptId)
 
-
-          self.drawTranscriptDiagram("#diagrams #selected-transcript-panel #transcript-diagram", self.selectedGene, regionStart, regionEnd, 
-		      {'selectedTranscriptOnly': true, 'allowSelection': false})
-          
         })
      	}
 
@@ -1471,6 +1470,35 @@ export default {
 
 		},
 
+    switchTranscripts: function(selectedTranscriptId) {
+
+      let self = this;
+
+      self.selectedGene.transcripts.forEach(function(transcript) {
+        if (transcript.transcript_id == selectedTranscriptId) {
+          self.selectedTranscript = transcript;
+          self.selectedTranscript.isSelected = true;
+        } else {
+          transcript.isSelected = false;
+        }
+      })
+
+      d3.select('#diagrams #selected-transcript-panel #transcript-diagram svg').remove();
+      self.drawTranscriptDiagram("#diagrams #selected-transcript-panel #transcript-diagram", self.selectedGene, self.geneStart, self.geneEnd,
+      {'selectedTranscriptOnly': true, 'allowSelection': false})
+
+      d3.select('#zoomed-diagrams #transcript-diagram svg').remove();
+      self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram",
+        self.selectedGene,
+        self.zoomRegionStart,
+        self.zoomRegionEnd,
+        {'selectedTranscriptOnly': true, 'allowSelection': false, marginRight: 0})
+
+      self.$emit("splice-junction-selected", self.clickedObject)
+
+
+    },
+
 
 		onSelectExon: function(exon, options={'click': false}) {
 
@@ -1669,7 +1697,7 @@ export default {
 
 		  var scaleArcWidth = d3.scaleLinear()
 		                    .domain([self.minUniquelyMappedReads, maxReadCount])
-		                    .range([2, 10])
+		                    .range([5, 15])
 
 
 		           
@@ -1847,6 +1875,10 @@ export default {
 		    		self.clickedObject.key == d.key) {
 		    		clazz += " selected clicked"
 		    	}
+
+          if (d.hasOwnProperty('isPreferredTranscript') && d.isPreferredTranscript == false) {
+            clazz += " non-mane-transcript"
+          }
 		    	return clazz;
 		    })
 		    .attr("stroke-width", function(d) {
@@ -2578,6 +2610,18 @@ export default {
 	      self.$emit("object-selected", spliceJunctionObject)
 	      self.clickedObject = spliceJunctionObject;
 
+        if (self.clickedObject.isPreferredTranscript == false) {
+          if (self.clickedObject.donor.transcript.transcript_id != self.selectedTranscript.transcript_id) {
+            self.snackbarText = "Changing transcripts"
+            self.snackbarShow = true;
+            self.switchTranscripts(self.clickedObject.donor.transcript.transcript_id)
+          }
+        } else if (self.selectedTranscript.transcript_id != self.clickedObject.donor.transcript.transcript_id) {
+            self.snackbarText = "Switching back to MANE SELECT transcript"
+            self.snackbarShow = true;
+            self.switchTranscripts(self.clickedObject.donor.transcript.transcript_id)
+        }
+
 	      let region = self.getSurroundingRegion(d)
         //self.highlightSelectedJunctionRegion();
         self.$nextTick(function() {
@@ -3123,8 +3167,10 @@ export default {
 	    	filteredEdgesClone.push(edge);
 	    })
       self.showZoomPanel = true;
+      self.zoomRegionStart = regionStart;
+      self.zoomRegionEnd = regionEnd;
 	    d3.selectAll("#zoomed-diagrams svg").remove()
-	    self.drawArcDiagram("#zoomed-diagrams", filteredEdgesClone, regionStart, regionEnd, 
+	    self.drawArcDiagram("#zoomed-diagrams", filteredEdgesClone, self.zoomRegionStart, self.zoomRegionEnd,
           {'createBrush': false, 
            'allEdges': self.filteredSpliceJunctions,
            'showXAxis': true, 
@@ -3132,7 +3178,7 @@ export default {
            'showJunctionArrow': true,
            'isZoomedRegion': true})
 
-      self.drawCoverageDiagram("#zoomed-diagrams #coverage-diagram", regionStart, regionEnd,
+      self.drawCoverageDiagram("#zoomed-diagrams #coverage-diagram", self.zoomRegionStart, self.zoomRegionEnd,
         {'marginRight': 0})
 
       d3.selectAll("#zoomed-diagrams #arc-diagram path.junction")
@@ -3145,22 +3191,24 @@ export default {
         })
 	    self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram",
         self.selectedGene,
-        regionStart,
-        regionEnd,
+        self.zoomRegionStart, self.zoomRegionEnd,
 	      {'selectedTranscriptOnly': true, 'allowSelection': false, marginRight: 0})
 
 
 
       if (self.variants && self.variants.length > 0) {
         let filteredVariants = self.variants.filter(function(d) {
-          return d.start >= regionStart && d.start <= regionEnd
+          return d.start >= self.zoomRegionStart && d.start <= self.zoomRegionEnd
         }).map(function(d) {
           let variant = $.extend({}, d)
           variant.level = 0;
           return variant;
         })
-        self.vcf.pileupVariants(filteredVariants, regionStart, regionEnd, self.$el.offsetWidth - 20)
-        self.drawVariantDiagram("#zoomed-diagrams #variant-diagram", regionStart, regionEnd, filteredVariants)       
+        self.vcf.pileupVariants(filteredVariants,
+          self.zoomRegionStart, self.zoomRegionEnd,
+          self.$el.offsetWidth - 20)
+        self.drawVariantDiagram("#zoomed-diagrams #variant-diagram",
+          self.zoomRegionStart, self.zoomRegionEnd, filteredVariants)
       }
 		},
 				 
@@ -4432,6 +4480,10 @@ svg path.junction.strand-mismatches {
    stroke-dasharray: 3
 }
 
+svg path.junction.non-mane-transcript {
+  stroke-dasharray: 8 2 2;
+}
+
 svg.hide-strand-mismatches path.junction.strand-mismatches {
   display: none !important;
 }
@@ -4618,7 +4670,8 @@ text.junction {
   {
 	font-size: 13px !important;
   padding-top: 3px !important;
-  line-height: 15px !important
+  line-height: 15px !important;
+  font-weight: 500;
 }
 
 
@@ -4769,7 +4822,9 @@ text.seq.T, rect.seq.T {
 .legendCells
   .label 
     fill: #787878 !important
-    font-size: 85% !important
+    font-size: 12px !important
+    font-weight: 500 !important
+
   .legend-cell-show
     fill: rgb(24, 103, 192) !important
     font-size: 85% !important
@@ -4815,7 +4870,8 @@ text.seq.T, rect.seq.T {
   .v-field__field
     .v-label.v-field-label
       font-size: 13px
-
+  .v-select__selection-text
+    font-size: 13px
 
 #coverage-diagram
   svg

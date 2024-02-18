@@ -5,11 +5,18 @@
 
     <div style="text-align:left;width:200px;margin-right:15px;margin-bottom:10px">
 
+      <legend-icon style="margin-top: 10px"
+       icon="junction-non-mane-transcript"
+       level="none"
+       width="25"
+       label="  Not MANE transcript">
+      </legend-icon>
+
       <legend-icon
        icon="junction-strand-mismatch"
        level="none"
        width="25"
-       label="  Junction on other strand">
+       label="  Opposite strand of gene">
       </legend-icon>
     </div>
 
