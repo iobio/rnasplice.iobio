@@ -182,7 +182,7 @@
     <div id="coverage-diagram" style="min-height:100px">
     </div>
 
-	  <div id="arc-diagram" class="hide-read-counts" style="margin-top:-135px">
+	  <div id="arc-diagram" class="hide-read-counts" style="margin-top:-142px">
 	  </div>
 
     <div id="selected-transcript-panel" v-show="showTranscriptMenu" style="margin-top:-7px">
@@ -223,7 +223,7 @@
 
 	</div>
 
-	<div id="zoomed-diagrams"  style="margin-top:30px;z-index:1000;border-top: solid 4px #e7e7e7">
+	<div id="zoomed-diagrams"  style="margin-top:30px;z-index:1000;border-top: solid 12px #e7e7e7">
     <h2 v-if="clickedObject || regionIsSelected" style="margin-bottom:10px !important;margin-top:10px !important">Selected Region</h2>
     <div class="d-flex" style="margin-top:-25px;margin-bottom:20px">
 
@@ -257,7 +257,7 @@
 	</div>
 
  
- <div class="d-flex" v-if="showDonorPanel || showAcceptorPanel" style="justify-content: center;padding:10px;border-top: solid 4px #e7e7e7;margin-top:20px;">
+ <div class="d-flex" v-if="showDonorPanel || showAcceptorPanel" style="justify-content: center;padding:10px;border-top: solid 12px #e7e7e7;margin-top:20px;">
 
     <v-btn icon="mdi-minus" class="zoom-button" @click="zoomOutSite" density="compact" size="medium" >
     </v-btn>
@@ -549,9 +549,24 @@ export default {
 
 				self.filteredSpliceJunctions = self.filterSpliceJunctions()
 
+        self.spliceJunctionsForGene.forEach(function(junction) {
+          if (junction.donor.pos < self.selectedGene.start) {
+            self.selectedGene.start = junction.donor.pos - 100;
+          }
+          if (junction.acceptor.pos < self.selectedGene.start) {
+            self.selectedGene.start = junction.acceptor.pos - 100;
+          }
+          if (junction.donor.pos > self.selectedGene.end) {
+            self.selectedGene.end = junction.donor.pos + 100;
+          }
+          if (junction.acceptor.pos > self.selectedGene.end) {
+            self.selectedGene.end = junction.acceptor.pos + 100;
+          }
+        })
+        self.geneStart = self.selectedGene.start - self.REGION_BUFFER;
+        self.geneEnd   = self.selectedGene.end   + self.REGION_BUFFER;
+
         
-		    self.geneStart = self.selectedGene.start - self.REGION_BUFFER;
-		    self.geneEnd   = self.selectedGene.end   + self.REGION_BUFFER;
 
 		    self.xArcDiagram = null;
 
@@ -800,25 +815,28 @@ export default {
             .attr("y2", -10)
             .style("opacity", 1)
 
-      self.$nextTick(function() {
-        let xPointZoom = self.xTranscriptChartZoomed(point)
-        d3.select("#zoomed-diagrams #arc-diagram svg .arc-pointer")
-              .attr("transform", function(d) {
-                return "translate(" + (xPointZoom - self.arcPointerWidth/self.ARC_FACTOR)
-                + ","
-                + "40" + ")"
-               })
-              .transition()
-              .duration(200)
-              .style("opacity", .9);
-         d3.select("#zoomed-diagrams #arc-diagram svg .arc-pointer-line")
-              .attr("x1", xPointZoom)
-              .attr("x2", xPointZoom)
-              .attr("y1", 30)
-              .attr("y2", 40)
-              .style("opacity", 1)
+      if (point) {
+        self.$nextTick(function() {
+          let xPointZoom = self.xTranscriptChartZoomed(point)
+          d3.select("#zoomed-diagrams #arc-diagram svg .arc-pointer")
+                .attr("transform", function(d) {
+                  return "translate(" + (xPointZoom - self.arcPointerWidth/self.ARC_FACTOR)
+                  + ","
+                  + "40" + ")"
+                 })
+                .transition()
+                .duration(200)
+                .style("opacity", .9);
+           d3.select("#zoomed-diagrams #arc-diagram svg .arc-pointer-line")
+                .attr("x1", xPointZoom)
+                .attr("x2", xPointZoom)
+                .attr("y1", 30)
+                .attr("y2", 40)
+                .style("opacity", 1)
+        })
+      }
 
-      })
+
 
 
     },
@@ -2158,6 +2176,54 @@ export default {
 	     
 		 }
 
+     let zoom = null;
+     let handleZoomEnd = function(e) {
+      if (e.transform.x) {
+        let from = x.invert(0)
+        let to   = x.invert(e.transform.x)
+        let pan  = Math.round(from - to);
+        let theExtent = [self.xBrushable(self.brushRegionStart+pan),
+                         self.xBrushable(self.brushRegionEnd+pan)]
+        d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
+      }
+     }
+     let handleZoomInProgress = function(e) {
+      if (e.transform.x) {
+        let arcTransform = $.extend({}, e.transform)
+        arcTransform.y = 0;
+        arcTransform.k = 1;
+        svg.attr('transform', arcTransform)
+
+        let transcriptTransform = $.extend({}, e.transform)
+        transcriptTransform.y = 0;
+        transcriptTransform.x = e.transform.x
+        transcriptTransform.k = 1;
+        d3.select("#zoomed-diagrams #transcript-diagram svg g").attr('transform', transcriptTransform)
+
+        let coverageTransform = $.extend({}, e.transform)
+        coverageTransform.y = 0;
+        coverageTransform.x = e.transform.x
+        coverageTransform.k = 1;
+        d3.select("#zoomed-diagrams #coverage-diagram svg").attr('transform', coverageTransform)
+
+        let variantTransform = $.extend({}, e.transform)
+        variantTransform.y = 0 + + self.arcPointerSmallHeight
+        variantTransform.x = e.transform.x
+        variantTransform.k = 1;
+        d3.select("#zoomed-diagrams #variant-diagram svg g").attr('transform', variantTransform)
+      }
+     }
+     if (options && options.isZoomedRegion) {
+        zoom = d3.zoom()
+                 .on('zoom', function(e) {
+                    handleZoomInProgress(e)
+                 })
+                 .on('end', function(e) {
+                    handleZoomEnd(e)
+                 })
+        svg.call(zoom)
+     }
+
 		 
 		},
 
@@ -2312,16 +2378,10 @@ export default {
 
       }
       // Turn off brush (region selection)
-      let downstreamExon = self.selectedGene.strand == '+'
-                            ? (d.donor.exon    ? d.donor.exon    : d.donor.exonClosest)
-                            : (d.acceptor.exon ? d.acceptor.exon : d.acceptor.exonClosest);
-      let upstreamExon   = self.selectedGene.strand == '+'
-                            ? (d.acceptor.exon ? d.acceptor.exon : d.acceptor.exonClosest)
-                            : (d.donor.exon    ? d.donor.exon    : d.donor.exonClosest);
-
+      let region = self.getSurroundingRegion(d)
       if (self.regionIsSelected) {
         // If junction is not in brush region
-        if (downstreamExon.start < self.brushRegionStart || upstreamExon.end > self.brushRegionEnd) {
+        if (region.start < self.brushRegionStart || region.end > self.brushRegionEnd) {
           self.resetZoom();
           self.snackbarText = "Removing region filter (zoom) in order to show selected splice junction."
           delaySelection = true;
@@ -2353,6 +2413,34 @@ export default {
       } else {
         self._selectSpliceJunctionImpl(d)
       }
+    },
+
+    getSurroundingRegion: function(d) {
+      let self = this;
+
+      let start = null;
+      let end = null;
+
+      let downstreamExon = self.selectedGene.strand == '+'
+                            ? (d.donor.exon    ? d.donor.exon    : d.donor.exonClosest)
+                            : (d.acceptor.exon ? d.acceptor.exon : d.acceptor.exonClosest);
+
+      if (downstreamExon) {
+        start = downstreamExon.start;
+      } else {
+        start = self.selectedGene.strand == '+' ? d.donor.pos : d.acceptor.pos;
+      }
+
+      let upstreamExon   = self.selectedGene.strand == '+'
+                            ? (d.acceptor.exon ? d.acceptor.exon : d.acceptor.exonClosest)
+                            : (d.donor.exon    ? d.donor.exon    : d.donor.exonClosest);
+      if (upstreamExon) {
+        end = upstreamExon.end;
+      } else {
+        end = self.selectedGene.strand == '+' ? d.acceptor.pos : d.donor.pos;
+      }
+
+      return {'start': start, 'end': end}
     },
 
     _selectSpliceJunctionImpl: function(d) {
@@ -2445,23 +2533,8 @@ export default {
 	      self.$emit("object-selected", spliceJunctionObject)
 	      self.clickedObject = spliceJunctionObject;
 
-	      let regionStart = null;
-	      let regionEnd = null;
-        if (self.regionIsSelected) {
-          regionStart = self.brushRegionStart;
-          regionEnd   = self.brushRegionEnd;
-        } else {
-
-          let downstreamExon = self.selectedGene.strand == '+'
-                                ? (d.donor.exon    ? d.donor.exon    : d.donor.exonClosest)
-                                : (d.acceptor.exon ? d.acceptor.exon : d.acceptor.exonClosest);
-          let upstreamExon   = self.selectedGene.strand == '+'
-                                ? (d.acceptor.exon ? d.acceptor.exon : d.acceptor.exonClosest)
-                                : (d.donor.exon    ? d.donor.exon    : d.donor.exonClosest);
-          regionStart = downstreamExon.start - 1000;
-          regionEnd   = upstreamExon.end + 1000;
-        }
-	      self.selectZoomedSpliceJunction(d, theSpliceJunctions, regionStart, regionEnd)
+	      let region = self.getSurroundingRegion(d)
+	      self.selectZoomedSpliceJunction(d, theSpliceJunctions, region.start - 1000, region.end + 1000)
 
     		self.showDonorPanel = true;
     		self.showAcceptorPanel = true;
@@ -2476,16 +2549,9 @@ export default {
     },
     highlightSelectedJunctionRegion: function() {
       let self = this;
-      let zoomRegionStart = null;
-      let zoomRegionEnd = null;
-      let downstreamExon = self.selectedGene.strand == '+'
-                              ? (self.clickedObject.donor.exon    ? self.clickedObject.donor.exon    : self.clickedObject.donor.exonClosest)
-                              : (self.clickedObject.acceptor.exon ? self.clickedObject.acceptor.exon : self.clickedObject.acceptor.exonClosest);
-      let upstreamExon   = self.selectedGene.strand == '+'
-                              ? (self.clickedObject.acceptor.exon ? self.clickedObject.acceptor.exon : self.clickedObject.acceptor.exonClosest)
-                              : (self.clickedObject.donor.exon    ? self.clickedObject.donor.exon    : self.clickedObject.donor.exonClosest);
-      zoomRegionStart = downstreamExon.start - 1000;
-      zoomRegionEnd   = upstreamExon.end + 1000;
+      let region = self.getSurroundingRegion(self.clickedObject)
+      let zoomRegionStart = region.start - 1000;
+      let zoomRegionEnd   = region.end + 1000;
       self.highlightRegion(zoomRegionStart + ((zoomRegionEnd - zoomRegionStart)/2), zoomRegionStart, zoomRegionEnd)
     },
     zoomIn: function() {
@@ -2518,17 +2584,41 @@ export default {
     },
     panRight: function() {
       let self = this;
-      let theExtent = [self.xBrushable(self.brushRegionStart + 100),
-                       self.xBrushable(self.brushRegionEnd + 100)]
+      if (self.regionIsSelected) {
+        let start = self.brushRegionStart + 100;
+        let end = self.brushRegionEnd + 100
+        let startX = self.xBrushable(start);
+        let endX   = self.xBrushable(end)
 
-      d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
+        if (start >= self.selectedGene.start && end <= self.selectedGene.end) {
+          let theExtent = [startX,endX]
+          d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
+        } else {
+          alert("Unable to pan outside gene region")
+        }
+
+      } else {
+        self.highlightSelectedJunctionRegion()
+      }
     },
     panLeft: function() {
       let self = this;
-      let theExtent = [self.xBrushable(self.brushRegionStart - 100),
-                       self.xBrushable(self.brushRegionEnd - 100)]
+      if (self.regionIsSelected) {
+        let start = self.brushRegionStart - 100;
+        let end = self.brushRegionEnd - 100
+        let startX = self.xBrushable(start);
+        let endX   = self.xBrushable(end)
 
-      d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
+        if (start >= self.selectedGene.start && end <= self.selectedGene.end) {
+          let theExtent = [startX,endX]
+          d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
+        } else {
+          alert("Unable to pan outside gene region")
+        }
+
+      } else {
+        self.highlightSelectedJunctionRegion()
+      }
     },
 
     zoomOutSite: function() {
@@ -3460,10 +3550,13 @@ export default {
         .attr("width", width)
         .attr("height", height);
 
-      svg.append("text")
-      .attr("x", 5)
-      .attr("y", 12)
-      .text("Variants")
+      if (container.indexOf("#zoomed-diagrams") == -1) {
+        svg.append("text")
+        .attr("x", 0)
+        .attr("y", 12)
+        .text("Variants")
+
+      }
 
       let group = svg
         .append("g")
