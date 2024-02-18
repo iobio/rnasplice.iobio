@@ -31,7 +31,8 @@
             @transcript-selected="onTranscriptSelected"
             @splice-junction-selected="onSpliceJunctionSelected"
             @set-site-zoom-factor="onSetSiteZoomFactor"
-            @set-site-pan="onSetSitePan"/>
+            @set-site-pan="onSetSitePan"
+            @show-legend="$emit('show-legend')"/>
 
        
     </v-card>

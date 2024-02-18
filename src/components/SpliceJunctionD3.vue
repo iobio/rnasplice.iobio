@@ -8,25 +8,29 @@
     ></v-progress-circular>
   </div>
 
-      <div id="panel-heading" class="d-flex flex-row justify-space-between align-start flex-wrap mb-1" >
+      <div id="panel-heading" class="d-flex flex-row align-start mb-5" >
           <h2 class="mr-5" style="margin-top: 0px !important;margin-bottom: 0px !important;min-width: 150px;">
             Splice Junctions
           </h2>
 
-          <div class="">
-            <div class="d-flex align-center">
-              <div style="width:210px;padding-top:5px;"  >
-                <v-text-field
-                density="compact"
-                hide-details="auto"
-                variant="underlined"
-                label="Zoom to coordinates"
-                v-model="highlightRegionCoord"
-                @blur="highlightRegionFromCoord"/>
-              </div>
-            </div>
+          <div style="width:210px;margin-top:-15px;margin-left:20px"  >
+            <v-text-field
+            density="compact"
+            hide-details="auto"
+            variant="underlined"
+            label="Zoom to coordinates"
+            v-model="highlightRegionCoord"
+            @blur="highlightRegionFromCoord"/>
           </div>
 
+
+          <v-btn @click="$emit('show-legend')" color="#30638e" class="ml-6" density="compact" variant="tonal">
+            <v-icon class="mr-1">mdi-map</v-icon>
+            <span style="font-size:13px">Legend</span>
+          </v-btn>
+      </div>
+
+      <div class="d-flex flex-row align-start flex-wrap mb-1">
 
           <div style="width:170px" class="">
             <v-select 
@@ -38,10 +42,10 @@
             ></v-select>
           </div>
 
-          <div id="arc-color-legend">
+          <div id="arc-color-legend" class="mr-6">
           </div>
 
-          <div id="label-cb" class="mr-6" style="width: 90px" >
+          <div id="label-cb" class="mr-2" style="width: 90px" >
 						<v-checkbox 
 						  hide-details="true"
               density="compact"
@@ -50,7 +54,7 @@
 				    ></v-checkbox>
 			    </div>
 
-          <div id="show-strand-mismatch-cb" class="mr-6" style="width: 100px" >
+          <div id="show-strand-mismatch-cb" class="mr-9" style="width: 120px" >
             <v-checkbox
               hide-details="true"
               density="compact"
@@ -178,7 +182,8 @@
             <v-icon>mdi-restore</v-icon>
             <div>Click outside selection to restore</div>
           </div>
-      </div>      
+      </div>
+
 	    <div id="brushable-axis">
 	      <svg/>
 	    </div>
