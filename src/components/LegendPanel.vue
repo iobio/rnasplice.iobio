@@ -1,16 +1,46 @@
 <template>
   <div id="legend" >
 
+    <h3 class="mt-4">Splice Junctions</h3>
+
+    <div style="text-align:left;width:200px;margin-right:15px;margin-bottom:10px">
+
+      <legend-icon
+       icon="junction-strand-mismatch"
+       level="none"
+       width="25"
+       label="  Junction on other strand">
+      </legend-icon>
+    </div>
+
     <h3 class="mt-4">Variants</h3>
 
     <div style="display:flex;flex-wrap:wrap;justify-content:flex-start;margin-top:10px;">
 
 
       <div style="text-align:left;width:80px;margin-right:15px;margin-bottom:10px">
+
+        <div  class="legend-label">Splicing
+         <info-popup name="impact"></info-popup>
+        </div>
+
+
+        <legend-icon
+         icon="splice-variant"
+         level="none"
+         width="18"
+         height="18"
+         label="Splice site">
+        </legend-icon>
+      </div>
+
+
+
+      <div style="text-align:left;width:80px;margin-right:15px;margin-bottom:10px">
+
         <div  class="legend-label">Impact
          <info-popup name="impact"></info-popup>
         </div>
-      
 
         <legend-icon
          icon="impact"
@@ -56,7 +86,7 @@
 
         <div style="display:flex">
           <legend-icon
-           style="display:inline-block"
+           style="display:inline-block;fill:lightgray"
            icon="impact"
            type="snp"
            level="none"
@@ -68,6 +98,7 @@
 
         <legend-icon
          icon="impact"
+         style="fill:lightgray"
          type="del"
          level="none"
          width="16"
@@ -77,6 +108,7 @@
 
         <legend-icon
          icon="impact"
+         style="fill:lightgray"
          type="ins"
          level="none"
          width="16"
@@ -86,6 +118,7 @@
 
         <legend-icon
          icon="impact"
+         style="fill:lightgray"
          type="complex"
          level="none"
          width="18"
@@ -96,6 +129,8 @@
       </div>
 
     </div>
+
+
   </div>
 </template>
 

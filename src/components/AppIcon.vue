@@ -60,6 +60,15 @@
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
       </svg>
 
+      <svg v-if="icon == 'splice-variant'"  id="splice-variant-symbol" :style="iconStyle" viewBox="0 0 24 24">
+        <path d="M2.699,1.558L2.699,6.955L-2.699,6.955L-2.699,1.558L-7.373,-1.141L-4.674,-5.815L0,-3.116L4.674,-5.815L7.373,-1.141Z" class="variant splicing" transform="translate(8,10)"></path>
+      </svg>
+
+
+      <svg v-if="icon == 'junction-strand-mismatch'"  id="junction-strand-mismatch-symbol" :style="iconStyle" viewBox="0 0 24 24">
+        <path d="M 28.05173108094 60 A 1 , 1.0636829569948605 0 0 , 0 5.48861691033665 , 60" class="junction canonical strand-matches" stroke-width="6" stroke="#e66a7f"
+        style="stroke-dasharray: 3;transform: translate(-5px,-45px);" ></path>
+      </svg>
 
     
 
@@ -178,7 +187,9 @@ export default {
   path
     fill: white
 
-
+.variant.splicing
+  fill: #d70000 !important
+  stroke-width: 2 !important
 
 
 </style>
