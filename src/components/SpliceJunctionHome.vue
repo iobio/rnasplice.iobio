@@ -6,7 +6,6 @@
     <GeneCard  v-show="selectedGene" class="full-width-card"
     :selectedGene="selectedGene"
     :geneModel="geneModel"
-     @gene-region-buffer-change="onGeneRegionBufferChange"
      @reinit="$emit('reinit')"/>
 
     <v-card  v-show="selectedGene" class="full-width-card" style="padding-top:0px !important;min-height: calc(100vh + 20px);">
@@ -232,11 +231,6 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       },
       addAppAlert: function(type, message, genes, details) {
         this.$emit("add-alert", type, message, genes, details)
-      },
-      onGeneRegionBufferChange: function(theGeneRegionBuffer) {
-        let self = this;
-        self.geneModel.geneRegionBuffer = theGeneRegionBuffer;
-        self.geneModel.adjustGeneRegion(self.selectedGene);
       },
       onSetSiteZoomFactor: function(factor) {
         this.$emit("set-site-zoom-factor", factor)

@@ -17,17 +17,6 @@
           {{ formatRegion(selectedGene.startOrig) }} - {{ formatRegion(selectedGene.endOrig) }}
         </div>
 
-        <div class="pr-3 d-flex flex-row align-center flex-grow-0 flex-shrink-0">
-          <div  id="gene-plus-minus-label"  class="ml-2 mr-1">+  -</div>
-
-          <div style="width:70px">
-            <v-text-field  density="compact" hide-details="auto"
-                    id="gene-region-buffer-input"
-                    v-model="regionBuffer"
-                    v-on:change="onGeneRegionBufferChange">
-            </v-text-field>
-          </div>
-        </div>
 
 
         <v-chip   class="ml-2 mr-5 pr-3 flex-grow-0 flex-shrink-0" id="minus-strand" 
@@ -65,7 +54,7 @@
       geneModel: Object
     },
     data: () => ({
-      regionBuffer: 0,
+
       theGeneSource: 'gencode',
 
 
@@ -74,9 +63,6 @@
       
     },
     methods: {
-      onGeneRegionBufferChange: function (event) {
-        this.$emit('gene-region-buffer-change', parseInt(this.regionBuffer));
-      },
       formatRegion: function (value) {
         return !value ? '' : value.toLocaleString('en-US');
       },

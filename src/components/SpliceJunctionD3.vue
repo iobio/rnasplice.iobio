@@ -41,7 +41,7 @@
           <div id="arc-color-legend">
           </div>
 
-          <div id="label-cb" class="mr-6" style="width: 150px" >
+          <div id="label-cb" class="mr-6" style="width: 90px" >
 						<v-checkbox 
 						  hide-details="true"
               density="compact"
@@ -49,6 +49,15 @@
 				      label="Show read counts"
 				    ></v-checkbox>
 			    </div>
+
+          <div id="show-strand-mismatch-cb" class="mr-6" style="width: 100px" >
+            <v-checkbox
+              hide-details="true"
+              density="compact"
+              v-model="showStrandMismatches"
+              label="Show junctions on other strand"
+            ></v-checkbox>
+          </div>
 
           <div class="" style="padding-top:5px;">
             <div class="d-flex">
@@ -234,11 +243,6 @@
         <v-btn icon="mdi-plus" class="zoom-button" @click="zoomIn" density="compact" size="medium" style="margin-left:10px;">
         </v-btn>
 
-        <v-btn icon="mdi-chevron-left" class="zoom-button" @click="panLeft" density="compact" size="medium" style="margin-left:50px; margin-right:10px;">
-        </v-btn>
-
-        <v-btn icon="mdi-chevron-right" class="zoom-button" @click="panRight" density="compact" size="medium" >
-        </v-btn>
       </div>
 
     </div>
@@ -393,6 +397,8 @@ export default {
 		showReadCounts: false,
 		junctionsToShow: null,
     showTranscriptMenu: false,
+
+    showStrandMismatches: true,
 
     geneStart: null,
     geneEnd: null,
@@ -714,7 +720,7 @@ export default {
           let matchesSpliceKind = self.selectedSpliceKind == null  || spliceJunction.spliceKind == self.selectedSpliceKind;
           let matchesStrand = spliceJunction.strand == null || spliceJunction.strand == 'undefined' || self.selectedGene.strand == spliceJunction.strand
 
-          return meetsBottomRange && meetsTopRange && matchesSpliceKind && matchesStrand;
+          return meetsBottomRange && meetsTopRange && matchesSpliceKind;
         });
         return spliceJunctionsFiltered;        
       } else {
@@ -771,11 +777,27 @@ export default {
         }
       }
       // If region end not provided, default highlight region to 1/10 of gene size
+      let span = Math.min(200, Math.round((+self.selectedGene.end - +self.selectedGene.start) / 10))
+
       if (regionEnd == null) {
-        let span = Math.round((+self.selectedGene.end - +self.selectedGene.start) / 10)
-        point = regionStart;
-        regionStart = point - (span/2)
-        regionEnd   = point + (span/2)
+        // Adjust the region so that it stays within the gene region
+        if (regionStart > self.selectedGene.start) {
+          if (regionStart - (span/2) >= self.selectedGene.start) {
+            point = regionStart;
+            regionStart = point - (span/2)
+            regionEnd   = point + (span/2)
+          } else {
+            span = regionStart - self.selectedGene.start;
+            point = regionStart;
+            regionStart = point - (span/2);
+            regionEnd = point + (span/2);
+          }
+        } else {
+          // The coordinate provided is outside the gene region
+          point = regionStart;
+          regionStart = point;
+          regionEnd = point + span/2;
+        }
       } else {
         let span = (regionEnd - regionStart);
         point = regionStart + (span/2);
@@ -785,11 +807,8 @@ export default {
 
     highlightRegionImpl: function(point, regionStart, regionEnd) {
       let self = this;
-      if (regionStart <= self.selectedGene.start || regionEnd >= self.selectedGene.end) {
-        alert("Coordinates must be within gene region " + self.selectedGene.start + "-" + self.selectedGene.end)
-        return;
-      } else if (point <= self.selectedGene.start || point >= self.selectedGene.end) {
-        alert("Point must be within specified region start and end " + regionStart + "-" + self.regionEnd)
+      if (regionStart < self.selectedGene.start || regionEnd > self.selectedGene.end) {
+        alert("Coordinates " + regionStart + "-" + regionEnd + " are outside the gene region " + self.selectedGene.start + "-" + self.selectedGene.end)
         return;
       }
 
@@ -1655,6 +1674,13 @@ export default {
 		  .append("svg")
 		    .attr("width", innerWidth)
 		    .attr("height", height)
+        .attr("class", function(d) {
+          if (!self.showStrandMismatches) {
+            return 'hide-strand-mismatches'
+          } else {
+            return ''
+          }
+        })
 
 
       if (options == null || !options.showXAxis) {
@@ -2599,44 +2625,6 @@ export default {
         self.highlightSelectedJunctionRegion()
       }
     },
-    panRight: function() {
-      let self = this;
-      if (self.regionIsSelected) {
-        let start = self.brushRegionStart + 100;
-        let end = self.brushRegionEnd + 100
-        let startX = self.xBrushable(start);
-        let endX   = self.xBrushable(end)
-
-        if (start >= self.selectedGene.start && end <= self.selectedGene.end) {
-          let theExtent = [startX,endX]
-          d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
-        } else {
-          alert("Unable to pan outside gene region")
-        }
-
-      } else {
-        self.highlightSelectedJunctionRegion()
-      }
-    },
-    panLeft: function() {
-      let self = this;
-      if (self.regionIsSelected) {
-        let start = self.brushRegionStart - 100;
-        let end = self.brushRegionEnd - 100
-        let startX = self.xBrushable(start);
-        let endX   = self.xBrushable(end)
-
-        if (start >= self.selectedGene.start && end <= self.selectedGene.end) {
-          let theExtent = [startX,endX]
-          d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
-        } else {
-          alert("Unable to pan outside gene region")
-        }
-
-      } else {
-        self.highlightSelectedJunctionRegion()
-      }
-    },
 
     zoomOutSite: function() {
       let self = this;
@@ -3528,6 +3516,9 @@ export default {
       let maxLevel = d3.max(data, function(d) {
         return d.level;
       });
+      if (maxLevel == null) {
+        maxLevel = 1;
+      }
       // Recalculate the height based on the number of levels.
       let height = (maxLevel+1) * (variantHeight + verticalPadding);
       height += margin.top + margin.bottom;
@@ -4303,6 +4294,9 @@ export default {
     maxUniquelyMappedReads: function() {
       this.onSettingsChanged();
     },
+    showStrandMismatches: function() {
+      this.onSettingsChanged();
+    },
     colorBy: function() {
       this.onSettingsChanged();
     },
@@ -4429,12 +4423,16 @@ svg text.junction.greyout {
 }
 
 
-.hide-strand-mismatches svg path.junction.strand-mismatches {
-	display: none !important;
+svg path.junction.strand-mismatches {
+   stroke-dasharray: 3
 }
 
-.hide-strand-mismatches svg .arc-labels .junction.strand-mismatches {
-	display: none !important;
+svg.hide-strand-mismatches path.junction.strand-mismatches {
+  display: none !important;
+}
+
+svg.hide-strand-mismatches .arc-labels .junction.strand-mismatches {
+  display: none !important;
 }
 
 .hide-canonical svg path.junction.canonical, 
@@ -4607,10 +4605,12 @@ text.junction {
   font-weight: 600;
   color: #808080;
 }
-#show-matching-strand-only-cb {
-	width: 200px;
-}
-#label-cb label, #show-matching-strand-only-cb label, #show-cryptic-site-only-cb label  {
+
+#label-cb label,
+#show-matching-strand-only-cb label,
+#show-cryptic-site-only-cb label,
+#show-strand-mismatch-cb label
+  {
 	font-size: 13px !important;
   padding-top: 3px !important;
   line-height: 15px !important

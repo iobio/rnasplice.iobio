@@ -913,7 +913,9 @@ class GeneModel {
       }
     })
     .filter(function(spliceJunction) {
-      return spliceJunction.readCount > 0 && (spliceJunction.strand == 'undefined' || spliceJunction.strand == "" || geneObject.strand == spliceJunction.strand) ;
+      let matchesCount = spliceJunction.readCount > 0
+      let matchesStrand = (spliceJunction.strand == 'undefined' || spliceJunction.strand == "" || geneObject.strand == spliceJunction.strand) ;
+      return matchesCount;
     })
 
     self.geneToSpliceJunctionObjects[geneObject.gene_name] = spliceJunctions;
