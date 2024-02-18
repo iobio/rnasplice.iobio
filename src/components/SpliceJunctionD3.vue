@@ -223,7 +223,7 @@
 
 	</div>
 
-	<div id="zoomed-diagrams"  style="margin-top:30px;z-index:1000;border-top: solid 12px #e7e7e7">
+	<div id="zoomed-diagrams" v-show="clickedObject || regionIsSelected"  style="margin-top:30px;z-index:1000;border-top: solid 12px #e7e7e7">
     <h2 v-if="clickedObject || regionIsSelected" style="margin-bottom:10px !important;margin-top:10px !important">Selected Region</h2>
     <div class="d-flex" style="margin-top:-25px;margin-bottom:20px">
 
@@ -1006,11 +1006,6 @@ export default {
       self.showAcceptorPanel = false;
       self.showDonorPanel = false;
 
-      d3.select("#zoomed-diagrams").select("#arc-diagram svg").remove();
-      d3.select("#zoomed-diagrams").select("#transcript-diagram svg").remove();
-      d3.select("#zoomed-diagrams").select("#variant-diagram svg").remove();
-      d3.select("#zoomed-diagrams").select("#coverage-diagram svg").remove();
-
       d3.select("#diagrams #arc-diagram svg .bounding-box.active").classed("active", false)
       d3.select("#diagrams #transcript-diagram svg .bounding-box.active").classed("active", false)
       d3.select("#diagrams #variant-diagram svg .bounding-box.active").classed("active", false)
@@ -1020,6 +1015,11 @@ export default {
       if (self.clickedObject == null) {
         d3.select("#diagrams #arc-diagram svg .arc-pointer").style("opacity", 0)
         d3.select("#diagrams #arc-diagram svg .arc-pointer-line").style("opacity", 0)
+
+        d3.select("#zoomed-diagrams").select("#arc-diagram svg").remove();
+        d3.select("#zoomed-diagrams").select("#transcript-diagram svg").remove();
+        d3.select("#zoomed-diagrams").select("#variant-diagram svg").remove();
+        d3.select("#zoomed-diagrams").select("#coverage-diagram svg").remove();
       }
 
     },
@@ -2177,17 +2177,31 @@ export default {
 		 }
 
      let zoom = null;
-     let handleZoomEnd = function(e) {
-      if (e.transform.x) {
-        let from = x.invert(0)
-        let to   = x.invert(e.transform.x)
-        let pan  = Math.round(from - to);
-        let theExtent = [self.xBrushable(self.brushRegionStart+pan),
-                         self.xBrushable(self.brushRegionEnd+pan)]
-        d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
+     let handlePanEnd = function(e) {
+      if (self.regionIsSelected) {
+        if (e.transform.x) {
+          let from = x.invert(0)
+          let to   = x.invert(e.transform.x)
+          let pan  = Math.round(from - to);
+          let theExtent = [self.xBrushable(self.brushRegionStart+pan),
+                           self.xBrushable(self.brushRegionEnd+pan)]
+          d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
+        }
+      } else {
+        self.highlightSelectedJunctionRegion()
+        self.$nextTick(function() {
+          if (e.transform.x) {
+            let from = x.invert(0)
+            let to   = x.invert(e.transform.x)
+            let pan  = Math.round(from - to);
+            let theExtent = [self.xBrushable(self.brushRegionStart+pan),
+                             self.xBrushable(self.brushRegionEnd+pan)]
+            d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
+          }
+        })
       }
      }
-     let handleZoomInProgress = function(e) {
+     let handlePanInProgress = function(e) {
       if (e.transform.x) {
         let arcTransform = $.extend({}, e.transform)
         arcTransform.y = 0;
@@ -2216,10 +2230,10 @@ export default {
      if (options && options.isZoomedRegion) {
         zoom = d3.zoom()
                  .on('zoom', function(e) {
-                    handleZoomInProgress(e)
+                    handlePanInProgress(e)
                  })
                  .on('end', function(e) {
-                    handleZoomEnd(e)
+                    handlePanEnd(e)
                  })
         svg.call(zoom)
      }
@@ -2534,14 +2548,17 @@ export default {
 	      self.clickedObject = spliceJunctionObject;
 
 	      let region = self.getSurroundingRegion(d)
-	      self.selectZoomedSpliceJunction(d, theSpliceJunctions, region.start - 1000, region.end + 1000)
+        //self.highlightSelectedJunctionRegion();
+        self.$nextTick(function() {
+          self.selectZoomedSpliceJunction(d, theSpliceJunctions, region.start - 1000, region.end + 1000)
+          self.showDonorPanel = true;
+          self.showAcceptorPanel = true;
 
-    		self.showDonorPanel = true;
-    		self.showAcceptorPanel = true;
-	     	
-	     	self.$nextTick(function() {
-		     	self.$emit("splice-junction-selected", d)
-	     	})
+          self.$nextTick(function() {
+            self.$emit("splice-junction-selected", d)
+          })
+        })
+
 
 
       }
