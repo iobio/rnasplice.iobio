@@ -8,6 +8,7 @@
       :alertCounts="appAlertCounts"
       :sampleNames="sampleNames"
       :selectedGene="selectedGene"
+      :preLoadInfo="preLoadInfo"
       @gene-searched="onGeneSearched"
       @show-alert-panel="onShowAlertPanel"
       @show-genes-panel="onShowLeftNavDrawer"
@@ -140,6 +141,7 @@ export default {
     spliceJunctionsForGene: null,
 
     loadInfo: null,
+    preLoadInfo: null,
     isLoaded: false,
     sampleNames: [],
 
@@ -238,6 +240,7 @@ export default {
     onLoadDataFromURL: function(theLoadInfo) {
       let self = this;
       self.loadInfo = theLoadInfo;
+      self.preLoadInfo = $.extend({}, theLoadInfo);
       if (self.loadInfo.vcfURL && self.loadInfo.tbiURL) {
         self.$nextTick(function() {
           self.onVcfURLEntered(self.loadInfo.vcfURL, self.loadInfo.tbiURL)

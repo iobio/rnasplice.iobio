@@ -79,6 +79,7 @@
       <LoadDataDialog
       :showIt="showLoadDataDialog"
       :sampleNames="sampleNames"
+      :preLoadInfo="preLoadInfo"
       @load="onLoadData"
       @cancel="onCancelLoadData"
       @vcf-url-entered="onVcfURLEntered"/>
@@ -125,7 +126,8 @@ import { Typeahead } from 'uiv'
       alerts: Array,
       alertCounts: Object,
       sampleNames: Array,
-      selectedGene: Object
+      selectedGene: Object,
+      preLoadInfo: Object
     },
     data: () => ({
       searchedGene: null,

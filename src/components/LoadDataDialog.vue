@@ -106,7 +106,8 @@ export default {
     name: 'LoadDataDialog',
     props: {
       showIt: Boolean,
-      sampleNames: Array
+      sampleNames: Array,
+      preLoadInfo: Object
     },
     data () {
       let self = this;
@@ -268,10 +269,36 @@ export default {
     mounted: function() {
       let self = this;
       // TODO - Remove. Temporary code to default to demo data on load.
-      this.onTryDemoBed();
+      if (this.preLoadInfo && Object.keys(this.preLoadInfo).length > 0) {
+        this.init();
+      } else {
+        //this.onTryDemoBed();
+      }
       
     },
     methods: {
+      init: function() {
+        if (this.preLoadInfo) {
+          if (this.bedURL == null && this.preLoadInfo.bedURL) {
+            this.bedURL = this.preLoadInfo.bedURL;
+          }
+          if (this.bedIndexURL == null && this.preLoadInfo.bedIndexURL) {
+            this.bedIndexURL = this.preLoadInfo.bedIndexURL;
+          }
+          if (this.bigwigURL == null && this.preLoadInfo.bigwigURL) {
+            this.bigwigURL = this.preLoadInfo.bigwigURL;
+          }
+          if (this.vcfURL == null && this.preLoadInfo.vcfURL) {
+            this.vcfURL = this.preLoadInfo.vcfURL;
+          }
+          if (this.tbiURL == null && this.preLoadInfo.tbiURL) {
+            this.tbiURL = this.preLoadInfo.tbiURL;
+          }
+          if (this.selectedSampleName == null && this.preLoadInfo.sampleName) {
+            this.selectedSampleName = this.preLoadInfo.sampleName;
+          }
+        }
+      },
       onLoad: function() {
         let loadInfo = {'buildName': this.buildName, 
                         'bedURL': this.bedURL.trim(), 
@@ -294,6 +321,9 @@ export default {
     watch: {
       showIt: function() {
         this.show = this.showIt;
+        if (this.show) {
+          this.init();
+        }
 
       },
       show: function() {
