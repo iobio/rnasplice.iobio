@@ -2336,7 +2336,7 @@ exports._getHighestScore = function(theObject, cullFunction, theTranscriptId) {
             v.level = 0;
         });
         var factor = posToPixelFactor / (i * 2);
-        maxLevel = me.pileupVcfRecords(variants, start, factor, featureWidth + 1);
+        maxLevel = me._pileupVcfRecordsImpl(variants, start, factor, featureWidth + 1);
         if (maxLevel <= 50) {
           i = posToPixelFactor;
           break;
