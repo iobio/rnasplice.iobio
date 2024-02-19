@@ -342,7 +342,6 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
           let variants = data.results[0].features
           self.vcf.pileupVariants(variants, self.geneRegionStart, self.geneRegionEnd, width)
           self.variants = variants;
-          console.log(self.variants)
         })
         .catch(function(error) {
           console.log(error)

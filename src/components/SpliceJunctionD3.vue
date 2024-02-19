@@ -71,7 +71,8 @@
                 hide-details="auto"
                 variant="underlined"
                 label="Min read count"
-                v-model="minUniquelyMappedReads"/>
+                v-model="minUniquelyMappedReads"
+                @blur="onSettingsChanged()"/>
               </div>
               <div style="width:110px" class="ml-2 mr-5" >
                 <v-text-field
@@ -79,7 +80,8 @@
                 hide-details="auto"
                 variant="underlined"
                 label="Max read count"
-                v-model="maxUniquelyMappedReads"/>
+                v-model="maxUniquelyMappedReads"
+                @blur="onSettingsChanged()"/>
               </div>
             </div>
           </div>
@@ -752,6 +754,7 @@ export default {
       let self = this;
       self.highlightRegionImpl(point, regionStart, regionEnd)
     },
+
     parseRegionCoords: function() {
       let self = this;
       let regionStart = null;
@@ -1697,7 +1700,7 @@ export default {
 
 		  var scaleArcWidth = d3.scaleLinear()
 		                    .domain([self.minUniquelyMappedReads, maxReadCount])
-		                    .range([5, 15])
+		                    .range([4, 10])
 
 
 		           
@@ -2123,6 +2126,7 @@ export default {
 		  });
 
 
+
 	   let arcLabels = arcGroup.insert("g", "*")
 			  .attr("class", "arc-labels")
 			  .selectAll("text.junction")
@@ -2301,8 +2305,184 @@ export default {
         svg.call(zoom)
      }
 
+     self.$nextTick(function() {
+        setTimeout(function() {
+          self.adjustOverlaps(svg)
+
+        }, 1000)
+     })
 		 
 		},
+
+
+
+    adjustOverlaps: function(svg) {
+
+      let self = this;
+      let candidateGroups = self.findCandidateOverlaps(svg)
+      candidateGroups.forEach(function(candidates) {
+
+        let combos = []
+        for (let idx = 0; idx < candidates.length; idx++) {
+          for (let idx1 = idx; idx1 < candidates.length; idx1++) {
+            if (idx != idx1) {
+              combos.push([idx, idx1])
+            }
+          }
+        }
+
+        let pathsToAdjust = []
+        combos.forEach(function(combo) {
+          let path      = candidates[combo[0]]
+          let otherPath = candidates[combo[1]]
+          let overlaps = self.doArcsIntersect(path, otherPath);
+          if (overlaps) {
+            pathsToAdjust.push( [path, otherPath] )
+          }
+        })
+
+        pathsToAdjust.forEach(function(pathPair) {
+          let path0      = pathPair[0];
+          let path1      = pathPair[1];
+          console.log('overlaps ' + path0.data()[0].label + ' ' + path1.data()[0].label)
+
+          let path0Attr      = self.parseArcPath(path0.attr('d'))
+          let path1Attr      = self.parseArcPath(path1.attr('d'))
+          let pathPairAttr   = [path0Attr, path1Attr]
+
+          let targetField = path0Attr.rx == 1 ? 'ry' : 'rx';
+          let theMax      = d3.max(pathPairAttr, function(d) {
+            return d[targetField]
+          })
+          let adjustBy    = theMax * .2;
+          let path0TargetAdjusted = null;
+          let path1TargetAdjusted = null;
+          if (path0Attr[targetField] == theMax) {
+            path0TargetAdjusted = path0Attr[targetField] + adjustBy;
+          } else {
+            path0TargetAdjusted = path0Attr[targetField] - adjustBy;
+          }
+          if (path1Attr[targetField] == theMax) {
+            path1TargetAdjusted = path1Attr[targetField] + adjustBy;
+          } else {
+            path1TargetAdjusted = path1Attr[targetField] - adjustBy;
+          }
+
+          let path0String = path0.attr('d').replace(path0Attr[targetField], path0TargetAdjusted)
+          let path1String = path1.attr('d').replace(path1Attr[targetField], path1TargetAdjusted)
+
+          path0.attr('d', path0String)
+          path1.attr('d', path1String)
+
+        })
+
+      })
+    },
+
+    parseArcPath: function(pathString) {
+      let self = this;
+      const regex = /M\s(?<x1>\d*?\.\d*?)\s90\sA\s(?<rx>\d*?\.?\d*?)\s\,\s(?<ry>\d*?\.?\d*?)\s0\s0\s\,\s1\s(?<x2>\d*?\.\d*?)\s\,\s90/gm;
+      let m;
+      let rx = null;
+      let ry = null;
+      let x1 = null;
+      let x2 = null;
+      while ((m = regex.exec(pathString)) !== null) {
+        // This is necessary to avoid infinite loops with zero-width matches
+        if (m.index === regex.lastIndex) {
+          regex.lastIndex++;
+        }
+        if (m.groups.rx && m.groups.ry) {
+          rx = +m.groups.rx;
+          ry = +m.groups.ry;
+
+          if (m.groups.x1) {
+            x1 = +m.groups.x1;
+          }
+          if (m.groups.x2) {
+            x2 = +m.groups.x2;
+          }
+          break;
+        }
+      }
+      return {'rx': rx, 'ry': ry, 'x1': x1, 'x2': x2}
+    },
+
+    findCandidateOverlaps: function(svg) {
+      // TODO:  Need a better way to capture candidates based on
+      // start and end position
+      let self = this;
+      let pathByExonMap = {}
+
+      let getKey = function(d) {
+        let dKey = null;
+        if (d.donor.exon) {
+          dKey = d.donor.exon.number;
+        } else  {
+          dKey = '?'
+        }
+        let aKey = null;
+        if (d.acceptor.exon) {
+          aKey = d.acceptor.exon.number;
+        } else {
+          aKey = '?'
+        }
+
+        if (dKey == '?' || aKey == '?') {
+          return null;
+        } else {
+          return dKey + "-" + aKey;
+        }
+
+      }
+      svg.selectAll('path.junction').each(function(d) {
+        let key = getKey(d)
+        let path = d3.select(this);
+        if (key) {
+          let paths = pathByExonMap[key]
+          if (paths == null) {
+            paths = [];
+            pathByExonMap[key] = paths;
+          }
+          paths.push(path)
+        }
+      })
+
+      let candidates = []
+      for (let key in pathByExonMap) {
+        let paths = pathByExonMap[key]
+        if (paths.length > 1) {
+          candidates.push(paths)
+        }
+      }
+      return candidates;
+    },
+
+    doArcsIntersect: function(path0, path1) {
+      let self = this;
+
+      let strokeWidth  = +path0.style("stroke-width").replace("px", "")
+      let strokeWidth1 = +path1.style("stroke-width").replace("px", "")
+
+      let minGap = Math.max(4, strokeWidth, strokeWidth1);
+
+      let arcYTop = path0.data()[0].arcYTop;
+      let bb = path0.node().getBBox();
+      let [left, top, right, bottom] = [bb.x, bb.y, bb.x + bb.width, bb.y + bb.height];
+
+      let arcYTop1 = path1.data()[0].arcYTop;
+      let bb1 = path1.node().getBBox();
+      let [left1, top1, right1, bottom1] = [bb1.x, bb1.y, bb1.x + bb1.width, bb1.y + bb1.height];
+
+      let intersects =
+        Math.abs(arcYTop - arcYTop1) < minGap &&
+        Math.abs(left - left1)       < minGap &&
+        Math.abs(right - right1)     < minGap ?
+        true :
+        false;
+
+      return intersects;
+    },
 
     drawArcColorLegend: function(container) {
       let self = this;
@@ -4339,12 +4519,6 @@ export default {
   		this.onDataChanged();
   	},
     selectedSpliceKind: function() {
-      this.onSettingsChanged();
-    },
-    minUniquelyMappedReads: function() {
-      this.onSettingsChanged();
-    },
-    maxUniquelyMappedReads: function() {
       this.onSettingsChanged();
     },
     showStrandMismatches: function() {
