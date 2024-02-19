@@ -198,7 +198,7 @@
     <div id="coverage-diagram" style="min-height:100px">
     </div>
 
-	  <div id="arc-diagram" class="hide-read-counts" style="margin-top:-142px">
+	  <div id="arc-diagram" class="hide-read-counts" style="margin-top:-136px">
 	  </div>
 
     <div id="selected-transcript-panel" v-show="showTranscriptMenu" style="margin-top:-7px">
@@ -241,14 +241,36 @@
 
 	<div id="zoomed-diagrams" v-show="clickedObject || regionIsSelected"  style="margin-top:30px;z-index:1000;border-top: solid 12px #e7e7e7">
     <h2 v-if="clickedObject || regionIsSelected" style="margin-bottom:10px !important;margin-top:10px !important">Selected Region</h2>
-    <div class="d-flex" style="margin-top:-25px;margin-bottom:20px">
 
-      <div class="d-flex" v-if="clickedObject || regionIsSelected" style="margin:auto;justify-content: center;">
-        <v-btn icon="mdi-minus" class="zoom-button" @click="zoomOut" density="compact" size="medium" >
-        </v-btn>
+    <div class="d-flex justify-center" style="margin-top:-25px;margin-bottom:20px">
 
-        <v-btn icon="mdi-plus" class="zoom-button" @click="zoomIn" density="compact" size="medium" style="margin-left:10px;">
-        </v-btn>
+
+
+      <div class="d-flex" v-if="clickedObject || regionIsSelected" style="width:100%;justify-content: center;">
+
+        <v-spacer/>
+
+        <div style="margin-left:190px;">
+          <v-btn icon="mdi-minus" class="zoom-button" @click="zoomOut" density="compact" size="medium" >
+          </v-btn>
+
+          <v-btn icon="mdi-plus" class="zoom-button" @click="zoomIn" density="compact" size="medium" style="margin-left:10px;">
+          </v-btn>
+        </div>
+
+        <v-spacer/>
+
+        <v-btn-toggle id="show-greyed-out-button-group"
+          v-show="clickedObject"
+          v-model="showGreyedOutJunctionsState"
+          color="primary"
+          mandatory divided
+          variant="elevated"
+
+                          >
+          <v-btn density="compact" value="hide">Hide other junctions</v-btn>
+          <v-btn density="compact" value="show">Show other junctions</v-btn>
+        </v-btn-toggle>
 
       </div>
 
@@ -443,6 +465,8 @@ export default {
     zoomFactor: 1,
 
     showZoomPanel: false,
+
+    showGreyedOutJunctionsState: 'hide',
 
 
     readCountMean: null,
@@ -1825,15 +1849,16 @@ export default {
 		    	// Need arc to be stretched on x axis
 
 		    	// shuffle the height randomly by 30 pixels 
-		    	let rando = Math.floor(Math.random() * 31);
-		    	let newMaxArcHeight = maxArcHeight - rando;
+		    	//let rando = Math.floor(Math.random() * 31);
+		    	//let newMaxArcHeight = maxArcHeight - rando;
+          let newMaxArcHeight = maxArcHeight;
 
 		    	rx = currentArcHeight/newMaxArcHeight
 		    	ry = 1;
 		    	d.arcYTop = margin.top + innerHeight - (newMaxArcHeight)
 		    } else {
 		    	rx = 1;
-		    	ry = 1;
+		    	ry = .99;  // We need unique values so that replace works in adjustOverlaps
 		    	d.arcYTop = margin.top + innerHeight - currentArcHeight;
 		    }
 		    d.arcXCenter = Math.min(start,end) + (Math.abs(distance)/2)
@@ -2307,9 +2332,13 @@ export default {
 
      self.$nextTick(function() {
         setTimeout(function() {
+          console.log('adjusting overlaps')
+          let start = new Date();
           self.adjustOverlaps(svg)
+          let end = new Date();
+          console.log("adjust overlaps elapsed time: " + (end-start)/1000)
 
-        }, 1000)
+        }, 200)
      })
 		 
 		},
@@ -2351,21 +2380,25 @@ export default {
           let pathPairAttr   = [path0Attr, path1Attr]
 
           let targetField = path0Attr.rx == 1 ? 'ry' : 'rx';
-          let theMax      = d3.max(pathPairAttr, function(d) {
-            return d[targetField]
-          })
+          let theMax      = null;
+          let theMaxIdx   = null;
+          if (path0Attr[targetField] > path1Attr[targetField]) {
+            theMax = path0Attr[targetField]
+            theMaxIdx = 0;
+          } else {
+            theMax = path1Attr[targetField]
+            theMaxIdx = 1;
+          }
+
           let adjustBy    = theMax * .2;
           let path0TargetAdjusted = null;
           let path1TargetAdjusted = null;
-          if (path0Attr[targetField] == theMax) {
+          if (theMaxIdx == 0) {
             path0TargetAdjusted = path0Attr[targetField] + adjustBy;
+            path1TargetAdjusted = path1Attr[targetField] - adjustBy;
           } else {
             path0TargetAdjusted = path0Attr[targetField] - adjustBy;
-          }
-          if (path1Attr[targetField] == theMax) {
             path1TargetAdjusted = path1Attr[targetField] + adjustBy;
-          } else {
-            path1TargetAdjusted = path1Attr[targetField] - adjustBy;
           }
 
           let path0String = path0.attr('d').replace(path0Attr[targetField], path0TargetAdjusted)
@@ -2418,20 +2451,17 @@ export default {
         let dKey = null;
         if (d.donor.exon) {
           dKey = d.donor.exon.number;
+        } else if (d.donor.exonClosest)  {
+          dKey = d.donor.exonClosest.number;
         } else  {
           dKey = '?'
         }
-        let aKey = null;
-        if (d.acceptor.exon) {
-          aKey = d.acceptor.exon.number;
-        } else {
-          aKey = '?'
-        }
 
-        if (dKey == '?' || aKey == '?') {
+
+        if (dKey == '?') {
           return null;
         } else {
-          return dKey + "-" + aKey;
+          return dKey + (d.strand ? d.strand : '?');
         }
 
       }
@@ -2616,6 +2646,11 @@ export default {
       
  	 	  self.clickedObject = false;
 		},
+
+    showGreyedOutJunctions: function(state) {
+      d3.selectAll("#zoomed-diagrams #arc-diagram .junction").classed("greyout", state == 'show' ? false : true);
+      d3.selectAll("#zoomed-diagrams #arc-diagram .junction.clicked").classed("greyout", false);
+    },
 
 
 		/*
@@ -3363,7 +3398,11 @@ export default {
 
       d3.selectAll("#zoomed-diagrams #arc-diagram path.junction")
         .classed("greyout", function(arc) {
-          return arc.key != d.key
+          if (self.showGreyedOutJunctionsState == 'hide') {
+            return arc.key != d.key
+          } else {
+            return false;
+          }
         })
       d3.selectAll("#zoomed-diagrams #arc-diagram text.junction")
         .classed("greyout", function(arc) {
@@ -4489,6 +4528,9 @@ export default {
   	selectedGene: function() {
   		this.onDataChanged();
   	},
+    showGreyedOutJunctionsState: function() {
+      this.showGreyedOutJunctions(this.showGreyedOutJunctionsState)
+    },
     covData: function() {
       let self = this;
       if (self.covData && self.covData.length > 0) {
@@ -4957,7 +4999,7 @@ text.seq.T, rect.seq.T {
   font-size: 11px
   fill: rgb(73, 73, 73)
 
-#hist-button-group
+#hist-button-group, #show-greyed-out-button-group
   height: 20px !important
   margin-top: 0px
   margin-bottom: 5px
