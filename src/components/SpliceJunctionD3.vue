@@ -198,7 +198,7 @@
     <div id="coverage-diagram" style="min-height:100px">
     </div>
 
-	  <div id="arc-diagram" class="hide-read-counts" style="margin-top:-136px">
+	  <div id="arc-diagram" class="hide-read-counts" style="margin-top:-142px">
 	  </div>
 
     <div id="selected-transcript-panel" v-show="showTranscriptMenu" style="margin-top:-7px">
@@ -1734,6 +1734,8 @@ export default {
 		  .append("svg")
 		    .attr("width", innerWidth)
 		    .attr("height", height)
+        .attr("viewBox", "0 0 " + innerWidth + " " + height)
+        .attr("xmlns", "http://www.w3.org/2000/svg")
         .attr("class", function(d) {
           if (!self.showStrandMismatches) {
             return 'hide-strand-mismatches'
@@ -2404,12 +2406,44 @@ export default {
           let path0String = path0.attr('d').replace(path0Attr[targetField], path0TargetAdjusted)
           let path1String = path1.attr('d').replace(path1Attr[targetField], path1TargetAdjusted)
 
+          let bbPath0 = path0.node().getBBox();
+          let bbPath1 = path1.node().getBBox();
+          let p0 = self.screenToSVG(svg, bbPath0.x, bbPath0.y)
+          let p1 = self.screenToSVG(svg, bbPath1.x, bbPath1.y)
+
           path0.attr('d', path0String)
           path1.attr('d', path1String)
+
+          let p0After = self.screenToSVG(svg, path0.node().getBBox().x, path0.node().getBBox().y)
+          let p1After = self.screenToSVG(svg, path1.node().getBBox().x, path1.node().getBBox().y)
+
+          let p0Delta = p0After.y - p0.y
+          let p1Delta = p1After.y - p1.y
+
+          path0.data()[0].arcYTop = path0.data()[0].arcYTop + p0Delta;
+          path1.data()[0].arcYTop = path1.data()[0].arcYTop + p1Delta;
+
+
 
         })
 
       })
+    },
+
+    screenToSVG: function (svg, screenX, screenY) {
+      let self = this;
+      let  p = svg.node().createSVGPoint()
+      p.x = screenX
+      p.y = screenY
+      return p.matrixTransform(svg.node().getScreenCTM());
+    },
+
+    SVGToScreen: function (svg, svgX, svgY) {
+      let self = this;
+      let  p = svg.node().createSVGPoint()
+      p.x = svgX
+      p.y = svgY
+      return p.matrixTransform(svg.node().getScreenCTM().inverse());
     },
 
     parseArcPath: function(pathString) {
@@ -2650,6 +2684,7 @@ export default {
     showGreyedOutJunctions: function(state) {
       d3.selectAll("#zoomed-diagrams #arc-diagram .junction").classed("greyout", state == 'show' ? false : true);
       d3.selectAll("#zoomed-diagrams #arc-diagram .junction.clicked").classed("greyout", false);
+      d3.selectAll("#zoomed-diagrams #arc-diagram .junction.selected").classed("greyout", false);
     },
 
 
