@@ -242,7 +242,7 @@
 	<div id="zoomed-diagrams" v-show="clickedObject || regionIsSelected"  style="margin-top:30px;z-index:1000;border-top: solid 12px #e7e7e7">
     <h2 v-if="clickedObject || regionIsSelected" style="margin-bottom:10px !important;margin-top:10px !important">Selected Region</h2>
 
-    <div class="d-flex justify-center" style="margin-top:-25px;margin-bottom:20px">
+    <div class="d-flex justify-center" style="margin-top:-28px;margin-bottom:20px">
 
 
 
@@ -250,7 +250,17 @@
 
         <v-spacer/>
 
-        <div style="margin-left:190px;">
+
+        <div  class="hint-box" style="margin-top:0px">
+          <span class="material-symbols-outlined" style="font-size:18px">
+              drag_pan
+          </span>
+          <div>Drag to pan left or right</div>
+        </div>
+
+        <v-spacer/>
+
+        <div style="margin-left:-150px;">
           <v-btn icon="mdi-minus" class="zoom-button" @click="zoomOut" density="compact" size="medium" >
           </v-btn>
 
@@ -258,19 +268,22 @@
           </v-btn>
         </div>
 
+
         <v-spacer/>
 
-        <v-btn-toggle id="show-greyed-out-button-group"
-          v-show="clickedObject"
-          v-model="showGreyedOutJunctionsState"
-          color="primary"
-          mandatory divided
-          variant="elevated"
+        <div style="min-width:300px">
+          <v-btn-toggle id="show-greyed-out-button-group"
+            v-show="clickedObject"
+            v-model="showGreyedOutJunctionsState"
+            color="primary"
+            mandatory divided
+            variant="elevated"
 
-                          >
-          <v-btn density="compact" value="hide">Hide other junctions</v-btn>
-          <v-btn density="compact" value="show">Show other junctions</v-btn>
-        </v-btn-toggle>
+                            >
+            <v-btn density="compact" value="hide">Hide other junctions</v-btn>
+            <v-btn density="compact" value="show">Show other junctions</v-btn>
+          </v-btn-toggle>
+        </div>
 
       </div>
 
@@ -843,7 +856,7 @@ export default {
     highlightRegionImpl: function(point, regionStart, regionEnd) {
       let self = this;
       if (regionStart < self.selectedGene.start || regionEnd > self.selectedGene.end) {
-        alert("Coordinates " + regionStart + "-" + regionEnd + " are outside the gene region " + self.selectedGene.start + "-" + self.selectedGene.end)
+        console.log("Coordinates " + regionStart + "-" + regionEnd + " are outside the gene region " + self.selectedGene.start + "-" + self.selectedGene.end)
         return;
       }
 
