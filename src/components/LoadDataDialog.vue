@@ -4,7 +4,7 @@
       v-model="show"
       width="auto">
 
-      <v-form v-model="isFormValid" @submit.prevent fast-fail>
+      <v-form ref="ref_Form" v-model="isFormValid" @submit.prevent fast-fail>
 
         <v-card style="width:900px">
           <v-card-title> 
@@ -18,13 +18,25 @@
 
             <div class="d-flex flex-column">
 
-              <div style="max-width:180px">
-                <v-select
-                  label="Genome build"
-                  v-model="buildName"
-                  :items="['GRCh37', 'GRCh38']">
-                </v-select>
+              <div class="d-flex">
+                <div style="max-width:180px">
+                  <v-select
+                    label="Genome build"
+                    v-model="buildName"
+                    :items="['GRCh37', 'GRCh38']">
+                  </v-select>
+                </div>
+
+                <div class="ml-9" style="flex-grow: 2;">
+                  <v-textarea id="copy-paste-urls"
+                   rows="5"
+                   density="compact"
+                   label="Copy/paste URLs"
+                   v-model="copyPasteURLs">
+                  </v-textarea>
+                </div>
               </div>
+
 
               <div class="pt-4">
                 <v-text-field id="bed-url-text" 
@@ -121,6 +133,7 @@ export default {
         vcfURL: null,
         tbiURL: null,
         selectedSampleName: null,
+        copyPasteURLs: null,
         demoNumber: 'demo1',
 
         urlRegExp: /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi,
@@ -188,7 +201,7 @@ export default {
         ],
         bigwigRules: [
           v => {
-            if (v && v.toLowerCase().indexOf('.bigwig') > 0 || v.toLowerCase().indexOf('.bw') > 0 ) {
+            if (v && (v.toLowerCase().indexOf('.bigwig') > 0 || v.toLowerCase().indexOf('.bw') > 0) ) {
               return true;
             } else if (v) {
               return 'The bigwig file must have the extension .bw or .bigwig'
@@ -300,6 +313,10 @@ export default {
         }
       },
       onLoad: function() {
+        if (this.vcfURL != null  && this.vcfURL.trim() != "" && this.selectedSampleName == null || this.selectedSampleName == "") {
+          alert("Select a sample name from the dropdown")
+          return;
+        }
         let loadInfo = {'buildName': this.buildName, 
                         'bedURL': this.bedURL.trim(), 
                         'bedIndexURL': this.bedIndexURL ? this.bedIndexURL.trim() : this.bedURL.trim() + '.tbi',
@@ -316,6 +333,24 @@ export default {
         let self = this;
         this.bedURL = this.demoInfo[self.demoNumber].bedURL;
         this.bigwigURL = this.demoInfo[self.demoNumber].bigwigURL;
+      },
+      parseCopyPasteURLs: function() {
+        let self = this;
+        let urls = this.copyPasteURLs.split("\n");
+        urls.forEach(function(url) {
+          if (url.endsWith('.bed.gz')) {
+            self.bedURL = url;
+          } else if (url.endsWith('bed.gz.tbi')) {
+            self.bedIndexURL = url;
+          } else if (url.endsWith('.bw') || url.toLowerCase().endsWith('.bigwig')) {
+            self.bigwigURL = url;
+          } else if (url.endsWith('vcf.gz')) {
+            self.vcfURL = url;
+          } else if (url.endsWith('vcf.gz.tbi')) {
+            self.tbiURL = url;
+          }
+        })
+        this.$refs.ref_Form.validate();
       }
     },
     watch: {
@@ -352,6 +387,11 @@ export default {
             this.$emit("vcf-url-entered", this.vcfURL, this.tbiURL)
           }
         }
+      },
+      copyPasteURLs: function() {
+        if (this.copyPasteURLs && this.copyPasteURLs.length > 0) {
+          this.parseCopyPasteURLs()
+        }
       }
 
     }
@@ -366,5 +406,9 @@ export default {
 #load-data-dialog-content #tbi-url-text
  {
   font-size: 13px;
+}
+
+#copy-paste-urls {
+  font-size: 12px !important;
 }
 </style>
