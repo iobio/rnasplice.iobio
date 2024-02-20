@@ -248,19 +248,11 @@
 
       <div class="d-flex" v-if="clickedObject || regionIsSelected" style="width:100%;justify-content: center;">
 
-        <v-spacer/>
 
-
-        <div  class="hint-box" style="margin-top:0px">
-          <span class="material-symbols-outlined" style="font-size:18px">
-              drag_pan
-          </span>
-          <div>Drag to pan left or right</div>
-        </div>
 
         <v-spacer/>
 
-        <div style="margin-left:-150px;">
+        <div style="margin-left:150px;">
           <v-btn icon="mdi-minus" class="zoom-button" @click="zoomOut" density="compact" size="medium" >
           </v-btn>
 
@@ -291,6 +283,13 @@
     <div id="variant-diagram">
       <svg/>
     </div>
+    <div  class="hint-box" style="margin-top:0px">
+      <span class="material-symbols-outlined" style="font-size:18px">
+          drag_pan
+      </span>
+      <div>Drag to pan left or right</div>
+    </div>
+
     <div id="coverage-diagram" style="margin-top:30px;min-height:100px">
     </div>
     <div id="arc-diagram" style="margin-top: -135px" class="hide-read-counts">
