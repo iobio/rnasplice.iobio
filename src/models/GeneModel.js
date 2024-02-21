@@ -802,8 +802,8 @@ class GeneModel {
     let self = this;
     let spliceJunctions = bedRecords.map(function(bedRow) {
 
-      let donorPos      =  geneObject.strand == "+" ? +bedRow.start : +bedRow.end;
-      let acceptorPos   =  geneObject.strand == "+" ? +bedRow.end   : +bedRow.start;
+      let donorPos      =  bedRow.strand == "+" ? +bedRow.start : +bedRow.end;
+      let acceptorPos   =  bedRow.strand == "+" ? +bedRow.end   : +bedRow.start;
 
       let matchedExons = self.locateExons(geneObject, transcript, donorPos, acceptorPos, options)
 
@@ -960,6 +960,7 @@ class GeneModel {
       let maxReadCountCrypticSite  = d3.max(crypticSiteSplice, d => d.readCount)
 
       summary = {
+          'gene':                   geneObject,
           'canonical':              canonicalSplice,
           'crypticSite':            crypticSiteSplice,
           'exonSkippingSplice':     exonSkippingSplice,
