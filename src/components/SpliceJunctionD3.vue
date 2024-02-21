@@ -8,170 +8,163 @@
     ></v-progress-circular>
   </div>
 
-      <div id="panel-heading" class="d-flex flex-row align-start mb-5" >
-          <h2 class="mr-5" style="margin-top: 0px !important;margin-bottom: 0px !important;min-width: 150px;">
-            Splice Junctions
-          </h2>
+  <div id="panel-heading" class="d-flex flex-row align-start mb-5" >
+      <h2 class="mr-5" style="margin-top: 0px !important;margin-bottom: 0px !important;min-width: 150px;">
+        Splice Junctions
+      </h2>
 
-          <div style="width:210px;margin-top:-15px;margin-left:20px"  >
+      <div style="width:210px;margin-top:-15px;margin-left:20px"  >
+        <v-text-field
+        density="compact"
+        hide-details="auto"
+        variant="underlined"
+        label="Zoom to coordinates"
+        v-model="highlightRegionCoord"
+        @blur="highlightRegionFromCoord"/>
+      </div>
+
+
+      <v-btn @click="$emit('show-legend')" color="#30638e" class="ml-6" density="compact" variant="tonal">
+        <v-icon class="mr-1">mdi-map</v-icon>
+        <span style="font-size:13px">Legend</span>
+      </v-btn>
+  </div>
+
+  <div class="d-flex flex-row align-start flex-wrap mb-1">
+
+      <div style="width:170px" class="">
+        <v-select
+          v-model="colorBy"
+          hide-details="auto"
+          label="Color junctions by"
+          density="compact"
+          :items="colorByItems"
+        ></v-select>
+      </div>
+
+      <div id="arc-color-legend" class="mr-6">
+      </div>
+
+      <div id="label-cb" class="mr-2" style="width: 90px" >
+				<v-checkbox
+				  hide-details="true"
+          density="compact"
+		      v-model="showReadCounts"
+		      label="Show read counts"
+		    ></v-checkbox>
+	    </div>
+
+      <div id="show-strand-mismatch-cb" class="mr-9" style="width: 120px" >
+        <v-checkbox
+          hide-details="true"
+          density="compact"
+          v-model="showStrandMismatches"
+          label="Show junctions on other strand"
+        ></v-checkbox>
+      </div>
+
+      <div class="" style="padding-top:5px;">
+        <div class="d-flex">
+          <div style="width:110px"  >
             <v-text-field
             density="compact"
             hide-details="auto"
             variant="underlined"
-            label="Zoom to coordinates"
-            v-model="highlightRegionCoord"
-            @blur="highlightRegionFromCoord"/>
+            label="Min read count"
+            v-model="minUniquelyMappedReads"
+            @blur="onSettingsChanged()"/>
           </div>
-
-
-          <v-btn @click="$emit('show-legend')" color="#30638e" class="ml-6" density="compact" variant="tonal">
-            <v-icon class="mr-1">mdi-map</v-icon>
-            <span style="font-size:13px">Legend</span>
-          </v-btn>
+          <div style="width:110px" class="ml-2 mr-5" >
+            <v-text-field
+            density="compact"
+            hide-details="auto"
+            variant="underlined"
+            label="Max read count"
+            v-model="maxUniquelyMappedReads"
+            @blur="onSettingsChanged()"/>
+          </div>
+        </div>
       </div>
 
-      <div class="d-flex flex-row align-start flex-wrap mb-1">
 
-          <div style="width:170px" class="">
-            <v-select 
-              v-model="colorBy"
-              hide-details="auto"
-              label="Color junctions by"
-              density="compact"
-              :items="colorByItems"
-            ></v-select>
-          </div>
+      <v-card style="padding:0 !important;margin:0 !important" class="" variant="flat">
+        <v-card-actions style="min-height:30px !important;padding:0 !important;margin:0 !important">
+          <v-btn color="#30638e" density="compact"  @click="exploreReadCounts = !exploreReadCounts" variant="tonal">
+            <v-icon class="mr-1">mdi-poll</v-icon>
+             <span style="font-size:13px">Read count distributions</span>
+          </v-btn>
+          <v-btn density="compact"
+            :icon="exploreReadCounts ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+            @click="exploreReadCounts = !exploreReadCounts"
+          ></v-btn>
+        </v-card-actions>
 
-          <div id="arc-color-legend" class="mr-6">
-          </div>
+        <v-expand-transition>
+          <div v-show="exploreReadCounts">
+            <v-card-text style="padding:0 !important">
 
-          <div id="label-cb" class="mr-2" style="width: 90px" >
-						<v-checkbox 
-						  hide-details="true"
-              density="compact"
-				      v-model="showReadCounts"
-				      label="Show read counts"
-				    ></v-checkbox>
-			    </div>
+                <div class="d-flex">
+                  <div  v-show="!showLoading && selectedGene">
+                    <div v-if="readCountRange == null" class="hint-box">
+                      <v-icon>mdi-select-drag</v-icon>
+                      <div>Drag to zoom in</div>
+                    </div>
+                    <div v-if="readCountRange != null" class="hint-box">
+                      <v-icon>mdi-restore</v-icon>
+                      <div>Click outside to restore</div>
+                    </div>
+                    <div id="all-histogram" class="d-flex mr-9 mt-1">
+                      <div id="read-count-histogram" style="margin-left: 0px">
+                      </div>
+                    </div>
+                  </div>
 
-          <div id="show-strand-mismatch-cb" class="mr-9" style="width: 120px" >
-            <v-checkbox
-              hide-details="true"
-              density="compact"
-              v-model="showStrandMismatches"
-              label="Show junctions on other strand"
-            ></v-checkbox>
-          </div>
-
-          <div class="" style="padding-top:5px;">
-            <div class="d-flex">
-              <div style="width:110px"  >
-                <v-text-field
-                density="compact"
-                hide-details="auto"
-                variant="underlined"
-                label="Min read count"
-                v-model="minUniquelyMappedReads"
-                @blur="onSettingsChanged()"/>
-              </div>
-              <div style="width:110px" class="ml-2 mr-5" >
-                <v-text-field
-                density="compact"
-                hide-details="auto"
-                variant="underlined"
-                label="Max read count"
-                v-model="maxUniquelyMappedReads"
-                @blur="onSettingsChanged()"/>
-              </div>
-            </div>
-          </div>
+                  <div class="d-flex flex-column">
 
 
-          <v-card style="padding:0 !important;margin:0 !important" class="" variant="flat">
-            <v-card-actions style="min-height:30px !important;padding:0 !important;margin:0 !important">
-              <v-btn color="#30638e" density="compact"  @click="exploreReadCounts = !exploreReadCounts" variant="tonal">
-                <v-icon class="mr-1">mdi-poll</v-icon>
-                 <span style="font-size:13px">Read count distributions</span>
-              </v-btn>
-              <v-btn density="compact"
-                :icon="exploreReadCounts ? 'mdi-chevron-up' : 'mdi-chevron-down'"
-                @click="exploreReadCounts = !exploreReadCounts"
-              ></v-btn>
-            </v-card-actions>
+                    <div class="d-flex justify-center">
 
-            <v-expand-transition>
-              <div v-show="exploreReadCounts">
-                <v-card-text style="padding:0 !important">
+                     <v-btn-toggle id="hist-button-group"
+                        v-show="!showLoading && selectedGene"
+                        v-model="scaleYHist"
+                        color="primary"
+                        mandatory divided
+                        variant="elevated"
+
+                      >
+                        <v-btn density="compact" value="normal">Normal</v-btn>
+                        <v-btn density="compact" value="log">Log</v-btn>
+                        <v-btn density="compact" value="density">Density</v-btn>
+                      </v-btn-toggle>
+                    </div>
 
                     <div class="d-flex">
-                      <div  v-show="!showLoading && selectedGene">
-                        <div v-if="readCountRange == null" class="hint-box">
-                          <v-icon>mdi-select-drag</v-icon>
-                          <div>Drag to zoom in</div>
-                        </div>
-                        <div v-if="readCountRange != null" class="hint-box">
-                          <v-icon>mdi-restore</v-icon>
-                          <div>Click outside to restore</div>
-                        </div>
-                        <div id="all-histogram" class="d-flex mr-9 mt-1">
-                          <div id="read-count-histogram" style="margin-left: 0px">
-                          </div>
+                      <div id="canonical-histogram" class="d-flex ml-9">
+                        <div id="read-count-histogram" style="margin-left: 0px">
                         </div>
                       </div>
 
-                      <div class="d-flex flex-column">
-
-
-                        <div class="d-flex justify-center">
-
-                         <v-btn-toggle id="hist-button-group"
-                            v-show="!showLoading && selectedGene"
-                            v-model="scaleYHist"
-                            color="primary"
-                            mandatory divided
-                            variant="elevated"
-
-                          >
-                            <v-btn density="compact" value="normal">Normal</v-btn>
-                            <v-btn density="compact" value="log">Log</v-btn>
-                            <v-btn density="compact" value="density">Density</v-btn>
-                          </v-btn-toggle>
+                      <div id="exon-skipping-histogram" class="d-flex ml-9">
+                        <div id="read-count-histogram" style="margin-left: 0px">
                         </div>
+                      </div>
 
-                        <div class="d-flex">
-                          <div id="canonical-histogram" class="d-flex ml-9">
-                            <div id="read-count-histogram" style="margin-left: 0px">
-                            </div>
-                          </div>
-
-                          <div id="exon-skipping-histogram" class="d-flex ml-9">
-                            <div id="read-count-histogram" style="margin-left: 0px">
-                            </div>
-                          </div>
-
-                          <div id="cryptic-site-histogram" class="d-flex ml-9">
-                            <div id="read-count-histogram" style="margin-left: 0px">
-                            </div>
-                          </div>
+                      <div id="cryptic-site-histogram" class="d-flex ml-9">
+                        <div id="read-count-histogram" style="margin-left: 0px">
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
 
 
 
 
-                </v-card-text>
-              </div>
-            </v-expand-transition>
-          </v-card>
-      </div>
-
-
-
-
-
-
-
+            </v-card-text>
+          </div>
+        </v-expand-transition>
+      </v-card>
+  </div>
 
 	<div id="diagrams">
 	  <div  class="d-flex flex-column align-start">
@@ -302,7 +295,7 @@
 	</div>
 
  
- <div class="d-flex" v-if="showDonorPanel || showAcceptorPanel" style="justify-content: center;padding:10px;border-top: solid 12px #e7e7e7;margin-top:20px;">
+  <div class="d-flex" v-if="showDonorPanel || showAcceptorPanel" style="justify-content: center;padding:10px;border-top: solid 12px #e7e7e7;margin-top:20px;">
 
     <v-btn icon="mdi-minus" class="zoom-button" @click="zoomOutSite" density="compact" size="medium" >
     </v-btn>
@@ -316,13 +309,16 @@
     <v-btn icon="mdi-chevron-right" class="zoom-button" @click="panRightSite" density="compact" size="medium" >
     </v-btn>
 
- </div>
+  </div>
 
- <div id="site-diagrams" class="d-flex plus mt-9"
-   v-if="selectedGene && selectedGene.strand == '+'" >
+  <div id="site-diagrams" class="d-flex plus"
+   v-if="clickedObject && clickedObject.strand == '+'" >
   	<div class="donor-site" v-if="showDonorPanel" style="width:50%">
       <div class="d-flex" style="justify-content:center;margin-bottom: 20px !important;margin-top:-34px" >
   		  <h2 >Donor site</h2>
+      </div>
+      <div id="variant-diagram">
+          <svg style="display:none"/>
       </div>
 		  <div id="sequence">
         <svg/>
@@ -332,12 +328,15 @@
       <div class="d-flex" style="justify-content:center;margin-bottom: 20px !important;margin-top:-34px" >
         <h2 >Acceptor site</h2>
       </div>
+      <div id="variant-diagram">
+          <svg style="display:none"/>
+      </div>
 		  <div id="sequence">
         <svg/>
   	  </div>
   	</div>
   </div>
-  <div id="site-diagrams" class="d-flex minus" v-if="selectedGene && selectedGene.strand == '-'" >
+  <div id="site-diagrams" class="d-flex minus" v-if="clickedObject && clickedObject.strand == '-'" >
   	<div class="acceptor-site" v-if="showAcceptorPanel" style="width:50%">
 	  	<div class="d-flex" style="justify-content:center;margin-bottom: 20px !important;margin-top:-34px" >
         <h2 >Acceptor site</h2>
@@ -441,7 +440,7 @@ export default {
 		junctionsToShow: null,
     showTranscriptMenu: false,
 
-    showStrandMismatches: true,
+    showStrandMismatches: false,
 
     geneStart: null,
     geneEnd: null,
@@ -969,7 +968,9 @@ export default {
             })
             self.vcf.pileupVariants(filteredVariants, self.zoomRegionStart, self.zoomRegionEnd,
               self.$el.offsetWidth - 20)
-            self.drawVariantDiagram("#zoomed-diagrams #variant-diagram", self.zoomRegionStart, self.zoomRegionEnd, filteredVariants)
+            self.drawVariantDiagram("#zoomed-diagrams #variant-diagram",
+              self.$el.offsetWidth - 20,
+              self.zoomRegionStart, self.zoomRegionEnd, filteredVariants)
 
           }
 
@@ -1430,7 +1431,15 @@ export default {
 				 .style("opacity", "0")
 				 .on("click", function(d) {
 		      	
+
 		      })
+         svg.selectAll(".donor-pointer-text").remove();
+         svg
+         .append("text")
+         .attr("class", "donor-pointer-text")
+         .style("opacity", "0")
+         .text("Donor")
+
 
 		  	 svg.selectAll(".acceptor-pointer").remove();
 				 svg
@@ -1445,6 +1454,12 @@ export default {
 				 .on("click", function(d) {
 				 		self.showAcceptorDetails()
 				 	})
+         svg.selectAll(".acceptor-pointer-text").remove();
+         svg
+         .append("text")
+         .attr("class", "acceptor-pointer-text")
+         .style("opacity", "0")
+         .text("Acceptor")
 
 
 				 svg.selectAll(".donor-problem").remove();
@@ -1757,12 +1772,18 @@ export default {
         })
 
 
-      if (options == null || !options.showXAxis) {
-        svg.append("text")
-        .attr("x", 0)
-        .attr("y", 10)
-        .text("Splice Junctions")
-      }
+      svg.append("text")
+      .attr("x", 0)
+      .attr("y", function() {
+        if (options && options.showXAxis) {
+          return 38;
+        } else {
+          return 10;
+        }
+      })
+      .attr("class", "chart-title")
+      .text("Splice Junctions")
+
 
 
       var arcGroup = svg  
@@ -2335,6 +2356,7 @@ export default {
      }
      if (options && options.isZoomedRegion) {
         zoom = d3.zoom()
+                 .scaleExtent([1, 1])
                  .on('zoom', function(e) {
                     handlePanInProgress(e)
                  })
@@ -2970,8 +2992,11 @@ export default {
     drawAcceptorAndDonorSites: function(donorSequence, acceptorSequence, donorVariants, acceptorVariants) {
     	let self = this;
       let strandStr = self.selectedGene.strand == "+" ? 'plus' : 'minus'
-      let donorSiteContainer    = "#site-diagrams." + strandStr + " .donor-site #sequence"
-      let acceptorSiteContainer = "#site-diagrams." + strandStr + " .acceptor-site #sequence"
+      let donorSitePanel        = "#site-diagrams." + strandStr + " .donor-site";
+      let donorSiteContainer    = donorSitePanel + " #sequence"
+
+      let acceptorSitePanel     = "#site-diagrams." + strandStr + " .acceptor-site";
+      let acceptorSiteContainer =  acceptorSitePanel + " #sequence"
       
 
       let regionStart = self.clickedObject.donor.pos - self.junctionSiteSeqRange;
@@ -2982,16 +3007,38 @@ export default {
               (exon.start <= regionStart && exon.end >= regionEnd);
       })
 
+      let donorSiteStart = self.clickedObject.donor.pos - self.junctionSiteSeqRange + self.junctionSitePan;
+      let donorSiteEnd   = self.clickedObject.donor.pos + self.junctionSiteSeqRange + self.junctionSitePan;
+
       self.drawSiteSequenceDiagram(
         'donor',
         donorSiteContainer, 
+        self.$el.offsetWidth/2,
       	donorSequence, 
-      	self.clickedObject.donor.pos - self.junctionSiteSeqRange + self.junctionSitePan,
-      	self.clickedObject.donor.pos + self.junctionSiteSeqRange + self.junctionSitePan,
+      	donorSiteStart,
+      	donorSiteEnd,
       	self.selectedGene.strand == "+" ? self.clickedObject.donor.pos+1 : self.clickedObject.donor.pos,
       	self.selectedGene.strand == "+" ? self.clickedObject.donor.pos+2 : self.clickedObject.donor.pos-1,
       	donorExons,
         donorVariants)
+
+      if (self.variants && self.variants.length > 0) {
+        let filteredVariants = self.variants.filter(function(d) {
+          return d.start >= donorSiteStart && d.start <= donorSiteEnd
+        }).map(function(d) {
+          let variant = $.extend({}, d)
+          variant.level = 0;
+          return variant;
+        })
+        self.vcf.pileupVariants(filteredVariants,
+          donorSiteStart, donorSiteEnd,
+          self.$el.offsetWidth/2 - 40)
+        self.drawVariantDiagram(donorSitePanel + " #variant-diagram",
+          self.$el.offsetWidth/2,
+          donorSiteStart, donorSiteEnd, filteredVariants,
+          {'marginLeft': 15, 'marginRight': 20})
+      }
+
 
       regionStart = self.clickedObject.acceptor.pos - self.junctionSiteSeqRange;
       regionEnd = self.clickedObject.acceptor.pos + self.junctionSiteSeqRange;
@@ -3000,25 +3047,45 @@ export default {
                (regionStart <= exon.start && regionEnd >= exon.start) ||
               (exon.start <= regionStart && exon.end >= regionEnd);
       })
+      let acceptorSiteStart = self.clickedObject.acceptor.pos - self.junctionSiteSeqRange + self.junctionSitePan;
+      let acceptorSiteEnd   = self.clickedObject.acceptor.pos + self.junctionSiteSeqRange + self.junctionSitePan;
 
       self.drawSiteSequenceDiagram(
         'acceptor',
         acceptorSiteContainer, 
+        self.$el.offsetWidth/2,
       	acceptorSequence, 
-      	self.clickedObject.acceptor.pos - self.junctionSiteSeqRange + self.junctionSitePan,
-      	self.clickedObject.acceptor.pos + self.junctionSiteSeqRange + self.junctionSitePan,
+      	acceptorSiteStart,
+      	acceptorSiteEnd,
       	self.selectedGene.strand == "+" ? self.clickedObject.acceptor.pos-1 : self.clickedObject.acceptor.pos+1,
       	self.selectedGene.strand == "+" ? self.clickedObject.acceptor.pos : self.clickedObject.acceptor.pos+2,
       	acceptorExons,
         acceptorVariants)
 
+
+      if (self.variants && self.variants.length > 0) {
+        let filteredVariants = self.variants.filter(function(d) {
+          return d.start >= acceptorSiteStart && d.start <= acceptorSiteEnd
+        }).map(function(d) {
+          let variant = $.extend({}, d)
+          variant.level = 0;
+          return variant;
+        })
+        self.vcf.pileupVariants(filteredVariants,
+          acceptorSiteStart, acceptorSiteEnd,
+          self.$el.offsetWidth/2 - 40)
+        self.drawVariantDiagram(acceptorSitePanel + " #variant-diagram",
+          self.$el.offsetWidth/2,
+          acceptorSiteStart, acceptorSiteEnd, filteredVariants,
+          {'marginLeft': 15, 'marginRight': 20})
+      }
+
     },
 
-    drawSiteSequenceDiagram: function(junctionSite, container, sequence, regionStart, regionEnd, siteStart, siteEnd, exons, variants) {
+    drawSiteSequenceDiagram: function(junctionSite, container, width, sequence, regionStart, regionEnd, siteStart, siteEnd, exons, variants) {
 			let self = this;
 
 		  // dimensions
-			var width =  self.$el.offsetWidth/2;
 		  var height = 115;
 		  var margin = {top: 20, right: 10, bottom: 15, left: 15};
 
@@ -3030,8 +3097,10 @@ export default {
 		  // scales
 		  let x = d3.scaleLinear()
 		            .domain([regionStart, regionEnd])
-		            .range([margin.left, innerWidth+margin.left]);
+		            .range([0, innerWidth]);
 		  self.xSeqChart = x;
+      let halfElementWidth = (x(regionStart+1) - x(regionStart))/2
+
 
       var tickFormatter = function(d,i) {
         if (i == 0 ) {
@@ -3139,7 +3208,7 @@ export default {
           }
         })
         .attr("x", function(d,i) {
-          return x(regionStart+i)
+          return x(regionStart+i) - halfElementWidth
         })
         .attr("y", "10")
         .attr("width", seqWidth)
@@ -3225,7 +3294,7 @@ export default {
           return "seq alt " + d.alt.toUpperCase()
         })
         .attr("x", function(d,i) {
-          return x(d.start)
+          return x(d.start) - halfElementWidth
         })
         .attr("y", "10")
         .attr("width", seqWidth)
@@ -3474,6 +3543,7 @@ export default {
           self.zoomRegionStart, self.zoomRegionEnd,
           self.$el.offsetWidth - 20)
         self.drawVariantDiagram("#zoomed-diagrams #variant-diagram",
+          self.$el.offsetWidth - 20,
           self.zoomRegionStart, self.zoomRegionEnd, filteredVariants)
       }
 		},
@@ -3667,6 +3737,16 @@ export default {
 			      .transition()
 			      .duration(200)
 			      .style("opacity", .9);
+          d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-pointer-text")
+            .attr("transform", function(d1) {
+              let adjustBy = d.strand == '+' ? 20 : -36;
+              return "translate(" +
+                     (self.xTranscriptChartZoomed(d.donor.pos) - (self.sitePointerWidth/2) + adjustBy)  +
+                     "," + ySitePointer + ")"
+            })
+            .transition()
+            .duration(200)
+            .style("opacity", .9);
 
 
 		      // Show an * below donor pointer if donor site is cryptic-site
@@ -3694,6 +3774,16 @@ export default {
 			      .transition()
 			      .duration(200)
 			      .style("opacity", .9); 
+          d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-pointer-text")
+            .attr("transform", function(d1) {
+              let adjustBy = d.strand == '+' ? -55 : 20;
+              return "translate(" +
+                     (self.xTranscriptChartZoomed(d.acceptor.pos) - (self.sitePointerWidth/2) + adjustBy)   +
+                     "," + ySitePointer + ")"
+            })
+            .transition()
+            .duration(200)
+            .style("opacity", .9);
 
 		      // Show an * below acceptor pointer if acceptor site is cryptic-site
 		      if (d.acceptor.status && d.acceptor.status == 'cryptic-site') {
@@ -3783,10 +3873,18 @@ export default {
 			      .transition()
 			      .duration(200)
 			      .style("opacity", 0); 
+          d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-pointer-text")
+            .transition()
+            .duration(200)
+            .style("opacity", 0);
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-pointer")
 			      .transition()
 			      .duration(200)
 			      .style("opacity", .0); 
+          d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-pointer-text")
+            .transition()
+            .duration(200)
+            .style("opacity", .0);
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-problem")
 			      .transition()
 			      .duration(200)
@@ -3819,12 +3917,17 @@ export default {
       return  'variant ' + d.type.toLowerCase()  + ' ' + colorimpacts + ' ' + (matchedSplice.length > 0 ? ' splicing' : '');
     },
    
-    drawVariantDiagram: function(container, regionStart, regionEnd, variants) {
+    drawVariantDiagram: function(container, width, regionStart, regionEnd, variants, options) {
       let self = this;
       let data = variants;
-      let width = self.$el.offsetWidth - 20
 
       let margin = {top: self.arcPointerSmallHeight, bottom: 0, left: 0, right: 5}
+      if (options && options.marginLeft) {
+        margin.left = options.marginLeft;
+      }
+      if (options && options.marginRight) {
+        margin.right = options.marginRight;
+      }
 
       let variantHeight = self.variantHeight;
       let variantWidth  = self.variantWidth;
@@ -3836,11 +3939,12 @@ export default {
         return d.level;
       });
       if (maxLevel == null) {
-        maxLevel = 1;
+        maxLevel = 0;
       }
       // Recalculate the height based on the number of levels.
       let height = (maxLevel+1) * (variantHeight + verticalPadding);
       height += margin.top + margin.bottom;
+      // Set a minimum height
 
       // determine inner height (w/o margins)
       var innerHeight = height - margin.top - margin.bottom;
@@ -3877,12 +3981,12 @@ export default {
         .attr("width", width)
         .attr("height", height);
 
-      if (container.indexOf("#zoomed-diagrams") == -1) {
+      if (data.length > 0) {
         svg.append("text")
         .attr("x", 0)
         .attr("y", 12)
+        .attr("class", "chart-title")
         .text("Variants")
-
       }
 
       let group = svg
@@ -3951,30 +4055,6 @@ export default {
 
       })
 
-      // draw a circle around splice variants
-      /*
-      variantGroup.selectAll('circle.splicing')
-      .data(function(d) {
-        return data.filter( function(d) { 
-          let matchedSplice = Object.keys(d.vepConsequence).filter(function(consequence) {
-            return consequence.indexOf('splice') >= 0;
-          })
-          return matchedSplice.length > 0;
-        }) ;
-      })
-      .enter()
-      .append('circle')
-      .attr('class', "splicing")
-      .attr('r', variantHeight )
-      .attr("transform", function(d) {
-        var xCoord = d.x;
-        var yCoord = d.y
-        var tx = "translate(" + xCoord + "," + yCoord + ")";
-        return tx;
-       });
-       */
-
-
       variantGroup.exit().remove();
 
 
@@ -3982,40 +4062,7 @@ export default {
 
       variantGroup.selectAll(".variant")
       .on("click", function(event, d) {
-        /*
-        if (self.clickedObject && self.clickedObject.type == 'variant' && self.clickedObject.variant == d) {
 
-          self.clickedObject = null;
-          svg.select(".variant-pointer")
-          .transition()
-          .duration(200)
-          .style("opacity", .0); 
-          return;
-        }
-
-        let matchedSplice = Object.keys(d.vepConsequence).filter(function(consequence) {
-          return consequence.indexOf('splice') >= 0;
-        })
-        let variantObject = {'type': 'variant', 'clicked': true, 'variant': d, 'isSpliceVariant': matchedSplice.length > 0};
-
-        self.$emit("object-selected", variantObject)
-        self.clickedObject = variantObject;
-
-
-        svg.select(".variant-pointer-small")
-          .transition()
-          .duration(100)
-          .style("opacity", 0);           
-        svg.select(".variant-pointer")
-          .attr("transform", function(d1) {
-            return "translate(" + (d.x - (self.arcPointerWidth/2))
-            + "," 
-            + (d.y  - self.arcPointerHeight - 4) + ")"
-           })
-          .transition()
-          .duration(200)
-          .style("opacity", .9); 
-          */
 
       })
       .on('mouseover', function(event, d) {
@@ -4624,7 +4671,9 @@ export default {
       if (this.variants && this.variants.length > 0) {
         self.$nextTick(function() {
           setTimeout(function() {
-            self.drawVariantDiagram('#diagrams #variant-diagram', self.geneStart, self.geneEnd, self.variants)
+            self.drawVariantDiagram('#diagrams #variant-diagram',
+              self.$el.offsetWidth - 20,
+              self.geneStart, self.geneEnd, self.variants)
 
           }, 2000)
         })
@@ -4687,6 +4736,12 @@ svg rect.UTR, svg rect.CDS, svg rect.exon {
   fill:   #bdc0c5;
   stroke: #6c6f74;
   stroke-width: 1;
+}
+
+svg text.chart-title {
+  font-size: 12px;
+  font-weight: 600;
+  fill: #30638f;
 }
 
 .exon-label {
@@ -4869,6 +4924,14 @@ div.tooltip {
 	stroke-width: 1;
 }
 
+.donor-pointer-text,
+.acceptor-pointer-text {
+  fill: #0583bc;
+  font-weight: 700;
+  font-size: 11px;
+  text-anchor: start;
+}
+
 .variant.splicing {
   fill: #d70000 !important;
   stroke-width: 2 !important;
@@ -4951,6 +5014,7 @@ text.seq {
 	fill: black;
 	font-size: 12px;
   font-weight: 500;
+  text-anchor: middle;
 }
 text.seq.A, rect.seq.A {
   fill: #00b107;

@@ -90,6 +90,7 @@ export default function AreaChart(data, {
             .attr("y", 20)
             .attr("fill", "currentColor")
             .attr("text-anchor", "start")
+            .attr("class", "chart-title")
             .text(yLabel));
   }
 
