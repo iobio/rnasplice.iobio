@@ -45,7 +45,7 @@
             <div v-if="getSummary(geneName)">
               <h3 style="color: #e66a7f !important;">Cryptic-site splice junctions
                 <v-chip v-if="getSummary(geneName)" color="#e66a7f" class="ml-8" size="small" >
-                      {{ getSummary(geneName).crypticSite.length }}
+                      {{ getCrypticJunctions(geneName).length }}
                 </v-chip>
                     
               </h3>
@@ -64,7 +64,7 @@
 
 
 
-                <div  v-for="spliceJunction, idx in getSummary(geneName).crypticSite"
+                <div  v-for="spliceJunction, idx in getCrypticJunctions(geneName)"
                   :key="spliceJunction.key" 
                   :class="`d-flex splice-junction-entry` + (selectedObject && selectedObject.key == spliceJunction.key ? ` selected` : ``)"
                    @click="onSelectSpliceJunction(spliceJunction, geneName)" flat density="compact">
@@ -164,7 +164,20 @@ export default {
       } else {
         self.$emit("select-splice-junction", spliceJunction)
       }
+    },
+    getCrypticJunctions: function(geneName) {
+      let self = this;
+      let geneSummary = self.getSummary(geneName)
+      let junctions = geneSummary.crypticSite;
+      return junctions.filter(function(junction) {
+        if (junction.strand == null || junction.strand == 'undefined') {
+          return true;
+        } else {
+          return junction.strand == geneSummary.gene.strand;
+        }
+      })
     }
+
   },
   watch: {
     selectedGene: function() {
@@ -175,6 +188,8 @@ export default {
     show: function() {
       this.showGenesPanel = this.show;
     }
+  },
+  computed: {
   },
   created: function() {
     this.showGenesPanel = false;
