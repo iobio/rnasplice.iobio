@@ -511,6 +511,7 @@ export default {
   			self.$nextTick(function() {
           self.showDonorPanel = false;
           self.showAcceptorPanel = false;
+          self.$emit('reset-site-pan')
 	  			self.onGeneSelected();
 	  			if (self.spliceJunctionsForGene) {
 	  				self.showLoading = false;
@@ -2728,6 +2729,8 @@ export default {
 		 */
     selectSpliceJunction: function(d) {
     	let self = this;
+
+      self.$emit('reset-site-pan')
 
       var delaySelection = false;
       self.snackbarText = ""

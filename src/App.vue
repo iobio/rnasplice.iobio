@@ -93,6 +93,7 @@
           @object-selected="onObjectSelected"
           @set-site-zoom-factor="onSetSiteZoomFactor"
           @set-site-pan="onSetSitePan"
+          @reset-site-pan="junctionSitePan = 0"
           @sample-names-loaded="onSampleNamesLoaded"
           @load-data-from-url-params="onLoadDataFromURL"
           @show-legend="showLegendDrawer=true"/>

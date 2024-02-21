@@ -32,6 +32,7 @@
             @splice-junction-selected="onSpliceJunctionSelected"
             @set-site-zoom-factor="onSetSiteZoomFactor"
             @set-site-pan="onSetSitePan"
+            @reset-site-pan="$emit('reset-site-pan')"
             @show-legend="$emit('show-legend')"/>
 
        
