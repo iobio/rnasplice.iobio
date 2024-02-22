@@ -783,12 +783,14 @@ export default {
         self.resetZoom();
       } else {
         let parsedRegion = self.parseRegionCoords();
-        self.highlightRegionImpl(parsedRegion.point, parsedRegion.regionStart, parsedRegion.regionEnd)
+        if (parsedRegion) {
+          self.highlightRegionImpl(parsedRegion.point, parsedRegion.regionStart, parsedRegion.regionEnd)
+        }
       }
     },
     highlightRegion: function(point, regionStart, regionEnd) {
       let self = this;
-      self.highlightRegionImpl(point, regionStart, regionEnd)
+      return self.highlightRegionImpl(point, regionStart, regionEnd)
     },
 
     parseRegionCoords: function() {
@@ -823,8 +825,8 @@ export default {
           break;
         }
       }
-      // If region end not provided, default highlight region to 1/10 of gene size
-      let span = Math.max(1000, Math.round((+self.selectedGene.end - +self.selectedGene.start) / 10))
+      // If region end not provided, default highlight region to 20% of gene length
+      let span = Math.min(1000, Math.round((+self.selectedGene.end - +self.selectedGene.start) / 20))
 
       if (regionEnd == null) {
         // Adjust the region so that it stays within the gene region
@@ -849,14 +851,23 @@ export default {
         let span = (regionEnd - regionStart);
         point = regionStart + (span/2);
       }
-      return {'point': point, 'regionStart': regionStart, 'regionEnd': regionEnd}
+      if (regionStart < self.selectedGene.start ) {
+        alert("Unable to zoom to coordinates entered.\n" + regionStart + " is downstream of the gene region.")
+        return null;
+      } else if (regionEnd > self.selectedGene.end) {
+        alert("Unable to zoom to coordinates entered.\n" + + regionEnd + " is upstream of the gene region.")
+        return null;
+      } else return {'point': point, 'regionStart': regionStart, 'regionEnd': regionEnd}
     },
 
     highlightRegionImpl: function(point, regionStart, regionEnd) {
       let self = this;
-      if (regionStart < self.selectedGene.start || regionEnd > self.selectedGene.end) {
-        console.log("Coordinates " + regionStart + "-" + regionEnd + " are outside the gene region " + self.selectedGene.start + "-" + self.selectedGene.end)
-        return;
+      if (regionStart < self.selectedGene.start ) {
+        alert(regionStart + " is downstream of the gene region.")
+        return false;;
+      } else if (regionEnd > self.selectedGene.end) {
+        alert(regionStart + " is upstream of the gene region.")
+        return false;
       }
 
       let theExtent = [self.xBrushable(regionStart),
@@ -2313,21 +2324,38 @@ export default {
           let pan  = Math.round(from - to);
           let theExtent = [self.xBrushable(self.brushRegionStart+pan),
                            self.xBrushable(self.brushRegionEnd+pan)]
-          d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
-        }
-      } else {
-        self.highlightSelectedJunctionRegion()
-        self.$nextTick(function() {
-          if (e.transform.x) {
-            let from = x.invert(0)
-            let to   = x.invert(e.transform.x)
-            let pan  = Math.round(from - to);
-            let theExtent = [self.xBrushable(self.brushRegionStart+pan),
-                             self.xBrushable(self.brushRegionEnd+pan)]
+          if (theExtent[0] < self.xBrushable.range()[0]) {
+            alert("Cannot pan downstream of gene region.")
+            resetPanTransform()
+          } else if (theExtent[1] > self.xBrushable.range()[1]) {
+            alert("Cannot pan upstream of gene region.")
+            resetPanTransform()
+          } else {
             d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
           }
-        })
+        }
+      } else {
+        let success = self.highlightSelectedJunctionRegion()
+        if (success) {
+          self.$nextTick(function() {
+            if (e.transform.x) {
+              let from = x.invert(0)
+              let to   = x.invert(e.transform.x)
+              let pan  = Math.round(from - to);
+              let theExtent = [self.xBrushable(self.brushRegionStart+pan),
+                               self.xBrushable(self.brushRegionEnd+pan)]
+              d3.select("#diagrams #brushable-axis svg g.gene").call(self.brush.move, theExtent)
+            }
+          })
+
+        }
       }
+     }
+     let resetPanTransform = function() {
+      svg.attr('transform', null)
+      d3.select("#zoomed-diagrams #transcript-diagram svg g").attr('transform', null)
+      d3.select("#zoomed-diagrams #coverage-diagram svg").attr('transform', null)
+      d3.select("#zoomed-diagrams #variant-diagram svg g").attr('transform', null)
      }
      let handlePanInProgress = function(e) {
       if (e.transform.x) {
@@ -2779,11 +2807,12 @@ export default {
       }
     },
 
-    getSurroundingRegion: function(d) {
+    getSurroundingRegion: function(d, addBuffer=true) {
       let self = this;
 
       let start = null;
       let end = null;
+      let point = null;
 
       let downstreamExon = self.selectedGene.strand == '+'
                             ? (d.donor.exon    ? d.donor.exon    : d.donor.exonClosest)
@@ -2804,7 +2833,26 @@ export default {
         end = self.selectedGene.strand == '+' ? d.acceptor.pos : d.donor.pos;
       }
 
-      return {'start': start, 'end': end}
+      point = start + ((end-start) / 2)
+
+      if (addBuffer) {
+        let span = Math.min(1000, Math.round((+self.selectedGene.end - +self.selectedGene.start) * 0.2))
+
+        start = start - span;
+        end   = end + span;
+
+        /*
+        if (start < self.selectedGene.start) {
+          start = self.selectedGene.start;
+        }
+        if (end > self.selectedGene.end) {
+          end = self.selectedGene.end;
+        }
+        */
+
+      }
+
+      return {'point': point,'start': start, 'end': end}
     },
 
     _selectSpliceJunctionImpl: function(d) {
@@ -2912,7 +2960,7 @@ export default {
 	      let region = self.getSurroundingRegion(d)
         //self.highlightSelectedJunctionRegion();
         self.$nextTick(function() {
-          self.selectZoomedSpliceJunction(d, theSpliceJunctions, region.start - 1000, region.end + 1000)
+          self.selectZoomedSpliceJunction(d, theSpliceJunctions, region.start, region.end)
           self.showDonorPanel = true;
           self.showAcceptorPanel = true;
 
@@ -2929,9 +2977,7 @@ export default {
     highlightSelectedJunctionRegion: function() {
       let self = this;
       let region = self.getSurroundingRegion(self.clickedObject)
-      let zoomRegionStart = region.start - 1000;
-      let zoomRegionEnd   = region.end + 1000;
-      self.highlightRegion(zoomRegionStart + ((zoomRegionEnd - zoomRegionStart)/2), zoomRegionStart, zoomRegionEnd)
+      return self.highlightRegion(region.point, region.start, region.end)
     },
     zoomIn: function() {
       let self = this;
