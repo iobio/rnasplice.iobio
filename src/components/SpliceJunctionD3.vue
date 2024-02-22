@@ -245,7 +245,7 @@
 
         <v-spacer/>
 
-        <div style="margin-left:150px;">
+        <div style="margin-left:300px;">
           <v-btn icon="mdi-minus" class="zoom-button" @click="zoomOut" density="compact" size="medium" >
           </v-btn>
 
@@ -302,12 +302,6 @@
     <v-btn icon="mdi-plus" class="zoom-button" @click="zoomInSite" density="compact" size="medium"  style="margin-left:10px">
     </v-btn>
 
-
-    <v-btn icon="mdi-chevron-left" class="zoom-button" @click="panLeftSite" density="compact" size="medium" style="margin-left:50px; margin-right:10px;">
-    </v-btn>
-
-    <v-btn icon="mdi-chevron-right" class="zoom-button" @click="panRightSite" density="compact" size="medium" >
-    </v-btn>
 
   </div>
 
@@ -3022,30 +3016,13 @@ export default {
         self.$emit("splice-junction-selected", self.clickedObject)
       })
     },
-    panLeftSite: function() {
-      let self = this;
-      self.$emit("set-site-pan", -10)
-      self.$nextTick(function() {
-        self.$emit("splice-junction-selected", self.clickedObject)
-      })
-    },
-    panRightSite: function() {
-      let self = this;
-      self.$emit("set-site-pan", +10)
-      self.$nextTick(function() {
-        self.$emit("splice-junction-selected", self.clickedObject)
-      })
-    },
-   
 
     drawAcceptorAndDonorSites: function(donorSequence, acceptorSequence, donorVariants, acceptorVariants) {
     	let self = this;
       let strandStr = self.selectedGene.strand == "+" ? 'plus' : 'minus'
       let donorSitePanel        = "#site-diagrams." + strandStr + " .donor-site";
-      let donorSiteContainer    = donorSitePanel + " #sequence"
 
       let acceptorSitePanel     = "#site-diagrams." + strandStr + " .acceptor-site";
-      let acceptorSiteContainer =  acceptorSitePanel + " #sequence"
       
 
       let regionStart = self.clickedObject.donor.pos - self.junctionSiteSeqRange;
@@ -3061,7 +3038,7 @@ export default {
 
       self.drawSiteSequenceDiagram(
         'donor',
-        donorSiteContainer, 
+        donorSitePanel,
         self.$el.offsetWidth/2,
       	donorSequence, 
       	donorSiteStart,
@@ -3101,7 +3078,7 @@ export default {
 
       self.drawSiteSequenceDiagram(
         'acceptor',
-        acceptorSiteContainer, 
+        acceptorSitePanel,
         self.$el.offsetWidth/2,
       	acceptorSequence, 
       	acceptorSiteStart,
@@ -3131,8 +3108,10 @@ export default {
 
     },
 
-    drawSiteSequenceDiagram: function(junctionSite, container, width, sequence, regionStart, regionEnd, siteStart, siteEnd, exons, variants) {
+    drawSiteSequenceDiagram: function(junctionSite, parentContainer, width, sequence, regionStart, regionEnd, siteStart, siteEnd, exons, variants) {
 			let self = this;
+
+      let container = parentContainer + " #sequence"
 
 		  // dimensions
 		  var height = 115;
@@ -3525,6 +3504,61 @@ export default {
           .style("opacity", .9); 
         }       
       }
+
+      //
+      // Allow pan left/right with drag operation
+      //
+      let handlePanEnd = function(e) {
+        let from = x.invert(0)
+        let to   = x.invert(e.transform.x)
+        let pan  = Math.round(from - to);
+        let theExtent = [self.xBrushable(from+pan),
+                         self.xBrushable(to+pan)]
+        if (theExtent[0] < self.xBrushable.range()[0]) {
+          alert("Cannot pan downstream of gene region.")
+          resetPanTransform()
+        } else if (theExtent[1] > self.xBrushable.range()[1]) {
+          alert("Cannot pan upstream of gene region.")
+          resetPanTransform()
+        } else {
+          self.$emit("set-site-pan", pan)
+          self.$nextTick(function() {
+            self.$emit("splice-junction-selected", self.clickedObject)
+          })
+
+        }
+      }
+      let resetPanTransform = function() {
+        svg.attr('transform', null)
+        d3.select(parentContainer + " #sequence svg").attr('transform', null)
+        d3.select(parentContainer + " #variant-diagram svg").attr('transform', null)
+      }
+      let handlePanInProgress = function(e) {
+        if (e.transform.x) {
+          let newTransform = $.extend({}, e.transform)
+          newTransform.y = 0;
+          newTransform.k = 1;
+          d3.select(parentContainer + " #sequence svg").attr('transform', newTransform)
+
+          let variantTransform = $.extend({}, e.transform)
+          variantTransform.y = 0;
+          variantTransform.x = e.transform.x
+          variantTransform.k = 1;
+          d3.select(parentContainer + " #variant-diagram svg").attr('transform', variantTransform)
+
+        }
+      }
+      let zoom = d3.zoom()
+                 .scaleExtent([1, 1])
+                 .on('zoom', function(e) {
+                    handlePanInProgress(e)
+                 })
+                 .on('end', function(e) {
+                    handlePanEnd(e)
+                 })
+      svg.call(zoom)
+
+
 
     },
 
