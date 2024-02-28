@@ -214,9 +214,9 @@ import RNASeqIGV   from './RNASeqIGV.vue'
           this.loadInfo.hasOwnProperty('bedURL') && 
           this.loadInfo.hasOwnProperty('bedIndexURL')) {
 
-          this.bedURL     = this.loadInfo.bedURL;
-          this.bedIndexURL = this.loadInfo.bedIndexURL;
-          this.bigwigURL   = this.loadInfo.bigwigURL;
+          this.bedURL     = this.loadInfo.bedURL.replaceAll("api/i", "api/v1");
+          this.bedIndexURL = this.loadInfo.bedIndexURL.replaceAll("api/i", "api/v1");
+          this.bigwigURL   = this.loadInfo.bigwigURL.replaceAll("api/i", "api/v1");
 
           let firstTime = false;
           if (this.tracksSpliceJunctions[0].tracks[1].url == null) {
