@@ -314,6 +314,12 @@
       <div id="variant-diagram">
           <svg style="display:none"/>
       </div>
+      <div  class="hint-box" style="margin-top:0px">
+        <span class="material-symbols-outlined" style="font-size:18px">
+            drag_pan
+        </span>
+        <div>Drag to pan left or right</div>
+      </div>
 		  <div id="sequence">
         <svg/>
   	  </div>
@@ -325,6 +331,12 @@
       <div id="variant-diagram">
           <svg style="display:none"/>
       </div>
+      <div  class="hint-box" style="margin-top:0px">
+        <span class="material-symbols-outlined" style="font-size:18px">
+            drag_pan
+        </span>
+        <div>Drag to pan left or right</div>
+      </div>
 		  <div id="sequence">
         <svg/>
   	  </div>
@@ -335,6 +347,15 @@
 	  	<div class="d-flex" style="justify-content:center;margin-bottom: 20px !important;margin-top:-34px" >
         <h2 >Acceptor site</h2>
       </div>
+      <div id="variant-diagram">
+          <svg style="display:none"/>
+      </div>
+      <div  class="hint-box" style="margin-top:0px">
+        <span class="material-symbols-outlined" style="font-size:18px">
+            drag_pan
+        </span>
+        <div>Drag to pan left or right</div>
+      </div>
 		  <div id="sequence">
         <svg/>
   	  </div>
@@ -342,6 +363,15 @@
   	<div class="donor-site" style="width:50%" v-if="showDonorPanel" >
   		<div class="d-flex" style="justify-content:center;margin-bottom: 20px !important;margin-top:-34px" >
         <h2 >Donor site</h2>
+      </div>
+      <div id="variant-diagram">
+          <svg style="display:none"/>
+      </div>
+      <div  class="hint-box" style="margin-top:0px">
+        <span class="material-symbols-outlined" style="font-size:18px">
+            drag_pan
+        </span>
+        <div>Drag to pan left or right</div>
       </div>
 		  <div id="sequence">
         <svg/>
@@ -976,7 +1006,8 @@ export default {
               self.$el.offsetWidth - 20)
             self.drawVariantDiagram("#zoomed-diagrams #variant-diagram",
               self.$el.offsetWidth - 20,
-              self.zoomRegionStart, self.zoomRegionEnd, filteredVariants)
+              self.zoomRegionStart, self.zoomRegionEnd, filteredVariants,
+              {'marginTop': 20})
 
           }
 
@@ -2381,9 +2412,16 @@ export default {
         zoom = d3.zoom()
                  .scaleExtent([1, 1])
                  .on('zoom', function(e) {
+                    if (e.transform.x == 0 && e.transform.y == 0) {
+                      return;
+                    }
+
                     handlePanInProgress(e)
                  })
                  .on('end', function(e) {
+                    if (e.transform.x == 0 && e.transform.y == 0) {
+                      return;
+                    }
                     handlePanEnd(e)
                  })
         svg.call(zoom)
@@ -3062,7 +3100,7 @@ export default {
         self.drawVariantDiagram(donorSitePanel + " #variant-diagram",
           self.$el.offsetWidth/2,
           donorSiteStart, donorSiteEnd, filteredVariants,
-          {'marginLeft': 15, 'marginRight': 20})
+          {'marginLeft': 15, 'marginRight': 20, 'marginTop': 20})
       }
 
 
@@ -3103,7 +3141,7 @@ export default {
         self.drawVariantDiagram(acceptorSitePanel + " #variant-diagram",
           self.$el.offsetWidth/2,
           acceptorSiteStart, acceptorSiteEnd, filteredVariants,
-          {'marginLeft': 15, 'marginRight': 20})
+          {'marginLeft': 15, 'marginRight': 20, 'marginTop': 20})
       }
 
     },
@@ -3551,9 +3589,16 @@ export default {
       let zoom = d3.zoom()
                  .scaleExtent([1, 1])
                  .on('zoom', function(e) {
+                    if (e.transform.x == 0 && e.transform.y == 0) {
+                      return;
+                    }
+
                     handlePanInProgress(e)
                  })
                  .on('end', function(e) {
+                    if (e.transform.x == 0 && e.transform.y == 0) {
+                      return;
+                    }
                     handlePanEnd(e)
                  })
       svg.call(zoom)
@@ -3627,7 +3672,8 @@ export default {
           self.$el.offsetWidth - 20)
         self.drawVariantDiagram("#zoomed-diagrams #variant-diagram",
           self.$el.offsetWidth - 20,
-          self.zoomRegionStart, self.zoomRegionEnd, filteredVariants)
+          self.zoomRegionStart, self.zoomRegionEnd, filteredVariants,
+          {'marginTop': 20})
       }
 		},
 				 
@@ -4011,6 +4057,9 @@ export default {
       if (options && options.marginRight) {
         margin.right = options.marginRight;
       }
+      if (options && options.marginTop) {
+        margin.top = options.marginTop;
+      }
 
       let variantHeight = self.variantHeight;
       let variantWidth  = self.variantWidth;
@@ -4081,6 +4130,7 @@ export default {
       var variantGroup = group
       .append('g')
       .attr('class', 'track variants')
+
 
       // Insert symbols for variants
       variantGroup.selectAll('path.variant')
