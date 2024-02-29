@@ -19,7 +19,7 @@
             <div class="d-flex flex-column">
 
               <div class="d-flex">
-                <div style="max-width:180px">
+                <div style="min-width:155px">
                   <v-select
                     label="Genome build"
                     v-model="buildName"
@@ -38,55 +38,80 @@
               </div>
 
 
-              <div class="pt-4">
+              <div class="">
                 <v-text-field id="bed-url-text" 
                   v-model="bedURL"
                   :rules="bedRules"
                   density="compact" 
+                  hide-details
                   label="Splice Junction BED URL (.bed.gz)">
                 </v-text-field>
               </div>
-              <div class="pt-4">
+              <div class="pt-2">
                 <v-text-field id="bed-index-url-text"
                   v-model="bedIndexURL"
                   :rules="bedIndexRules"
                   density="compact"
+                  hide-details
                   label="Splice Junction BED Index URL (.bed.gz.tbi)">
                 </v-text-field>
               </div>
 
-              <v-divider/>
 
-              <div class="pt-4">
+              <div class="pt-8">
                 <v-text-field id="bigwig-url-text" 
                   v-model="bigwigURL"
                   density="compact" 
                   :rules="bigwigRules"
+                  hide-details
                   label="Coverage URL (.bw or .bigWig)">
                 </v-text-field>
               </div>
 
-              <v-divider/>
 
-              <div class="pt-4">
+
+              <div class="pt-8">
+                <v-text-field id="alignment-url-text"
+                  v-model="alignmentURL"
+                  :rules="alignmentRules"
+                  density="compact"
+                  hide-details
+                  label="Alignment URL (.bam or .cram)">
+                </v-text-field>
+              </div>
+
+              <div class="pt-2">
+                <v-text-field id="alignment-index-url-text"
+                  v-model="alignmentIndexURL"
+                  :rules="alignmentIndexRules"
+                  density="compact"
+                  hide-details
+                  label="Alignment URL (.bai or .crai)">
+                </v-text-field>
+              </div>
+
+
+              <div class="pt-8">
                 <v-text-field id="vcf-url-text" 
                   v-model="vcfURL"
                   :rules="vcfRules"
                   density="compact" 
+                  hide-details
                   label="VCF URL (.vcf.gz)">
                 </v-text-field>
               </div>
 
-              <div class="pt-4">
+              <div class="pt-2">
                 <v-text-field id="tbi-url-text" 
                   v-model="tbiURL"
                   :rules="tbiRules"
                   density="compact" 
+                  hide-details
                   label="tbi URL (.vcf.gz.tbi)">
                 </v-text-field>
               </div>
 
-              <div style="width:255px" class="pt-4">
+              <div style="width:255px" class="pt-2">
                 <v-select 
                   v-model="selectedSampleName"
                   :rules="sampleNameRules"
@@ -100,7 +125,7 @@
             </div>
             
           </v-card-text>
-          <v-card-actions  class="mt-4">
+          <v-card-actions  class="mt-1">
             <v-btn type="submit" class="mt-1" v-if="false" density="compact" size="medium" color="primary" variant="tonal" @click="onTryDemoBed">Load demo data</v-btn>
 
             <v-spacer/>
@@ -130,6 +155,8 @@ export default {
         bedURL: null,
         bedIndexURL: null,
         bigwigURL: null,
+        alignmentURL: null,
+        alignmentIndexURL: null,
         vcfURL: null,
         tbiURL: null,
         selectedSampleName: null,
@@ -205,6 +232,46 @@ export default {
               return true;
             } else if (v) {
               return 'The bigwig file must have the extension .bw or .bigwig'
+            } else {
+              return true;
+            }
+          },
+          v => {
+            if (v && v.match(new RegExp(self.urlRegExp))) {
+              return true;
+            } else if (v) {
+              return 'Invalid URL';
+            } else {
+              return true;
+            }
+          }
+        ],
+        alignmentRules: [
+          v => {
+            if (v && (v.toLowerCase().indexOf('.bam') > 0 || v.toLowerCase().indexOf('.cram')) ) {
+              return true;
+            } else if (v) {
+              return 'Please specify either a .bam or .cram'
+            } else {
+              return true;
+            }
+          },
+          v => {
+            if (v && v.match(new RegExp(self.urlRegExp))) {
+              return true;
+            } else if (v) {
+              return 'Invalid URL';
+            } else {
+              return true;
+            }
+          }
+        ],
+        alignmentIndexRules: [
+          v => {
+            if (v && (v.toLowerCase().indexOf('.bai') > 0 || v.toLowerCase().indexOf('.crai')) ) {
+              return true;
+            } else if (v) {
+              return 'The index file file must have extension .bai or .crai'
             } else {
               return true;
             }
@@ -301,6 +368,12 @@ export default {
           if (this.bigwigURL == null && this.preLoadInfo.bigwigURL) {
             this.bigwigURL = this.preLoadInfo.bigwigURL;
           }
+          if (this.alignmentURL == null && this.preLoadInfo.alignmentURL) {
+            this.alignmentURL = this.preLoadInfo.alignmentURL;
+          }
+          if (this.alignmentIndexURL == null && this.preLoadInfo.alignmentIndexURL) {
+            this.alignmentIndexURL = this.preLoadInfo.alignmentIndexURL;
+          }
           if (this.vcfURL == null && this.preLoadInfo.vcfURL) {
             this.vcfURL = this.preLoadInfo.vcfURL;
           }
@@ -321,6 +394,8 @@ export default {
                         'bedURL': this.bedURL.trim(), 
                         'bedIndexURL': this.bedIndexURL ? this.bedIndexURL.trim() : this.bedURL.trim() + '.tbi',
                         'bigwigURL': this.bigwigURL ? this.bigwigURL.trim() : null,
+                        'alignmentURL': this.alignmentURL ? this.alignmentURL.trim() : null,
+                        'alignmentIndexURL': this.alignmentIndexURL ? this.alignmentIndexURL.trim() : null,
                         'vcfURL': this.vcfURL ? this.vcfURL.trim() : null,
                         'tbiURL': this.tbiURL ? this.tbiURL.trim() : null,
                         'sampleName': this.selectedSampleName}
@@ -344,6 +419,10 @@ export default {
             self.bedIndexURL = url;
           } else if (url.endsWith('.bw') || url.toLowerCase().endsWith('.bigwig')) {
             self.bigwigURL = url;
+          } else if (url.endsWith('.bam') || url.endsWith('.cram')) {
+            self.alignmentURL = url;
+          } else if (url.endsWith('.bai') || url.endsWith('.crai')) {
+            self.alignmentIndexURL = url;
           } else if (url.endsWith('vcf.gz')) {
             self.vcfURL = url;
           } else if (url.endsWith('vcf.gz.tbi')) {
@@ -406,6 +485,11 @@ export default {
 #load-data-dialog-content #tbi-url-text
  {
   font-size: 13px;
+}
+
+#load-data-dialog-content {
+  max-height: 700px;
+  overflow-y: scroll;
 }
 
 #copy-paste-urls {

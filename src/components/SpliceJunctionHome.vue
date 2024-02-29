@@ -197,7 +197,8 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         self.urlParams = new URLSearchParams(window.location.search);
 
         let theLoadInfo = {};
-        ['bedURL', 'bedIndexURL', 'bigwigURL', 'vcfURL', 'tbiURL', 'sampleName', 'buildName']
+        ['bedURL', 'bedIndexURL', 'bigwigURL', 'vcfURL', 'tbiURL',
+         'alignmentURL', 'alignmentIndexURL', 'sampleName', 'buildName']
         .forEach(function(param) {
           if (self.urlParams.has(param)) {
             theLoadInfo[param] = self.urlParams.get(param)

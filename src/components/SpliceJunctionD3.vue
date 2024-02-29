@@ -191,7 +191,7 @@
     <div id="coverage-diagram" style="min-height:100px">
     </div>
 
-	  <div id="arc-diagram" class="hide-read-counts" style="margin-top:-142px">
+	  <div id="arc-diagram" class="hide-read-counts" style="margin-top:-136px">
 	  </div>
 
     <div id="selected-transcript-panel" v-show="showTranscriptMenu" style="margin-top:-7px">

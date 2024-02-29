@@ -121,6 +121,7 @@ import RNASeqIGV   from './RNASeqIGV.vue'
             indexURL: null,
             visibilityWindow: 1000000,
           }, 
+
         ],
 
         buildMap: {
@@ -214,6 +215,8 @@ import RNASeqIGV   from './RNASeqIGV.vue'
           this.loadInfo.hasOwnProperty('bedURL') && 
           this.loadInfo.hasOwnProperty('bedIndexURL')) {
 
+          // This is a workaround for 'downloadable links' URLs from Mosaic hitting CORS issues.
+          // We replace api/i in the URL with api/v1
           this.bedURL     = this.loadInfo.bedURL.replaceAll("api/i", "api/v1");
           this.bedIndexURL = this.loadInfo.bedIndexURL.replaceAll("api/i", "api/v1");
           this.bigwigURL   = this.loadInfo.bigwigURL.replaceAll("api/i", "api/v1");
@@ -229,6 +232,10 @@ import RNASeqIGV   from './RNASeqIGV.vue'
           this.tracksSpliceJunctions[0].tracks[0].url = this.bigwigURL;
 
           this.setGeneAnnotationsTrack();
+
+          this.setVariantsTrack();
+
+          this.setPileupTrack();
   
           if (!firstTime) {
             if (this.$refs && this.$refs.ref_RNASeqIGV) {
@@ -249,6 +256,74 @@ import RNASeqIGV   from './RNASeqIGV.vue'
           if (this.$refs && this.$refs.ref_RNASeqIGV) {
             this.$refs.ref_RNASeqIGV.onRefreshTracks();
           }          
+        }
+      },
+      setVariantsTrack: function() {
+        let self = this;
+        if (this.loadInfo && this.loadInfo.vcfURL && this.loadInfo.vcfURL.length > 0) {
+          let tbiURL = self.loadInfo.tbiURL && self.loadInfo.tbiURL.length > 0 ? self.loadInfo.tbiURL.replaceAll("api/i", "api/v1") : null;
+          let variantTrack = {
+            name: "Variants",
+            order: 1,
+            type: "variant",
+            format: "vcf",
+            displayMode: "expanded",
+            showGenotypes: true,
+            colorBy: "ALT",
+            colorTable: {
+                "A": "#00b107",
+                "G": "#dca500",
+                "C": "#486dd7",
+                "T": "#f60909",
+                "*": "#858585"
+            },
+            samples: [self.loadInfo.sampleName],
+            height: 100,
+            url: self.loadInfo.vcfURL.replaceAll("api/i", "api/v1"),
+            indexURL: tbiURL
+          }
+
+          this.tracksSpliceJunctions.push(variantTrack);
+          this.tracksSpliceJunctions[0].order = 2; // splicejuctions
+          this.tracksSpliceJunctions[1].order = 3; // gene transcripts
+        }
+      },
+      setPileupTrack: function() {
+        let self = this;
+        if (this.loadInfo && this.loadInfo.alignmentURL && this.loadInfo.alignmentURL.length > 0
+            && this.loadInfo.alignmentIndexURL && this.loadInfo.alignmentIndexURL.length > 0) {
+
+          let pileupTrack = {
+            name:        "Alignment",
+
+            // track is below variants (order=2), when no variants, track is first one (order = 1)
+            order:       self.tracksSpliceJunctions.length == 3 ? 2 : 1,
+
+            type:        "alignment",
+            displayMode: "expanded",
+            height:      200,
+            url:         self.loadInfo.alignmentURL.replaceAll("api/i", "api/v1"),
+            indexURL:    self.loadInfo.alignmentIndexURL.replaceAll("api/i", "api/v1")
+          }
+
+          this.tracksSpliceJunctions.push(pileupTrack);
+          if (this.tracksSpliceJunctions.length == 4) {
+            // When variant track is shown, order is:
+            //  1. variants
+            //  2. alignments (pileup)
+            //  3. splice junctions & bigwig
+            //  4  gene transcripts
+            this.tracksSpliceJunctions[0].order = 3; // splice junctions
+            this.tracksSpliceJunctions[1].order = 4; // gene transcripts
+            this.tracksSpliceJunctions[2].order = 1; // variants
+          } else if (this.tracksSpliceJunctions.length == 3) {
+            // When no variant track, order is:
+            //  1. alignments (pileup)
+            //  2. splice junctions & bigwig
+            //  3. gene transcripts
+            this.tracksSpliceJunctions[0].order = 2; // spice junctions
+            this.tracksSpliceJunctions[1].order = 3; // gene transcripts
+          }
         }
       },
       setGeneAnnotationsTrack: function() {

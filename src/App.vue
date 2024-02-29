@@ -230,7 +230,8 @@ export default {
       // provided the vcf URL, the user would have selected a sample name from a dropdown.
       // Create query parameters to capture this.
       let queryObject = {};
-      ['bedURL', 'bedIndexURL', 'bigwigURL', 'vcfURL', 'tbiURL', 'sampleName', 'buildName']
+      ['bedURL', 'bedIndexURL', 'bigwigURL', 'alignmentURL', 'alignmentIndexURL',
+       'vcfURL', 'tbiURL', 'sampleName', 'buildName']
       .forEach(function(param) {
         if (loadInfo[param]) {
           queryObject[param] = loadInfo[param];
