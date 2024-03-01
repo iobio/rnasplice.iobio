@@ -191,7 +191,7 @@
     <div id="coverage-diagram" style="min-height:100px">
     </div>
 
-	  <div id="arc-diagram" class="hide-read-counts" style="margin-top:-136px">
+	  <div id="arc-diagram" class="hide-read-counts" style="margin-top:-142px">
 	  </div>
 
     <div id="selected-transcript-panel" v-show="showTranscriptMenu" style="margin-top:-7px">
@@ -412,6 +412,8 @@ export default {
   },
   props: {
     selectedGene: Object,
+    geneStart: null,
+    geneEnd: null,
     spliceJunctionsForGene: Object,
     geneSource: String,
     genomeBuildHelper: Object,
@@ -424,7 +426,8 @@ export default {
     variantHeight: Number,
     variantWidth: Number,
     vcf: Object,
-    covData: Array
+    covData: Array,
+
   },
   data: () => ({
 		// GLOBALS
@@ -466,8 +469,6 @@ export default {
 
     showStrandMismatches: false,
 
-    geneStart: null,
-    geneEnd: null,
 
 		brush: null,
     brushHist: null,
@@ -541,12 +542,12 @@ export default {
 	  				self.showLoading = false;
 	  				self.loadDiagram();
 	  			} else {
-            d3.selectAll('#diagrams #arc-diagram svg').remove();
-            d3.selectAll('#diagrams #selected-transcript-panel svg').remove();
-            d3.selectAll('#diagrams #variant-diagram svg').remove();
-            d3.selectAll('#diagrams #brushable-axis svg').remove();
-            d3.selectAll('#diagrams #coverage-diagram svg').remove();
-            self.resetZoom();
+            //d3.selectAll('#diagrams #arc-diagram svg').remove();
+            //d3.selectAll('#diagrams #selected-transcript-panel svg').remove();
+            //d3.selectAll('#diagrams #variant-diagram svg').remove();
+            //d3.selectAll('#diagrams #brushable-axis svg').remove();
+            //d3.selectAll('#diagrams #coverage-diagram svg').remove();
+            //self.resetZoom();
 
 				    self.showLoading = true;
 
@@ -561,9 +562,6 @@ export default {
   		if (this.tab == 'tab-2' && this.selectedGene) {
   			self.$nextTick(function() {
 		  		self.filteredSpliceJunctions = self.filterSpliceJunctions()
-
-			    self.geneStart = self.selectedGene.start - self.REGION_BUFFER;
-			    self.geneEnd   = self.selectedGene.end   + self.REGION_BUFFER;
 
 			    self.xArcDiagram = null;
 
@@ -624,32 +622,13 @@ export default {
 
 				self.filteredSpliceJunctions = self.filterSpliceJunctions()
 
-        self.spliceJunctionsForGene.forEach(function(junction) {
-          if (junction.donor.pos < self.selectedGene.start) {
-            self.selectedGene.start = junction.donor.pos - 100;
-          }
-          if (junction.acceptor.pos < self.selectedGene.start) {
-            self.selectedGene.start = junction.acceptor.pos - 100;
-          }
-          if (junction.donor.pos > self.selectedGene.end) {
-            self.selectedGene.end = junction.donor.pos + 100;
-          }
-          if (junction.acceptor.pos > self.selectedGene.end) {
-            self.selectedGene.end = junction.acceptor.pos + 100;
-          }
-        })
-        self.geneStart = self.selectedGene.start - self.REGION_BUFFER;
-        self.geneEnd   = self.selectedGene.end   + self.REGION_BUFFER;
-
-        
-
 		    self.xArcDiagram = null;
 
         d3.selectAll('#diagrams #arc-diagram svg').remove();
         d3.selectAll('#diagrams #selected-transcript-panel svg').remove();
-        d3.selectAll('#diagrams #variant-diagram svg').remove();
+        //d3.selectAll('#diagrams #variant-diagram svg').remove();
 		    d3.selectAll('#diagrams #brushable-axis svg').remove();
-        d3.selectAll('#diagrams #coverage-diagram svg').remove();
+        //d3.selectAll('#diagrams #coverage-diagram svg').remove();
         d3.selectAll('#zoomed-diagrams svg').remove();
         self.resetZoom();
 
@@ -4761,13 +4740,10 @@ export default {
     covData: function() {
       let self = this;
       if (self.covData && self.covData.length > 0) {
-        setTimeout(function() {
-          self.drawCoverageDiagram('#diagrams #coverage-diagram',
-            self.geneStart,
-            self.geneEnd,
-            {'height': 130})
-
-        },1000)
+        self.drawCoverageDiagram('#diagrams #coverage-diagram',
+          self.geneStart,
+          self.geneEnd,
+          {'height': 130})
       } else {
         d3.select('#diagrams #coverage-diagram svg').remove();
       }
@@ -4802,14 +4778,16 @@ export default {
     variants: function() {
       let self = this;
       if (this.variants && this.variants.length > 0) {
-        self.$nextTick(function() {
-          setTimeout(function() {
+        //self.$nextTick(function() {
+        //  setTimeout(function() {
             self.drawVariantDiagram('#diagrams #variant-diagram',
               self.$el.offsetWidth - 20,
               self.geneStart, self.geneEnd, self.variants)
 
-          }, 2000)
-        })
+        //  }, 2000)
+        //})
+      } else {
+        d3.select("#diagrams #variant-diagram svg").remove();
       }
     },
     scaleYHist: function() {
@@ -5339,6 +5317,12 @@ text.seq.T, rect.seq.T {
       fill: rgb(45 45 45 / 45%)
       stroke: #09344f
       stroke-width: 0.5
+
+#diagrams
+  #coverage-diagram
+    svg
+      path
+        transform: translate(0px, -6px)
 
 .zoom-button
   background-color: #728dac !important

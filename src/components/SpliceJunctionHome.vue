@@ -13,6 +13,8 @@
             <SpliceJunctionD3 
             ref="ref_SpliceJunctionD3"
             :selectedGene="selectedGene" 
+            :geneStart="geneStart"
+            :geneEnd="geneEnd"
             :genomeBuildHelper="genomeBuildHelper"
             :geneModel="geneModel"
             :geneSource="geneModel.geneSource"
@@ -101,12 +103,10 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       loadInfo: Object,
       genes: Array,
       genomeBuild: Array,
-
       
       searchedGene: Object,
       selectedGene: Object,
       spliceJunctionsForGene: Object,
-
 
       alerts: Array,
       alertCounts: Object,
@@ -144,6 +144,8 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       variantHeight: 8,
       variantWidth:  8,
 
+      stripChrForBed: false,
+      stripChrForBigWig: false,
       covData: []
 
 
@@ -232,6 +234,34 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
           console.log(error)
         })
       },
+
+      setGeneRegion: function() {
+        let self = this;
+
+        // In cases where splice junctions have a donor or acceptor site in the
+        // gene region but extend beyone that gene region for the other end of the
+        // junction, we need to extend the gene region so that these splice junctions
+        // are visible and selectable in the diagrams.
+        if (self.spliceJunctionsForGene) {
+          self.spliceJunctionsForGene.forEach(function(junction) {
+            if (junction.donor.pos < self.selectedGene.start) {
+              self.selectedGene.start = junction.donor.pos - 100;
+            }
+            if (junction.acceptor.pos < self.selectedGene.start) {
+              self.selectedGene.start = junction.acceptor.pos - 100;
+            }
+            if (junction.donor.pos > self.selectedGene.end) {
+              self.selectedGene.end = junction.donor.pos + 100;
+            }
+            if (junction.acceptor.pos > self.selectedGene.end) {
+              self.selectedGene.end = junction.acceptor.pos + 100;
+            }
+          })
+        }
+        self.geneStart = self.selectedGene.start;
+        self.geneEnd   = self.selectedGene.end;
+      },
+
       addAppAlert: function(type, message, genes, details) {
         this.$emit("add-alert", type, message, genes, details)
       },
@@ -269,7 +299,14 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
           self.$emit('splice-junctions-loaded', spliceJunctions)
         } else {
           self.loadInProgress = true;
-          let region = {'refName': self.selectedGene.chr, 
+
+          // We have encountered the empty results on a previous request, so we know
+          // that we need to strip 'chr' from reference
+          let chr = self.selectedGene.chr;
+          if (self.selectedGene.chr.indexOf('chr') == 0 && self.stripChrForBed) {
+            chr = self.selectedGene.chr.split("chr")[1]
+          }
+          let region = {'refName':  chr,
                          'start':   self.selectedGene.start,
                          'end':     self.selectedGene.end };
           self.endpoint.promiseGetBedRegion(self.loadInfo.bedURL, 
@@ -299,6 +336,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
                                                 region)
               .then(function(bedRecords) {
                 self.loadInProgess = false;
+                self.stripChrForBed = true;
                 let spliceJunctions = self.geneModel.createSpliceJunctions(bedRecords, self.selectedGene, self.selectedTranscript);
                 let summary = self.geneModel.geneToSpliceJunctionSummary[self.selectedGene.gene_name]
 
@@ -325,8 +363,6 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       },
       promiseGetVariants: function() {
         let self = this;
-
-        self.variants = [];
 
         if (self.vcf.getVcfURL() == null) {
           return;
@@ -459,10 +495,14 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       },
       getCoverage() {
         let self = this;
-        self.covData = [];
+
+        let chr = self.selectedGene.chr;
+        if (self.selectedGene.chr.indexOf('chr') == 0 && self.stripChrForBigWig) {
+          chr = self.selectedGene.chr.split("chr")[1]
+        }
 
         self.endpoint.promiseGetBigWigCoverage(self.loadInfo.bigwigURL,
-                                              self.selectedGene.chr,
+                                              chr,
                                               self.selectedGene.start,
                                               self.selectedGene.end)
         .then(function(covData) {
@@ -479,6 +519,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
                                             self.selectedGene.end)
             .then(function(covData) {
               self.covData = covData;
+              self.stripChrForBigWig = true;
               //self.$emit('coverage-loaded', self.selectedGene.gene_name, covData.coverageForRegion)
             })
             .catch(function(error) {
@@ -500,6 +541,20 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
           self.loadGene(self.searchedGene.gene_name);
         }
       },
+      spliceJunctionsForGene: function() {
+        let self = this;
+        if (self.spliceJunctionsForGene && self.selectedGene) {
+
+          // We need to extend the gene region to emcompass the splice junctions with an end in the
+          // gene region, but with the other end extending beyond the gene region.
+          self.setGeneRegion()
+
+          // Now that the gene region is established, we can get the coverage data from the bigwig
+          // and the variants from the vcf.
+          self.getCoverage();
+          self.promiseGetVariants();
+        }
+      },
       loadInfo: function() {
         let self = this;
 
@@ -513,9 +568,10 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       selectedTranscript: function() {
         let self = this;
         if (self.loadInfo && self.selectedGene) {
-          self.getCoverage()
-          self.getSpliceJunctionRecords()
-          self.promiseGetVariants()
+          self.covData = [];
+          self.variants = [];
+
+          self.getSpliceJunctionRecords();
         }
       },
       showIGV: function() {

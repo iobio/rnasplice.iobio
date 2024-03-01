@@ -7,7 +7,7 @@ export default class EndpointCmd {
     this.genomeBuildHelper = genomeBuildHelper;
     //this.api = new Client(this.globalApp.IOBIO_SERVICES);
     this.apiSandbox = new Client('https://mosaic.chpc.utah.edu/gru-dev-9002')
-    this.api        = new Client('https://mosaic.chpc.utah.edu/gru/api/v1')
+    this.api        = new Client(this.globalApp.IOBIO_SERVICES)
   }
 
 
@@ -82,7 +82,7 @@ export default class EndpointCmd {
     const self = this;
     return new Promise(function(resolve, reject) {
       const refFastaFile = self.genomeBuildHelper.getFastaPath(refName);
-      let cmd = self.apiSandbox.streamCommand('getReferenceSequence', {'fastaPath': refFastaFile,  'region': region});
+      let cmd = self.api.streamCommand('getReferenceSequence', {'fastaPath': refFastaFile,  'region': region});
 
       let buffer = "";
       let success = false;
@@ -197,7 +197,7 @@ export default class EndpointCmd {
 
       const region = {refName, start: regionStart, end: regionEnd};
 
-      let cmd = self.apiSandbox.streamCommand('bigWigDepther', {
+      let cmd = self.api.streamCommand('bigWigDepther', {
           'url': url,
           'region': region
       });
