@@ -139,6 +139,9 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       geneRegionStart: null,
       geneRegionEnd: null,
 
+      geneStart: null,
+      geneEnd: null,
+
       variants: null,
 
       variantHeight: 8,

@@ -405,6 +405,8 @@
 
 
 import AreaChart               from '@/components/AreaChart.js'
+import TreeNode                from '@/util/TreeNode.js'
+import Tree                    from '@/util/Tree.js'
 
 export default {
   name: 'SpliceJunctionD3',
@@ -2427,6 +2429,7 @@ export default {
       let candidateGroups = self.findCandidateOverlaps(svg)
       candidateGroups.forEach(function(candidates) {
 
+        // Determine all possible pairs of splice junctions
         let combos = []
         for (let idx = 0; idx < candidates.length; idx++) {
           for (let idx1 = idx; idx1 < candidates.length; idx1++) {
@@ -2436,24 +2439,58 @@ export default {
           }
         }
 
+        // For each pair of splice junctions, determine if they overlap
         let pathsToAdjust = []
+        let overlapTree = new Tree('root');
         combos.forEach(function(combo) {
           let path      = candidates[combo[0]]
           let otherPath = candidates[combo[1]]
-          let overlaps = self.doArcsIntersect(path, otherPath);
+          let overlaps = self.globalApp.doArcsIntersect(path, otherPath);
           if (overlaps) {
             pathsToAdjust.push( [path, otherPath] )
+
+            let nodeKey      = path.data()[0].key
+            let otherNodeKey = otherPath.data()[0].key
+            let node = overlapTree.find(nodeKey)
+            if (node == undefined) {
+              node = overlapTree.insert('root', nodeKey, path)
+            }
+            let childNode = overlapTree.insert(nodeKey, otherNodeKey, otherPath)
           }
         })
 
+        let overlapPathSets = []
+        let overlapParents = overlapTree.root.children;
+        overlapParents.forEach(function(overlapParent) {
+          let overlaps = []
+          overlaps.push(overlapParent.value)
+          let others = [...overlapTree.preOrderTraversal(overlapParent)].map(x => x.value);
+          others.forEach(function(other) {
+            overlaps.push(other)
+          })
+          overlapPathSets.push(overlaps)
+        })
+        console.log('overlap path sets')
+        console.log(overlapPathSets)
+
+        console.log('overlap pairs')
+        console.log(pathsToAdjust)
+
+
+        // For each overlapping pair of splice junctions, adjust one splice junction
+        // up in height and the other down in height.
         pathsToAdjust.forEach(function(pathPair) {
           let path0      = pathPair[0];
           let path1      = pathPair[1];
-          console.log('overlaps ' + path0.data()[0].label + ' ' + path1.data()[0].label)
+
+          let bbPath0 = path0.node().getBBox();
+          let bbPath1 = path1.node().getBBox();
 
           let path0Attr      = self.parseArcPath(path0.attr('d'))
           let path1Attr      = self.parseArcPath(path1.attr('d'))
           let pathPairAttr   = [path0Attr, path1Attr]
+
+          let orientFactor   = path0Attr.rx == 1 ? 1 : -1;
 
           let targetField = path0Attr.rx == 1 ? 'ry' : 'rx';
           let theMax      = null;
@@ -2466,22 +2503,53 @@ export default {
             theMaxIdx = 1;
           }
 
-          let adjustBy    = theMax * .2;
+          let adjustDirection = "both"
+          if (bbPath0.y < 30 || bbPath1.y < 30) {
+            adjustDirection = "down"
+          } else if (bbPath0.y > 50 || bbPath1.y > 50) {
+            adjustDirection = "up";
+          }
+
+          let adjustBy    = theMax * .1;
           let path0TargetAdjusted = null;
           let path1TargetAdjusted = null;
           if (theMaxIdx == 0) {
-            path0TargetAdjusted = path0Attr[targetField] + adjustBy;
-            path1TargetAdjusted = path1Attr[targetField] - adjustBy;
+            if (adjustDirection == 'both') {
+              path0TargetAdjusted = path0Attr[targetField] + adjustBy;
+              path1TargetAdjusted = path1Attr[targetField] - adjustBy;
+            } else if (adjustDirection == "down") {
+              path0TargetAdjusted = path0Attr[targetField];
+              path1TargetAdjusted = path1Attr[targetField] - (orientFactor*adjustBy*2);
+            } else {
+              path0TargetAdjusted = path0Attr[targetField] + (orientFactor*adjustBy*2);
+              path1TargetAdjusted = path1Attr[targetField];
+            }
           } else {
-            path0TargetAdjusted = path0Attr[targetField] - adjustBy;
-            path1TargetAdjusted = path1Attr[targetField] + adjustBy;
+            if (adjustDirection == 'both') {
+              path0TargetAdjusted = path0Attr[targetField] - adjustBy;
+              path1TargetAdjusted = path1Attr[targetField] + adjustBy;
+            } else if (adjustDirection == "down") {
+              path0TargetAdjusted = path0Attr[targetField] - (orientFactor*adjustBy*2);
+              path1TargetAdjusted = path1Attr[targetField];
+            } else {
+              path0TargetAdjusted = path0Attr[targetField];
+              path1TargetAdjusted = path1Attr[targetField] + (orientFactor*adjustBy*2);
+
+            }
           }
 
           let path0String = path0.attr('d').replace(path0Attr[targetField], path0TargetAdjusted)
           let path1String = path1.attr('d').replace(path1Attr[targetField], path1TargetAdjusted)
 
-          let bbPath0 = path0.node().getBBox();
-          let bbPath1 = path1.node().getBBox();
+          //console.log('overlaps ' + path0.data()[0].label + '    ->     ' + path1.data()[0].label)
+          //console.log(" adjustBy: " + adjustBy + " dir: " + adjustDirection + " orientFactor: " + orientFactor)
+          //console.log(" path0 from " + path0.attr('d'))
+          //console.log(" path0 to   " + path0String)
+          //console.log(" path1 from " + path1.attr('d'))
+          //console.log(" path1 to   " + path1String)
+
+
+
           let p0 = self.screenToSVG(svg, bbPath0.x, bbPath0.y)
           let p1 = self.screenToSVG(svg, bbPath1.x, bbPath1.y)
 
@@ -2522,7 +2590,7 @@ export default {
 
     parseArcPath: function(pathString) {
       let self = this;
-      const regex = /M\s(?<x1>\d*?\.\d*?)\s90\sA\s(?<rx>\d*?\.?\d*?)\s\,\s(?<ry>\d*?\.?\d*?)\s0\s0\s\,\s1\s(?<x2>\d*?\.\d*?)\s\,\s90/gm;
+      const regex = /M\s(?<x1>\d*?\.\d*?)\s\d*?\sA\s(?<rx>\d*?\.?\d*?)\s\,\s(?<ry>\d*?\.?\d*?)\s0\s0\s\,\s[0|1]\s(?<x2>\d*?\.\d*?)\s\,\s\d*/gm;
       let m;
       let rx = null;
       let ry = null;
@@ -2596,31 +2664,6 @@ export default {
       return candidates;
     },
 
-    doArcsIntersect: function(path0, path1) {
-      let self = this;
-
-      let strokeWidth  = +path0.style("stroke-width").replace("px", "")
-      let strokeWidth1 = +path1.style("stroke-width").replace("px", "")
-
-      let minGap = Math.max(4, strokeWidth, strokeWidth1);
-
-      let arcYTop = path0.data()[0].arcYTop;
-      let bb = path0.node().getBBox();
-      let [left, top, right, bottom] = [bb.x, bb.y, bb.x + bb.width, bb.y + bb.height];
-
-      let arcYTop1 = path1.data()[0].arcYTop;
-      let bb1 = path1.node().getBBox();
-      let [left1, top1, right1, bottom1] = [bb1.x, bb1.y, bb1.x + bb1.width, bb1.y + bb1.height];
-
-      let intersects =
-        Math.abs(arcYTop - arcYTop1) < minGap &&
-        Math.abs(left - left1)       < minGap &&
-        Math.abs(right - right1)     < minGap ?
-        true :
-        false;
-
-      return intersects;
-    },
 
     drawArcColorLegend: function(container) {
       let self = this;

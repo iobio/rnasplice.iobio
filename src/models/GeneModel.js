@@ -909,13 +909,29 @@ class GeneModel {
 
         'matchesOnOtherTranscripts': matchesOnOtherTranscripts,
         'junctionTranscript':        junctionTranscript,
-        'isPreferredTranscript':     isPreferredTranscript
-      }
+        'isPreferredTranscript':     isPreferredTranscript,
+
+        // These are convenience fields to make sorting and grouping easier
+        // For example, we want to order by donor site when the the junction
+        // is one the forward strand and by acceptor site when the junction is
+        // on the reverse strand. You can think of posLow as the position with
+        // the lowest coordinate and posHigh and the position with the highest
+        // coordinate
+        'posLow':  bedRow.strand == '-' ? acceptor.pos : donor.pos,
+        'posHigh': bedRow.strand == '-' ? donor.pos    : acceptor.pos,
+        // Target site low indicates if the posLow is from the donor or acceptor site;
+        // target site high indicates if the posHigh is from the donor or acceport site;
+        'targetSiteLow':  bedRow.strand == '-' ? 'acceptor' : 'donor',
+        'targetSiteHigh': bedRow.strand == '-' ? 'donor'    : 'acceptor',
+       }
     })
     .filter(function(spliceJunction) {
       let matchesCount = spliceJunction.readCount > 0
       let matchesStrand = (spliceJunction.strand == 'undefined' || spliceJunction.strand == "" || geneObject.strand == spliceJunction.strand) ;
       return matchesCount;
+    })
+    .sort(function(a,b) {
+      return a.posLow - b.posLow;
     })
 
     self.geneToSpliceJunctionObjects[geneObject.gene_name] = spliceJunctions;

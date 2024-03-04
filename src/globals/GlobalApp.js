@@ -53,6 +53,33 @@ class GlobalApp {
   }
 
 
+  doArcsIntersect(path0, path1) {
+    let self = this;
+
+    let strokeWidth  = +path0.style("stroke-width").replace("px", "")
+    let strokeWidth1 = +path1.style("stroke-width").replace("px", "")
+
+    let minXGap = Math.max(50, strokeWidth, strokeWidth1);
+    let minYGap = Math.max(2, strokeWidth, strokeWidth1);
+
+    let arcYTop = path0.data()[0].arcYTop;
+    let bb = path0.node().getBBox();
+    let [left, top, right, bottom] = [bb.x, bb.y, bb.x + bb.width, bb.y + bb.height];
+
+    let arcYTop1 = path1.data()[0].arcYTop;
+    let bb1 = path1.node().getBBox();
+    let [left1, top1, right1, bottom1] = [bb1.x, bb1.y, bb1.x + bb1.width, bb1.y + bb1.height];
+
+    let intersects =
+      Math.abs(arcYTop - arcYTop1) < minYGap &&
+      Math.abs(left - left1)       < minXGap &&
+      Math.abs(right - right1)     < minXGap ?
+      true : false;
+
+    return intersects;
+  }
+
+
 
 
 
