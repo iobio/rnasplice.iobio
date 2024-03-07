@@ -1,6 +1,6 @@
 <template>
 
-<div style="padding-top:10px;padding-bottom: 10px">
+<div id="splice-junction-viz" style="padding-top:10px;padding-bottom: 10px">
 	<div class="text-center" v-if="showLoading">
     <v-progress-circular v-if="showLoading"
       indeterminate
@@ -184,7 +184,7 @@
 	    </div>
     </div>
 
-    <div id="variant-diagram"  style="margin-top: -10px">      
+    <div id="variant-diagram"  style="margin-top: -10px">
       <svg/>
     </div>
 
@@ -202,12 +202,12 @@
 	  </div>
 	  <div class="d-flex"  style="margin-top:-70px">
       <v-spacer/>
-      <v-btn variant="tonal"  id="transcript-menu-button" style="margin-left:10px;" 
+      <v-btn variant="tonal"  id="transcript-menu-button" style="margin-left:10px;"
             icon="mdi-dots-vertical" color="#094792" density="compact">
 
           </v-btn>
         <v-menu eager bottom activator="#transcript-menu-button">
-           
+
            <v-list id="list-for-transcript-menu" style="margin-right:20px">
             <v-list-item>
               <div id="transcript-menu-panel">
@@ -217,23 +217,36 @@
               </div>
             </v-list-item>
            </v-list>
-        
+
         </v-menu>
     </div>
     <div class="d-flex" style="margin-top:10px;" v-if="selectedTranscript">
       <v-spacer/>
       <h3 style="font-size:14px !important">
-        {{ selectedTranscript.transcript_id}} {{ selectedTranscript.is_mane_select ? `MANE SELECT` : `` }} 
+        {{ selectedTranscript.transcript_id}} {{ selectedTranscript.is_mane_select ? `MANE SELECT` : `` }}
       </h3>
     </div>
-	  
-	  
+
+
 
 
 	</div>
 
 	<div id="zoomed-diagrams" v-show="clickedObject || regionIsSelected"  style="margin-top:30px;z-index:1000;border-top: solid 12px #e7e7e7">
-    <h2 v-if="clickedObject || regionIsSelected" style="margin-bottom:10px !important;margin-top:10px !important">Selected Region</h2>
+
+    <div class="d-flex" v-if="clickedObject || regionIsSelected">
+      <h2 style="margin-bottom:10px !important;margin-top:10px !important">
+        Selected Region
+      </h2>
+      <div class="coord">
+        {{ selectedGene.chr}}:{{ formatRegion(zoomRegionStart) }}-{{ formatRegion(zoomRegionEnd) }}
+      </div>
+      <v-btn  @click="copyZoomCoord" density="compact" variant="text" size="medium"
+       class="coord-button ml-1">
+        <v-icon icon="mdi-content-copy" ></v-icon>
+      </v-btn>
+
+    </div>
 
     <div class="d-flex justify-center" style="margin-top:-28px;margin-bottom:20px">
 
@@ -294,27 +307,22 @@
 
 	</div>
 
- 
-  <div class="d-flex" v-if="showDonorPanel || showAcceptorPanel" style="justify-content: center;padding:10px;border-top: solid 12px #e7e7e7;margin-top:20px;">
 
-    <v-btn icon="mdi-minus" class="zoom-button" @click="zoomOutSite" density="compact" size="medium" >
-    </v-btn>
-    <v-btn icon="mdi-plus" class="zoom-button" @click="zoomInSite" density="compact" size="medium"  style="margin-left:10px">
-    </v-btn>
-
-
-  </div>
 
   <div id="site-diagrams" class="d-flex plus"
    v-if="clickedObject && clickedObject.strand == '+'" >
   	<div class="donor-site" v-if="showDonorPanel" style="width:50%">
-      <div class="d-flex" style="justify-content:center;margin-bottom: 20px !important;margin-top:-34px" >
+      <div class="d-flex mb-4" style="justify-content:center;" >
   		  <h2 >Donor site</h2>
+        <v-btn  icon="mdi-minus" class="ml-4 zoom-button" @click="zoomOutDonorSite()" density="compact" size="medium" >
+        </v-btn>
+        <v-btn icon="mdi-plus" class="zoom-button" @click="zoomInDonorSite()" density="compact" size="medium"  style="margin-left:10px">
+        </v-btn>
       </div>
       <div id="variant-diagram">
           <svg style="display:none"/>
       </div>
-      <div  class="hint-box" style="margin-top:0px">
+      <div  class="hint-box mb-2" style="">
         <span class="material-symbols-outlined" style="font-size:18px">
             drag_pan
         </span>
@@ -324,14 +332,18 @@
         <svg/>
   	  </div>
   	</div>
-  	<div class="acceptor-site" v-if="showAcceptorPanel">
-      <div class="d-flex" style="justify-content:center;margin-bottom: 20px !important;margin-top:-34px" >
-        <h2 >Acceptor site</h2>
+  	<div class="acceptor-site right-panel" v-if="showAcceptorPanel">
+      <div class="d-flex mb-4" style="justify-content:center;" >
+  		  <h2 >Acceptor site</h2>
+        <v-btn  icon="mdi-minus" class="ml-4 zoom-button" @click="zoomOutAcceptorSite()" density="compact" size="medium" >
+        </v-btn>
+        <v-btn icon="mdi-plus" class="zoom-button" @click="zoomInAcceptorSite()" density="compact" size="medium"  style="margin-left:10px">
+        </v-btn>
       </div>
       <div id="variant-diagram">
           <svg style="display:none"/>
       </div>
-      <div  class="hint-box" style="margin-top:0px">
+      <div  class="hint-box mb-2" >
         <span class="material-symbols-outlined" style="font-size:18px">
             drag_pan
         </span>
@@ -344,13 +356,17 @@
   </div>
   <div id="site-diagrams" class="d-flex minus" v-if="clickedObject && clickedObject.strand == '-'" >
   	<div class="acceptor-site" v-if="showAcceptorPanel" style="width:50%">
-	  	<div class="d-flex" style="justify-content:center;margin-bottom: 20px !important;margin-top:-34px" >
-        <h2 >Acceptor site</h2>
+      <div class="d-flex mb-4" style="justify-content:center;" >
+  		  <h2 >Acceptor site</h2>
+        <v-btn  icon="mdi-minus" class="ml-4 zoom-button" @click="zoomOutAcceptorSite()" density="compact" size="medium" >
+        </v-btn>
+        <v-btn icon="mdi-plus" class="zoom-button" @click="zoomInAcceptorSite()" density="compact" size="medium"  style="margin-left:10px">
+        </v-btn>
       </div>
       <div id="variant-diagram">
           <svg style="display:none"/>
       </div>
-      <div  class="hint-box" style="margin-top:0px">
+      <div  class="hint-box mb-2">
         <span class="material-symbols-outlined" style="font-size:18px">
             drag_pan
         </span>
@@ -360,14 +376,18 @@
         <svg/>
   	  </div>
   	</div>
-  	<div class="donor-site" style="width:50%" v-if="showDonorPanel" >
-  		<div class="d-flex" style="justify-content:center;margin-bottom: 20px !important;margin-top:-34px" >
-        <h2 >Donor site</h2>
+  	<div class="donor-site right-panel" style="width:50%" v-if="showDonorPanel" >
+      <div class="d-flex mb-4" style="justify-content:center;" >
+  		  <h2 >Donor site</h2>
+        <v-btn  icon="mdi-minus" class="ml-4 zoom-button" @click="zoomOutDonorSite()" density="compact" size="medium" >
+        </v-btn>
+        <v-btn icon="mdi-plus" class="zoom-button" @click="zoomInDonorSite()" density="compact" size="medium"  style="margin-left:10px">
+        </v-btn>
       </div>
       <div id="variant-diagram">
           <svg style="display:none"/>
       </div>
-      <div  class="hint-box" style="margin-top:0px">
+      <div  class="hint-box mb-2" >
         <span class="material-symbols-outlined" style="font-size:18px">
             drag_pan
         </span>
@@ -397,7 +417,7 @@
       </v-btn>
     </template>
   </v-snackbar>
-  
+
 </div>
 
 </template>
@@ -422,8 +442,10 @@ export default {
     geneModel: Object,
     tab: String,
     loadInProgress: Boolean,
-    junctionSiteSeqRange: Number,
-    junctionSitePan: Number,
+    donorSiteSeqRange: Number,
+    acceptorSiteSeqRange: Number,
+    donorSitePan: Number,
+    acceptorSitePan: Number,
     variants: Array,
     variantHeight: Number,
     variantWidth: Number,
@@ -518,9 +540,9 @@ export default {
     readCountMaxNoncan: null,
 
     colorByItems: [
-    { title: 'n/a',         props: {subtitle: ''}, 'value': 'none' }, 
-    { title: 'Strand',      props: {subtitle: ''}, 'value': 'strand' }, 
-    { title: 'Motif',       props: {subtitle: ''}, 'value': 'motif' }, 
+    { title: 'n/a',         props: {subtitle: ''}, 'value': 'none' },
+    { title: 'Strand',      props: {subtitle: ''}, 'value': 'strand' },
+    { title: 'Motif',       props: {subtitle: ''}, 'value': 'motif' },
     { title: 'Splice kind', props: {subtitle: 'Canonical, Exon-skipping, Cryptic-site'}, 'value': 'spliceKind' }
     ],
 
@@ -538,7 +560,8 @@ export default {
   			self.$nextTick(function() {
           self.showDonorPanel = false;
           self.showAcceptorPanel = false;
-          self.$emit('reset-site-pan')
+          self.$emit('reset-donor-site-pan')
+          self.$emit('reset-acceptor-site-pan')
 	  			self.onGeneSelected();
 	  			if (self.spliceJunctionsForGene) {
 	  				self.showLoading = false;
@@ -571,7 +594,7 @@ export default {
 			    d3.selectAll('#zoomed-diagrams #arc-diagram svg').remove();
           self.showZoomPanel = false;
 			    self.drawArcDiagram('#diagrams', self.filteredSpliceJunctions, self.geneStart, self.geneEnd,
-			    	{'createBrush': false, 'isZoomedRegion': false});	
+			    	{'createBrush': false, 'isZoomedRegion': false});
           self.drawArcColorLegend('#arc-color-legend')
 
   			})
@@ -641,13 +664,13 @@ export default {
 		    	{'createBrush': false, 'isZoomedRegion': false});
         self.drawArcColorLegend('#arc-color-legend')
 
-		    self.drawTranscriptDiagram("#diagrams #selected-transcript-panel #transcript-diagram", self.selectedGene, self.geneStart, self.geneEnd,  
+		    self.drawTranscriptDiagram("#diagrams #selected-transcript-panel #transcript-diagram", self.selectedGene, self.geneStart, self.geneEnd,
 		      {'selectedTranscriptOnly': true, 'allowSelection': false, 'showBoundingBox': true})
 
 
 		    d3.selectAll("#transcript-menu-panel #transcript-menu-diagram svg").remove();
-		    self.drawTranscriptDiagram('#transcript-menu-panel #transcript-menu-diagram', self.selectedGene, self.geneStart, self.geneEnd, 
-		    	{'selectedTranscriptOnly': false, 'allowSelection': true});	
+		    self.drawTranscriptDiagram('#transcript-menu-panel #transcript-menu-diagram', self.selectedGene, self.geneStart, self.geneEnd,
+		    	{'selectedTranscriptOnly': false, 'allowSelection': true});
         self.showTranscriptMenu = true;
 
         self.drawBrushableHistAxis('#all-histogram');
@@ -666,10 +689,10 @@ export default {
 		determineExons: function(gene) {
 		  gene.transcripts.forEach(function(transcript) {
 
-		  	// Exons are what we use the number the features. Each exon is assigned 
+		  	// Exons are what we use the number the features. Each exon is assigned
 		  	// a number sequentially. For forward strand, we number exons from
-		  	// first to last exon; For reverse strand, we number from last to 
-		  	// first exon. 
+		  	// first to last exon; For reverse strand, we number from last to
+		  	// first exon.
 		    let exons = transcript.features.filter(function(feature) {
 		    	return feature.feature_type.toLowerCase() == 'exon';
 		    })
@@ -681,8 +704,8 @@ export default {
 		      }
 		    })
 
-		    // These are the features (UTRs and CDSs for protein coding transcripts, 
-		    // EXONs for non-protein coding transcripts) that we treat as exons, that we 
+		    // These are the features (UTRs and CDSs for protein coding transcripts,
+		    // EXONs for non-protein coding transcripts) that we treat as exons, that we
 		    // will draw on the trascript diagram
 		    let exonicFeatures  = transcript.features.filter(function(feature) {
 		      if ( transcript.transcript_type == 'protein_coding'
@@ -728,10 +751,10 @@ export default {
 			    	if (theExon) {
 			    		feature.number = theExon.number;
 			    	} else {
-			    		console.log("Unable to find encapsulating exon in gene " + 
-			    			gene.gene_name + " for feature " + 
-			    			feature.feature_type + " " + 
-			    			feature.start + "-" + feature.end + 
+			    		console.log("Unable to find encapsulating exon in gene " +
+			    			gene.gene_name + " for feature " +
+			    			feature.feature_type + " " +
+			    			feature.start + "-" + feature.end +
 			    			". Feature will not numbered.")
 			    	}
 
@@ -772,7 +795,7 @@ export default {
 
           return meetsBottomRange && meetsTopRange && matchesSpliceKind;
         });
-        return spliceJunctionsFiltered;        
+        return spliceJunctionsFiltered;
       } else {
         return [];
       }
@@ -928,24 +951,24 @@ export default {
 			let self = this;
 
 		  // Get the selection coordinate
-		  let extent = event.selection 
+		  let extent = event.selection
 		  if (extent && extent.length == 2 && extent[0] != extent[1]) {
 		  	self.regionIsSelected = true;
-		    let regionStart = self.xBrushable.invert(extent[0]);
-		    let regionEnd   = self.xBrushable.invert(extent[1]);
+		    let regionStart = Math.round(self.xBrushable.invert(extent[0]));
+		    let regionEnd   = Math.round(self.xBrushable.invert(extent[1]));
         self.brushRegionStart = regionStart;
         self.brushRegionEnd = regionEnd;
 
-		    self.showSelectionBox("#diagrams #arc-diagram svg", regionStart, regionEnd, 
+		    self.showSelectionBox("#diagrams #arc-diagram svg", regionStart, regionEnd,
 		    	                    self.xArcDiagram )
-		    self.showSelectionBox("#diagrams #transcript-diagram svg", regionStart, regionEnd, 
+		    self.showSelectionBox("#diagrams #transcript-diagram svg", regionStart, regionEnd,
 		    	                    self.xTranscriptChart )
-        self.showSelectionBox("#diagrams #variant-diagram svg", regionStart, regionEnd, 
+        self.showSelectionBox("#diagrams #variant-diagram svg", regionStart, regionEnd,
                               self.xTranscriptChart )
-		    
+
 		    d3.select("#zoomed-diagrams").select("#arc-diagram svg").remove();
 		    d3.select("#zoomed-diagrams").select("#transcript-diagram svg").remove();
-        
+
 		    if (event.type == 'end') {
 			    let filteredEdges = self.filteredSpliceJunctions.filter(function(edge) {
 			       return (edge.donor.pos >= regionStart && edge.donor.pos <=regionEnd) ||
@@ -960,7 +983,7 @@ export default {
           self.zoomRegionStart = regionStart;
           self.zoomRegionEnd = regionEnd;
 			    self.drawArcDiagram("#zoomed-diagrams", filteredEdgesClone, self.zoomRegionStart, self.zoomRegionEnd,
-            {'createBrush': false, 
+            {'createBrush': false,
              'allEdges': self.filteredSpliceJunctions,
              'showXAxis': true,
              'marginRight': 0,
@@ -1075,7 +1098,7 @@ export default {
 		  let width = x2 - x1;
 
       let height = d3.select(container).node().getBoundingClientRect().height
-      
+
 	  	let boundingBox = d3.select(container).select('.bounding-box');
 	  	boundingBox.attr("x", x1)
 	  	boundingBox.attr("y", 0)
@@ -1147,18 +1170,18 @@ export default {
 			let width = +d3.select("#diagrams").select("#brushable-axis svg").attr("width");
 			let height = +d3.select("#diagrams").select("#brushable-axis svg").attr("height");
 			d3.select("#diagrams").select("brushable-axis svg")
-		      .call( self.brush = d3.brushX()                  
+		      .call( self.brush = d3.brushX()
 		        .extent( [ [0,10], [width,height] ] )
-		        .on("start end", self.onBrush)    
-		      )   
+		        .on("start end", self.onBrush)
+		      )
 		},
 
 		drawTranscriptDiagram: function(container, gene, regionStart, regionEnd, options) {
 			let self = this;
 		  // dimensions
-		  var margin = {top: (options && options.selectedTranscriptOnly ? 0 : 5), 
-		  	            right: (options && options.hasOwnProperty('marginRight') ? options.marginRight : 5), 
-		  	            bottom: (options && options.selectedTranscriptOnly ? 50 : 30), 
+		  var margin = {top: (options && options.selectedTranscriptOnly ? 0 : 5),
+		  	            right: (options && options.hasOwnProperty('marginRight') ? options.marginRight : 5),
+		  	            bottom: (options && options.selectedTranscriptOnly ? 50 : 30),
 		  	            left: 0};
 
 		  var width = self.$el.offsetWidth - 20;
@@ -1180,10 +1203,10 @@ export default {
 		  var innerWidth = width - margin.left - margin.right;
 		  var innerHeight = height - margin.top - margin.bottom;
 
-		  // Determine the starting y position for the site pointers, positioned on mouseover or 
-		  // click over arc or exon 
+		  // Determine the starting y position for the site pointers, positioned on mouseover or
+		  // click over arc or exon
 		  if (options && options.selectedTranscriptOnly) {
-				self.ySitePointer = height - margin.top - transcriptHeight;		  	
+				self.ySitePointer = height - margin.top - transcriptHeight;
 		  }
 
 
@@ -1216,7 +1239,7 @@ export default {
 		  // TODO: Need to order transcripts descending (most important should be at top)
 		  var transcripts = svg
 		      .selectAll("g.transcript")
-		      .data(options && options.selectedTranscriptOnly ? [self.selectedTranscript] : gene.transcripts, 
+		      .data(options && options.selectedTranscriptOnly ? [self.selectedTranscript] : gene.transcripts,
 		        function(d) {
 		        return d.transcript_id;
 		      })
@@ -1232,7 +1255,7 @@ export default {
 			        return `translate(${margin.left},${d.y = y(d) - transcriptHeight})`
 		      	}
 		      })
-		     
+
 		  if (options && options.allowSelection) {
 				transcripts.selectAll(".selection-box").remove();
 	      transcripts.selectAll(".selection-box")
@@ -1302,17 +1325,17 @@ export default {
 
 
 
-		 
+
 		  var nodes = transcripts
 		    .selectAll("rect.exon")
-		    .data(function(d) { 
+		    .data(function(d) {
 		        return d['exons'].filter(function(exon) {
 		          let exonInRegion      = +exon.start >= +regionStart && +exon.end <= +regionEnd
               let exonStartInRegion = +exon.start >= +regionStart && +exon.start <= +regionEnd
               let exonEndInRegion   = +exon.end   >= +regionStart && +exon.end <= +regionEnd
               return exonInRegion || exonStartInRegion || exonEndInRegion;
 		        })
-		    }, 
+		    },
 		          function(d) {return d.feature_type + "-" + d.seq_id + "-" + d.start + "-" + d.end;}
 		    )
 		    .enter()
@@ -1325,10 +1348,10 @@ export default {
 		          return transcriptHeight - (self.CDS_HEIGHT/2);
 		        }
 		      })
-		      .attr("width", function(d) { 
+		      .attr("width", function(d) {
 		        return Math.max(1, Math.round(x(d.end) - x(d.start))+1)
 		      })
-		      .attr("height", function(d) { 
+		      .attr("height", function(d) {
 		        if (d.feature_type.toLowerCase() == 'utr') {
 		          return self.UTR_HEIGHT;
 		        } else {
@@ -1337,8 +1360,8 @@ export default {
 		      })
 		      .attr("class", function(d) {
 		        return 'transcript-feature ' +
-		               d.feature_type + 
-		               (" exon-" + d.number) + 
+		               d.feature_type +
+		               (" exon-" + d.number) +
 		               (options && options.allowSelection ? " no-pointer" : "");
 		      })
 		      .on("click", function(event,d) {
@@ -1377,10 +1400,10 @@ export default {
 				  .attr("class", "exon-labels")
 				  .attr("transform", "translate(0," + (height - margin.top - transcriptHeight - 10) + ")")
 				  .selectAll("text.exon-label")
-					.data(function(d) 
-				     { 
+					.data(function(d)
+				     {
 				        return exonsToLabel;
-		    		 }, 
+		    		 },
 			       function(d) {
 			        	return d.feature_type + "-" + d.seq_id + "-" + d.start + "-" + d.end;
 			       }
@@ -1399,10 +1422,10 @@ export default {
 
 		  }
 
-		  	
-		      
 
-		  if (options && options.showBoundingBox) {  
+
+
+		  if (options && options.showBoundingBox) {
 			  svg.selectAll("rect.bounding-box").remove();
 			  svg
 				 .append("rect")
@@ -1421,7 +1444,7 @@ export default {
 				 .attr("class", "donor-pointer-small")
 				 .attr("points", function(d) {
 				 		return self.sitePointerSmallWidth + ",0 "
-				 		       + (self.sitePointerSmallWidth/2) + ",-" + self.sitePointerSmallHeight 
+				 		       + (self.sitePointerSmallWidth/2) + ",-" + self.sitePointerSmallHeight
 				 		       + " 0,0"
 				 	})
 				 .style("opacity", "0")
@@ -1432,7 +1455,7 @@ export default {
 				 .attr("class", "acceptor-pointer-small")
 				 .attr("points", function(d) {
 				 		return self.sitePointerSmallWidth + ",0 "
-				 		       + (self.sitePointerSmallWidth/2) + ",-" + self.sitePointerSmallHeight 
+				 		       + (self.sitePointerSmallWidth/2) + ",-" + self.sitePointerSmallHeight
 				 		       + " 0,0"
 				 	})
 				 .style("opacity", "0")
@@ -1443,12 +1466,12 @@ export default {
 				 .attr("class", "donor-pointer")
 				 .attr("points", function(d) {
 				 		return self.sitePointerWidth + ",0 "
-				 		       + (self.sitePointerWidth/2) + ",-" + self.sitePointerHeight 
+				 		       + (self.sitePointerWidth/2) + ",-" + self.sitePointerHeight
 				 		       + " 0,0"
 				 	})
 				 .style("opacity", "0")
 				 .on("click", function(d) {
-		      	
+
 
 		      })
          svg.selectAll(".donor-pointer-text").remove();
@@ -1465,7 +1488,7 @@ export default {
 				 .attr("class", "acceptor-pointer")
 				 .attr("points", function(d) {
 				 		return self.sitePointerWidth + ",0 "
-				 		       + (self.sitePointerWidth/2) + ",-" + self.sitePointerHeight 
+				 		       + (self.sitePointerWidth/2) + ",-" + self.sitePointerHeight
 				 		       + " 0,0"
 				 	})
 				 .style("opacity", "0")
@@ -1532,7 +1555,7 @@ export default {
 
   				 self.hideSitePointersOnTranscriptChart("select")
   				 self.hideSitePointersOnTranscriptChart("click")
-			     self.showSitePointersOnTranscriptChart(self.clickedObject, 
+			     self.showSitePointersOnTranscriptChart(self.clickedObject,
 																						     	self.ySitePointer - 2,
 																						     	"click")
 
@@ -1612,8 +1635,8 @@ export default {
     	})
 
     	let selectedExon = $.extend({
-      		'type': 'exon', 
-      		'click': options.click, 
+      		'type': 'exon',
+      		'click': options.click,
       		'donorSpliceJunctions':    donorSpliceJunctions,
       		'acceptorSpliceJunctions': acceptorSpliceJunctions}, exon);
 
@@ -1646,14 +1669,14 @@ export default {
 		  self.xBrushable = d3.scaleLinear()
 		            .domain([regionStart, regionEnd])
 		            .range([margin.left, innerWidth+margin.left]);
-		  
+
 		  var tickFormatter = function(d) {
 				return d3.format(",")(d)
 		  }
 
 		  // axis
 		  var xAxis = d3.axisTop(self.xBrushable)
-		                .tickFormat(tickFormatter);		                   
+		                .tickFormat(tickFormatter);
 
 		  // append the svg object to the body of the page
 		  var svg = d3.select(container).select("#brushable-axis")
@@ -1666,7 +1689,7 @@ export default {
 		          "translate(" + margin.left + "," + margin.top + ")")
 		  .call(xAxis);
 
-		  
+
       svg.selectAll(".arrow").remove();
       svg.selectAll('.arrow').data([
       	{'gene': self.selectedGene, 'x': center - center/2},
@@ -1682,10 +1705,10 @@ export default {
 
 
 		  svg
-      .call( self.brush = d3.brushX()                  
+      .call( self.brush = d3.brushX()
         .extent( [ [0,-40], [width,innerHeight+1] ] )
-        .on("start brush end", self.onBrush)    
-      )      
+        .on("start brush end", self.onBrush)
+      )
 
 		},
 
@@ -1724,7 +1747,7 @@ export default {
 
 
     },
-		
+
 		drawArcDiagram: function(container, edges, regionStart, regionEnd, options) {
 			let self = this;
 		  let maxReadCount = null;
@@ -1742,8 +1765,8 @@ export default {
 
 		  // dimensions
 		  var margin = {top: (options.showXAxis ? 40 : 10),
-                   right: (options.hasOwnProperty('marginRight') ? options.marginRight : 5), 
-                   bottom: 0, 
+                   right: (options.hasOwnProperty('marginRight') ? options.marginRight : 5),
+                   bottom: 0,
                    left: 0};
 		  var width = self.$el.offsetWidth - 20,
 		      height = 100;
@@ -1757,12 +1780,12 @@ export default {
 		  var x = d3.scaleLinear()
 		            .domain([regionStart, regionEnd])
 		            .range([margin.left, innerWidth+margin.left]);
-		  if (self.xArcDiagram == null) { 
+		  if (self.xArcDiagram == null) {
 		    // need this class variable so we can invert scale from screen coord to genome coords
-		    self.xArcDiagram = x;   
+		    self.xArcDiagram = x;
 		  }
 
-		        
+
 		  var y = d3.scaleLinear()
 		            .domain([0, 1])
 		            .range([height - margin.top - margin.bottom , 0]);
@@ -1772,7 +1795,7 @@ export default {
 		                    .range([4, 10])
 
 
-		           
+
 
 		  // append the svg object to the body of the page
 		  var svg = d3.select(container).select("#arc-diagram")
@@ -1804,12 +1827,12 @@ export default {
 
 
 
-      var arcGroup = svg  
+      var arcGroup = svg
 		  .append("g")
 		  .attr("transform",
 		        "translate(" + margin.left + "," + margin.top + ")")
 
-      var axisGroup = svg  
+      var axisGroup = svg
       .append("g")
       .attr("transform",
             "translate(" + margin.left + "," + (margin.top - 15) + ")")
@@ -1821,10 +1844,10 @@ export default {
 
         // axis
         var xAxis = d3.axisTop(x)
-                      .tickFormat(tickFormatter);  
+                      .tickFormat(tickFormatter);
 
-        axisGroup.call(xAxis)   
-        
+        axisGroup.call(xAxis)
+
         var center = innerWidth / 2;
         axisGroup.selectAll(".arrow").remove();
         axisGroup.selectAll('.arrow').data([
@@ -1842,10 +1865,10 @@ export default {
 
 		  if (options && options.createBrush) {
 		    svg
-		      .call( self.brush = d3.brushX()                  
+		      .call( self.brush = d3.brushX()
 		        .extent( [ [0,10], [width,10] ] )
-		        .on("start end", self.onBrush)    
-		      )       
+		        .on("start end", self.onBrush)
+		      )
 		  }
 
       var arcColors = ['#e66a7f', '#59749e', '#6491cb', '#db9625', '#FD7049' ]
@@ -1878,8 +1901,10 @@ export default {
         self.arcColorScale = null;
       }
 
+      let minArcHeight = null;
+      let maxArcHeight = null;
 			let arc = function(d, theInnerHeight) {
-				
+
 
 		    let start = x(d.donor.pos);  // X position of start node on the X axis
 		    let end   = x(d.acceptor.pos);   // X position of end node
@@ -1888,10 +1913,10 @@ export default {
 
 		    let rx = 1;
 		    let ry = 1;
-		    let maxArcHeight = innerHeight - 20;
-		    let minArcHeight = theInnerHeight / 5;
+		    maxArcHeight = innerHeight - 20;
+		    minArcHeight = theInnerHeight / 5;
 
-		    // Arc is shorter than min arc height 
+		    // Arc is shorter than min arc height
 		    // Need arc to be stretched on y axis
 		    if (currentArcHeight < minArcHeight) {
 		    	ry = minArcHeight/currentArcHeight;
@@ -1901,7 +1926,7 @@ export default {
 		    	// Arc is taller than chart
 		    	// Need arc to be stretched on x axis
 
-		    	// shuffle the height randomly by 30 pixels 
+		    	// shuffle the height randomly by 30 pixels
 		    	//let rando = Math.floor(Math.random() * 31);
 		    	//let newMaxArcHeight = maxArcHeight - rando;
           let newMaxArcHeight = maxArcHeight;
@@ -1922,11 +1947,11 @@ export default {
 		    return ['M', start, innerHeight, // the arc starts at the coord x=start
 		      'A',                   // build an elliptical arc
 		      rx, ',',               // rx
-		      ry,                    // ry 
-		      0,                     // rotation 
+		      ry,                    // ry
+		      0,                     // rotation
 		      0,                     // large arc
 		      ',',
-		      start < end ? 1 : 0,   // sweep 
+		      start < end ? 1 : 0,   // sweep
 		      end, ',',              // end x
 		      innerHeight]           // end y
 		      .join(' ');
@@ -1946,13 +1971,13 @@ export default {
 		    })
 		    .attr("class", function(d) {
 		    	let clazz = "junction" + " " + d.spliceKind + " " +
-		    	(d.countSkippedExons > 0 ? " exon-spanned" : "") + 
+		    	(d.countSkippedExons > 0 ? " exon-spanned" : "") +
 		    	(d.strand == "undefined" || d.strand == self.selectedGene.strand ? " strand-matches" : " strand-mismatches");
 
-		    
-		    	if (container.indexOf('#zoomed-diagrams') >= 0 && 
-		    		self.clickedObject && 
-		    		self.clickedObject.type == 'splice-junction' && 
+
+		    	if (container.indexOf('#zoomed-diagrams') >= 0 &&
+		    		self.clickedObject &&
+		    		self.clickedObject.type == 'splice-junction' &&
 		    		self.clickedObject.key == d.key) {
 		    		clazz += " selected clicked"
 		    	}
@@ -1973,8 +1998,8 @@ export default {
               return "#9f9f9f";
             } else {
               d.color = self.arcColorScale(d[self.colorBy])
-              return d.color;           
-            }            
+              return d.color;
+            }
           }
 		    })
 		    .on("click", function(event,d) {
@@ -1999,7 +2024,7 @@ export default {
 		     // If this is the zoomed diagram, find the counterpart arc in the main chart
 		     let junctionParentChart = null;
 		     let nodeParentChart = null;
-		     
+
 		     if (options.allEdges) {
 		     	let matched = options.allEdges.filter(function(edge) {
 		     		return edge.key == d.key;
@@ -2007,12 +2032,12 @@ export default {
 		     	if (matched.length > 0) {
 		     		junctionParentChart = matched[0];
 		     		nodeParentChart = d3.selectAll("#diagrams #arc-diagram g.arcs path.junction")
-		     		                    .filter(function(spliceJunction) { 
+		     		                    .filter(function(spliceJunction) {
 		     	                   		  return spliceJunction.key == d.key
 		     	                      })
 		     	}
 		     }
-		     
+
 
 		     let arcXCenter = d.arcXCenter;
 		     let arcYTop    = d.arcYTop;
@@ -2029,13 +2054,13 @@ export default {
 
 		     svg.select(".arc-pointer")
 		        .attr("transform", function(d) {
-		        	return "translate(" + (arcXCenter - self.arcPointerWidth/self.ARC_FACTOR) 
-		        	+ "," 
+		        	return "translate(" + (arcXCenter - self.arcPointerWidth/self.ARC_FACTOR)
+		        	+ ","
 		        	+ (arcYTop - self.arcPointerHeight) + ")"
 		         })
 			      .transition()
 			      .duration(200)
-			      .style("opacity", .9); 
+			      .style("opacity", .9);
 			   svg.select(".arc-pointer-small")
 			      .style("opacity", 0)
 
@@ -2044,13 +2069,13 @@ export default {
 			   if (junctionParentChart) {
 			     d3.select("#diagrams #arc-diagram .arc-pointer")
 			       .attr("transform", function(d) {
-			        	return "translate(" + (junctionParentChart.arcXCenter - self.arcPointerWidth/self.ARC_FACTOR) 
-			        	+ "," 
+			        	return "translate(" + (junctionParentChart.arcXCenter - self.arcPointerWidth/self.ARC_FACTOR)
+			        	+ ","
 			        	+ (junctionParentChart.arcYTop - self.arcPointerHeight) + ")"
 			         })
 				     .transition()
 				     .duration(200)
-				     .style("opacity", .9); 
+				     .style("opacity", .9);
 				    d3.select("#diagrams #arc-diagram .arc-pointer-small")
 				      .style("opacity", 0)
 			   }
@@ -2075,8 +2100,8 @@ export default {
 		     self.showSitePointersOnTranscriptChart(d, self.ySitePointer +2, "click")
 
 		     let spliceJunctionObject = $.extend({
-																     	'type': 'splice-junction', 
-																     	'clicked': true, 
+																     	'type': 'splice-junction',
+																     	'clicked': true,
 																     	'donorExon': donorExon,
 																     	'acceptorExon': acceptorExon
 																     	}, d)
@@ -2098,7 +2123,7 @@ export default {
 		     // If this is the zoomed diagram, find the counterpart arc in the main chart
 		     let junctionParentChart = null;
 		     let nodeParentChart = null;
-		     
+
 		     if (options.allEdges) {
 		     	let matched = options.allEdges.filter(function(edge) {
 		     		return edge.key == d.key;
@@ -2106,7 +2131,7 @@ export default {
 		     	if (matched.length > 0) {
 		     		junctionParentChart = matched[0];
 		     		nodeParentChart = d3.selectAll("#diagrams #arc-diagram g.arcs path.junction")
-		     		                    .filter(function(spliceJunction) { 
+		     		                    .filter(function(spliceJunction) {
 		     	                   		  return spliceJunction.key == d.key
 		     	                      })
 		     	}
@@ -2134,26 +2159,26 @@ export default {
 
 		     svg.select(".arc-pointer-small")
 		        .attr("transform", function(d) {
-		        	return "translate(" + (arcXCenter - self.arcPointerSmallWidth/self.ARC_FACTOR) 
-		        	+ "," 
+		        	return "translate(" + (arcXCenter - self.arcPointerSmallWidth/self.ARC_FACTOR)
+		        	+ ","
 		        	+ (arcYTop - self.arcPointerSmallHeight) + ")"
 		         })
 			      .transition()
 			      .duration(200)
-			      .style("opacity", .9); 
+			      .style("opacity", .9);
 
 			   // If we are drawing the zoom chart and there is a selected splice junction,
 			   // set the arc pointer in the zoom chart to the counterpart splice junction
 			   if (junctionParentChart) {
 			     d3.select("#diagrams #arc-diagram .arc-pointer-small")
 			       .attr("transform", function(d) {
-			        	return "translate(" + (junctionParentChart.arcXCenter - self.arcPointerSmallWidth/self.ARC_FACTOR) 
-			        	+ "," 
+			        	return "translate(" + (junctionParentChart.arcXCenter - self.arcPointerSmallWidth/self.ARC_FACTOR)
+			        	+ ","
 			        	+ (junctionParentChart.arcYTop - self.arcPointerSmallHeight) + ")"
 			         })
 				     .transition()
 				     .duration(200)
-				     .style("opacity", .9); 
+				     .style("opacity", .9);
 			   }
 
 		     d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight.selected').classed("exon-highlight", false)
@@ -2174,8 +2199,8 @@ export default {
 		     self.showSitePointersOnTranscriptChart(d, self.ySitePointer, "select")
 
 		     let spliceJunctionObject = $.extend({
-																     	'type': 'splice-junction', 
-																     	'clicked': false, 
+																     	'type': 'splice-junction',
+																     	'clicked': false,
 																     	'donorExon': donorExon,
 																     	'acceptorExon': acceptorExon
 																     	}, d)
@@ -2187,9 +2212,9 @@ export default {
 		  })
 		 .on("mouseout", function(d) {
 
-		 	
-		    d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)    
-		    d3.selectAll('#transcript-diagram .transcript.selected .clicked').classed("exon-highlight", true)    
+
+		    d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)
+		    d3.selectAll('#transcript-diagram .transcript.selected .clicked').classed("exon-highlight", true)
 
 		    d3.selectAll("#arc-diagram path.junction.selected").classed("selected", false);
 		    d3.selectAll("#arc-diagram path.junction.clicked").classed("selected", true);
@@ -2197,10 +2222,10 @@ export default {
 		    svg.select(".arc-pointer-small")
 			      .transition()
 			      .duration(500)
-			      .style("opacity", 0); 
+			      .style("opacity", 0);
 
 			  self.hideSitePointersOnTranscriptChart("select")
-			  
+
 		  });
 
 
@@ -2212,12 +2237,12 @@ export default {
 		    .join("text")
 		      .attr("class", function(d) {
 			    	let clazz = "junction" + " " + d.spliceKind + " " +
-			    	(d.countSkippedExons > 0 ? " exon-spanned" : "") + 
+			    	(d.countSkippedExons > 0 ? " exon-spanned" : "") +
 			    	(d.strand == "undefined" || d.strand == self.selectedGene.strand ? " strand-matches" : " strand-mismatches");
 
-			    	if (container.indexOf('#zoomed-diagrams') >= 0 && 
-		    			self.clickedObject && 
-		    			self.clickedObject.type == 'splice-junction' && 
+			    	if (container.indexOf('#zoomed-diagrams') >= 0 &&
+		    			self.clickedObject &&
+		    			self.clickedObject.type == 'splice-junction' &&
 		    			self.clickedObject.key == d.key) {
 		    			clazz += " clicked"
 		    		}
@@ -2252,13 +2277,13 @@ export default {
 		 .attr("class", "arc-pointer")
 		 .attr("points", function(d) {
 		 		return self.arcPointerWidth + ",0 "
-		 		       + (self.arcPointerWidth/2) + "," + self.arcPointerHeight 
+		 		       + (self.arcPointerWidth/2) + "," + self.arcPointerHeight
 		 		       + " 0,0"
 		 	})
 		 .style("opacity", "0")
 		 .on('click', function(d) {
 		 	  self.unclickSpliceJunction()
-		 	}) 
+		 	})
 
      svg.selectAll(".arc-pointer-line").remove();
      svg
@@ -2272,11 +2297,11 @@ export default {
      .on('click', function(d) {
         self.unclickSpliceJunction()
       })
-    
-    
+
+
 
 		 if (container.indexOf('#zoomed-diagrams') >= 0 && self.clickedObject && self.clickedObject.type == 'splice-junction') {
-		 	// find the coinciding arc 
+		 	// find the coinciding arc
 		 	let matched = edges.filter(function(d) {
 		 		return d.key == self.clickedObject.key;
 		 	})
@@ -2285,13 +2310,13 @@ export default {
 		 		let theClicked = matched[0];
 		 		 svg.select(".arc-pointer")
 		        .attr("transform", function(d) {
-		        	return "translate(" + (theClicked.arcXCenter - self.arcPointerWidth/self.ARC_FACTOR) 
-		        	+ "," 
+		        	return "translate(" + (theClicked.arcXCenter - self.arcPointerWidth/self.ARC_FACTOR)
+		        	+ ","
 		        	+ (theClicked.arcYTop - self.arcPointerHeight) + ")"
 		         })
 			      .transition()
 			      .duration(200)
-			      .style("opacity", .9); 
+			      .style("opacity", .9);
          svg.select(".arc-pointer-line")
             .attr("x1", theClicked.arcXCenter)
             .attr("x2", theClicked.arcXCenter)
@@ -2312,13 +2337,13 @@ export default {
 		 .attr("class", "arc-pointer-small")
 		 .attr("points", function(d) {
 		 		return self.arcPointerSmallWidth + ",0 "
-		 		       + (self.arcPointerSmallWidth/2) + "," + self.arcPointerSmallHeight 
+		 		       + (self.arcPointerSmallWidth/2) + "," + self.arcPointerSmallHeight
 		 		       + " 0,0"
 		 	})
 		 .style("opacity", "0")
 
 		 if (container.indexOf('#zoomed-diagrams') >= 0 && self.clickedObject && self.clickedObject.type == 'splice-junction') {
-	     
+
 		 }
 
      let zoom = null;
@@ -2418,12 +2443,122 @@ export default {
 
         }, 200)
      })
-		 
+
 		},
 
-
-
     adjustOverlaps: function(svg) {
+
+      let self = this;
+      let candidateGroups = self.findCandidateOverlaps(svg)
+      candidateGroups.forEach(function(candidates) {
+
+        // Determine all possible pairs of splice junctions
+        let combos = []
+        for (let idx = 0; idx < candidates.length; idx++) {
+          for (let idx1 = idx; idx1 < candidates.length; idx1++) {
+            if (idx != idx1) {
+              combos.push([idx, idx1])
+            }
+          }
+        }
+
+        // For each pair of splice junctions, determine if they overlap
+        let overlapTree = new Tree('root');
+        combos.forEach(function(combo) {
+          let path      = candidates[combo[0]]
+          let otherPath = candidates[combo[1]]
+          let overlaps = self.globalApp.doArcsIntersect(path, otherPath);
+          if (overlaps) {
+            let nodeKey      = path.data()[0].key
+            let otherNodeKey = otherPath.data()[0].key
+            let node = overlapTree.find(nodeKey)
+            if (node == undefined) {
+              node = overlapTree.insert('root', nodeKey, path)
+            }
+            let childNode = overlapTree.insert(nodeKey, otherNodeKey, otherPath)
+          }
+        })
+
+        // The tree structure represents the different sets of overlapping paths
+        // The children of the root represent the first path in each overlapping set.
+        // Travers the tree to create the different overlapping path sets.
+        let overlapPathSets = []
+        let overlapParents = overlapTree.root.children;
+        overlapParents.forEach(function(overlapParent) {
+          let overlaps = []
+          overlaps.push(overlapParent.value)
+          let others = [...overlapTree.preOrderTraversal(overlapParent)].map(x => x.value);
+          others.forEach(function(other) {
+            overlaps.push(other)
+          })
+
+          // Order the overlaps
+          let sortedOverlaps = overlaps.sort(function(a,b) {
+
+            let bbPathA = a.node().getBBox();
+            let bbPathB = b.node().getBBox();
+
+            return bbPathA.y - bbPathB.y
+          })
+
+          overlapPathSets.push(sortedOverlaps)
+        })
+
+        // For each path set, iterate through the paths, adjust either
+        // the rx or or ry to spread apart the arcs
+        overlapPathSets.forEach(function(overlapPathSet) {
+          let adjustBy = null;
+          let adjustDirection = null;
+          let targetField = null;
+          let orientFactor = null;
+          let basePathAttr = null;
+
+          console.log(" ")
+          for (let idx = 0; idx < overlapPathSet.length; idx++) {
+            let path = overlapPathSet[idx];
+            let bbPath = path.node().getBBox();
+            let pathAttr = self.parseArcPath(path.attr('d'))
+            if (idx == 0) {
+              // We leave the first path as is, and use it
+              // to determine how to adjust the remaining paths
+              orientFactor    = pathAttr.rx == 1 ? 1 : -1;
+              targetField     = pathAttr.rx == 1 ? 'ry' : 'rx';
+              adjustDirection = bbPath.y < 30 ? "down" : "up";
+              adjustBy        = pathAttr[targetField] * (adjustDirection == 'down' ? .1 : .001);
+              basePathAttr    = pathAttr
+            } else {
+              let pathTargetAdjusted = null;
+
+              // Calculate the new rx or ry, adjusting the value up or down
+              if (adjustDirection == "down") {
+                pathTargetAdjusted = pathAttr[targetField] - (orientFactor*adjustBy*idx);
+              } else {
+                pathTargetAdjusted = pathAttr[targetField] + (orientFactor*adjustBy*idx);
+              }
+
+              let point = self.screenToSVG(svg, bbPath.x, bbPath.y)
+
+              // Replace the path in the svg with the adjusted rx or ry
+              console.log('before: ' + pathAttr[targetField])
+              let pathString = path.attr('d').replace(pathAttr[targetField], pathTargetAdjusted)
+              path.attr('d', pathString)
+              console.log('after: ' + self.parseArcPath(path.attr('d'))[targetField])
+
+              // Adjust the arcYTop so that the selected pointer will be placed at the new
+              // top of the arc
+              let pointAfter = self.screenToSVG(svg, path.node().getBBox().x, path.node().getBBox().y)
+              let pointDelta = pointAfter.y - point.y
+              console.log("pointDelta: " + pointDelta)
+              path.data()[0].arcYTop = path.data()[0].arcYTop + pointDelta;
+            }
+          }
+
+        })
+      })
+
+    },
+
+    adjustOverlapsDeprecated: function(svg) {
 
       let self = this;
       let candidateGroups = self.findCandidateOverlaps(svg)
@@ -2789,12 +2924,12 @@ export default {
          .style("opacity", 0)
       d3.selectAll(".arc-pointer-line")
          .style("opacity", 0)
-			self.hideSitePointersOnTranscriptChart("select")         
+			self.hideSitePointersOnTranscriptChart("select")
 			self.hideSitePointersOnTranscriptChart("click")
 
       self.showAcceptorPanel = false;
       self.showDonorPanel = false;
-      
+
  	 	  self.clickedObject = false;
 		},
 
@@ -2806,13 +2941,14 @@ export default {
 
 
 		/*
-		 * This method is called when the user clicks on a splice junction 
+		 * This method is called when the user clicks on a splice junction
 		 * from main sashimi plot or the genes panel (left side panel)
 		 */
     selectSpliceJunction: function(d) {
     	let self = this;
 
-      self.$emit('reset-site-pan')
+      self.$emit('reset-donor-site-pan')
+      self.$emit('reset-acceptor-site-pan')
 
       var delaySelection = false;
       self.snackbarText = ""
@@ -2925,16 +3061,16 @@ export default {
      	  if (matched.length > 0) {
      		  junctionMainChart = matched[0];
      		  nodeMainChart = d3.selectAll("#diagrams #arc-diagram g.arcs path.junction")
-     		                    .filter(function(spliceJunction) { 
+     		                    .filter(function(spliceJunction) {
      	                   		  return spliceJunction.key == d.key
      	                      })
      	  }
       }
-     
+
      	if (nodeMainChart && !nodeMainChart.empty()) {
         d3.selectAll("#arc-diagram path.junction").classed("selected", false);
         d3.selectAll("#arc-diagram path.junction").classed("clicked", false);
-	  
+
 	      let arcXCenter = junctionMainChart.arcXCenter;
 	      let arcYTop    = junctionMainChart.arcYTop;
 
@@ -2954,13 +3090,13 @@ export default {
 
 			  d3.selectAll("#diagrams #arc-diagram").select(".arc-pointer")
           .attr("transform", function(d) {
-        	  return "translate(" + (arcXCenter - self.arcPointerWidth/self.ARC_FACTOR) 
-        	  + "," 
+        	  return "translate(" + (arcXCenter - self.arcPointerWidth/self.ARC_FACTOR)
+        	  + ","
         	  + (arcYTop - self.arcPointerHeight) + ")"
           })
 	      .transition()
 	      .duration(200)
-	      .style("opacity", .9); 
+	      .style("opacity", .9);
 
         d3.selectAll("#diagrams #arc-diagram").select(".arc-pointer-line")
         .attr("x1", arcXCenter)
@@ -2972,7 +3108,7 @@ export default {
 
 
 	   	  d3.selectAll("#diagrams #arc-diagram").select(".arc-pointer-small")
-	         .style("opacity", 0)   
+	         .style("opacity", 0)
 
 	      d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)
 	      d3.selectAll('#transcript-diagram .transcript.selected .clicked').classed("clicked", false)
@@ -2984,14 +3120,14 @@ export default {
 	      if (d.acceptor.exon) {
 	        d3.selectAll('#transcript-diagram .exon-' + d.acceptor.exon.number).classed("exon-highlight", true);
 	        d3.selectAll('#transcript-diagram .exon-' + d.acceptor.exon.number).classed("clicked", true);
-	      }	     
+	      }
 			  self.hideSitePointersOnTranscriptChart("select")
 			  self.hideSitePointersOnTranscriptChart("click")
 	      self.showSitePointersOnTranscriptChart(d, self.ySitePointer +2, "click")
 
 	      let spliceJunctionObject = $.extend({
-															     	'type': 'splice-junction', 
-															     	'clicked': true, 
+															     	'type': 'splice-junction',
+															     	'clicked': true,
 															     	'donorExon': d.donor.exon,
 															     	'acceptorExon': d.acceptor.exon
 															     	}, d)
@@ -3062,45 +3198,58 @@ export default {
       }
     },
 
-    zoomOutSite: function() {
+    zoomOutDonorSite: function() {
       let self = this;
-      self.$emit("set-site-zoom-factor", +10)
+      self.$emit("set-donor-site-zoom-factor", +10)
       self.$nextTick(function() {
         self.$emit("splice-junction-selected", self.clickedObject)
       })
     },
-    zoomInSite: function() {
+    zoomInDonorSite: function() {
       let self = this;
-      self.$emit("set-site-zoom-factor", -10)
+      self.$emit("set-donor-site-zoom-factor", -10)
       self.$nextTick(function() {
         self.$emit("splice-junction-selected", self.clickedObject)
       })
     },
-
+    zoomOutAcceptorSite: function() {
+      let self = this;
+      self.$emit("set-acceptor-site-zoom-factor", +10)
+      self.$nextTick(function() {
+        self.$emit("splice-junction-selected", self.clickedObject)
+      })
+    },
+    zoomInAcceptorSite: function() {
+      let self = this;
+      self.$emit("set-acceptor-site-zoom-factor", -10)
+      self.$nextTick(function() {
+        self.$emit("splice-junction-selected", self.clickedObject)
+      })
+    },
     drawAcceptorAndDonorSites: function(donorSequence, acceptorSequence, donorVariants, acceptorVariants) {
     	let self = this;
       let strandStr = self.selectedGene.strand == "+" ? 'plus' : 'minus'
       let donorSitePanel        = "#site-diagrams." + strandStr + " .donor-site";
 
       let acceptorSitePanel     = "#site-diagrams." + strandStr + " .acceptor-site";
-      
 
-      let regionStart = self.clickedObject.donor.pos - self.junctionSiteSeqRange;
-      let regionEnd   = self.clickedObject.donor.pos + self.junctionSiteSeqRange;
+
+      let regionStart = self.clickedObject.donor.pos - self.donorSiteSeqRange;
+      let regionEnd   = self.clickedObject.donor.pos + self.donorSiteSeqRange;
 			let donorExons  = self.selectedTranscript.exons.filter(function(exon) {
       	return (regionStart <= exon.end && regionEnd >= exon.end) ||
                (regionStart <= exon.start && regionEnd >= exon.start) ||
               (exon.start <= regionStart && exon.end >= regionEnd);
       })
 
-      let donorSiteStart = self.clickedObject.donor.pos - self.junctionSiteSeqRange + self.junctionSitePan;
-      let donorSiteEnd   = self.clickedObject.donor.pos + self.junctionSiteSeqRange + self.junctionSitePan;
+      let donorSiteStart = self.clickedObject.donor.pos - self.donorSiteSeqRange + self.donorSitePan;
+      let donorSiteEnd   = self.clickedObject.donor.pos + self.donorSiteSeqRange + self.donorSitePan;
 
       self.drawSiteSequenceDiagram(
         'donor',
         donorSitePanel,
         self.$el.offsetWidth/2,
-      	donorSequence, 
+      	donorSequence,
       	donorSiteStart,
       	donorSiteEnd,
       	self.selectedGene.strand == "+" ? self.clickedObject.donor.pos+1 : self.clickedObject.donor.pos,
@@ -3126,21 +3275,21 @@ export default {
       }
 
 
-      regionStart = self.clickedObject.acceptor.pos - self.junctionSiteSeqRange;
-      regionEnd = self.clickedObject.acceptor.pos + self.junctionSiteSeqRange;
+      regionStart = self.clickedObject.acceptor.pos - self.acceptorSiteSeqRange;
+      regionEnd = self.clickedObject.acceptor.pos + self.acceptorSiteSeqRange;
 			let acceptorExons = self.selectedTranscript.exons.filter(function(exon) {
       	return (regionStart <= exon.end && regionEnd >= exon.end) ||
                (regionStart <= exon.start && regionEnd >= exon.start) ||
               (exon.start <= regionStart && exon.end >= regionEnd);
       })
-      let acceptorSiteStart = self.clickedObject.acceptor.pos - self.junctionSiteSeqRange + self.junctionSitePan;
-      let acceptorSiteEnd   = self.clickedObject.acceptor.pos + self.junctionSiteSeqRange + self.junctionSitePan;
+      let acceptorSiteStart = self.clickedObject.acceptor.pos - self.acceptorSiteSeqRange + self.acceptorSitePan;
+      let acceptorSiteEnd   = self.clickedObject.acceptor.pos + self.acceptorSiteSeqRange + self.acceptorSitePan;
 
       self.drawSiteSequenceDiagram(
         'acceptor',
         acceptorSitePanel,
         self.$el.offsetWidth/2,
-      	acceptorSequence, 
+      	acceptorSequence,
       	acceptorSiteStart,
       	acceptorSiteEnd,
       	self.selectedGene.strand == "+" ? self.clickedObject.acceptor.pos-1 : self.clickedObject.acceptor.pos+1,
@@ -3201,7 +3350,7 @@ export default {
 
       // x axis
       var xAxis = d3.axisTop(x)
-                    .tickFormat(tickFormatter);                      
+                    .tickFormat(tickFormatter);
 
 
 		  // append the svg object to the body of the page
@@ -3231,7 +3380,7 @@ export default {
       .attr('d', function(d) {
         return self.centerArrow(d, innerHeight, 15)
       })
-      .style('transform', 'translate(-10px, -39px)')         
+      .style('transform', 'translate(-10px, -39px)')
 
 
       var groupAltSeq = svg
@@ -3251,7 +3400,7 @@ export default {
       .attr("class", "exon-seq")
       .attr("transform",
            "translate(" + margin.left + "," + (margin.top+15) + ")")
-       
+
       // Reference sequence
       let seqWidth = x(regionStart+1) - x(regionStart)
       if (seqWidth > 6) {
@@ -3262,7 +3411,7 @@ export default {
         .enter()
         .append("text")
         .attr("class", function(d,i) {
-          if (regionStart+i == siteStart) { 
+          if (regionStart+i == siteStart) {
             return "seq site " + d.toUpperCase();
           } else if (regionStart+i == siteEnd) {
             return "seq site " + d.toUpperCase();
@@ -3287,7 +3436,7 @@ export default {
         .enter()
         .append("rect")
         .attr("class", function(d,i) {
-          if (regionStart+i == siteStart) { 
+          if (regionStart+i == siteStart) {
             return "seq site " + d.toUpperCase();
           } else if (regionStart+i == siteEnd) {
             return "seq site " + d.toUpperCase();
@@ -3367,7 +3516,7 @@ export default {
         .text(function(d) {
           if (d.variant.type == 'INS') {
             return "^"
-          }          
+          }
         })
 
       } else {
@@ -3394,9 +3543,9 @@ export default {
       // Exon on or near donor/acceptor site
       groupExon
       .selectAll("rect.exon")
-      .data(function(d) { 
+      .data(function(d) {
           return exons
-      }, 
+      },
         function(d) {return d.feature_type + "-" + d.seq_id + "-" + d.start + "-" + d.end;}
       )
       .enter()
@@ -3409,10 +3558,10 @@ export default {
           return 30 + 5;
         }
       })
-      .attr("width", function(d) { 
+      .attr("width", function(d) {
         return Math.max(1, Math.round(x(d.end) - x(d.start))+1)
       })
-      .attr("height", function(d) { 
+      .attr("height", function(d) {
         if (d.feature_type.toLowerCase() == 'utr') {
           return 7;
         } else {
@@ -3421,8 +3570,8 @@ export default {
       })
       .attr("class", function(d) {
         return 'transcript-feature ' +
-               d.feature_type + 
-               (" exon-" + d.number) + 
+               d.feature_type +
+               (" exon-" + d.number) +
                " no-pointer selected exon-highlight";
       })
 
@@ -3432,15 +3581,15 @@ export default {
       // Exon label
       groupExon
       .selectAll("text.exon-label")
-      .data(function(d) { 
+      .data(function(d) {
           return exons
-      }, 
+      },
           function(d) {return d.feature_type + "-" + d.seq_id + "-" + d.start + "-" + d.end;}
       )
       .enter()
       .append("text")
       .attr("class", "exon-label")
-      .attr("x", function(d) { 
+      .attr("x", function(d) {
         if (x(d.start) >= 0 && (x(d.start) < innerWidth - 20) ) {
           return x(d.start) + 20
         } else if (x(d.end) >= 0 && (x(d.end) < innerWidth - 20) ) {
@@ -3451,7 +3600,7 @@ export default {
       })
       .attr("y", function(d,i) {
         return 60;
-      })  
+      })
       .style("text-anchor", function(d) {
         if (x(d.start) >= 0) {
           return "start"
@@ -3463,7 +3612,7 @@ export default {
         return 'Exon ' + d.number;
       })
 
-      // Site pointers 
+      // Site pointers
       let ySitePointer = 65;
       if (junctionSite == 'donor') {
         groupExon.selectAll(".donor-pointer").remove();
@@ -3472,7 +3621,7 @@ export default {
         .attr("class", "donor-pointer")
         .attr("points", function(d) {
           return self.sitePointerWidth + ",0 "
-                 + (self.sitePointerWidth/2) + ",-" + self.sitePointerHeight 
+                 + (self.sitePointerWidth/2) + ",-" + self.sitePointerHeight
                  + " 0,0"
         })
         .style("opacity", "0")
@@ -3491,28 +3640,28 @@ export default {
         // position the donor pointers
         groupExon.select(".donor-pointer")
         .attr("transform", function(d1) {
-        return "translate(" + 
-               (x(sitePos) - (self.sitePointerWidth/2))  + 
+        return "translate(" +
+               (x(sitePos) - (self.sitePointerWidth/2))  +
                "," + ySitePointer + ")"
         })
         .transition()
         .duration(200)
-        .style("opacity", .9); 
+        .style("opacity", .9);
 
         // Show marker below donor pointer if site is cryptic-site
         if (self.clickedObject.donor.status && self.clickedObject.donor.status == 'cryptic-site') {
           groupExon
           .select(".donor-problem")
           .attr("x", function(d1) {
-              return (x(sitePos) ) 
+              return (x(sitePos) )
           })
           .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
           .transition()
           .duration(200)
-          .style("opacity", .9); 
+          .style("opacity", .9);
 
 
-        }       
+        }
 
       }
 
@@ -3524,10 +3673,10 @@ export default {
         .attr("class", "acceptor-pointer")
         .attr("points", function(d) {
           return self.sitePointerWidth + ",0 "
-                 + (self.sitePointerWidth/2) + ",-" + self.sitePointerHeight 
+                 + (self.sitePointerWidth/2) + ",-" + self.sitePointerHeight
                  + " 0,0"
         })
-        .style("opacity", "0")  
+        .style("opacity", "0")
 
         groupSeq.selectAll(".acceptor-problem").remove();
         groupSeq
@@ -3543,26 +3692,26 @@ export default {
         // position the acceptor pointers
         groupSeq.select(".acceptor-pointer")
         .attr("transform", function(d1) {
-          return "translate(" + 
-                 (x(sitePos) - (self.sitePointerWidth/2))  + 
+          return "translate(" +
+                 (x(sitePos) - (self.sitePointerWidth/2))  +
                  "," + ySitePointer + ")"
         })
         .transition()
         .duration(200)
-        .style("opacity", .9); 
+        .style("opacity", .9);
 
         // Show marker below acceptor pointer if acceptor site is cryptic-site
         if (self.clickedObject.acceptor.status && self.clickedObject.acceptor.status == 'cryptic-site') {
           groupSeq
           .select(".acceptor-problem")
           .attr("x", function(d1) {
-              return (x(sitePos) ) 
+              return (x(sitePos) )
           })
           .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
           .transition()
           .duration(200)
-          .style("opacity", .9); 
-        }       
+          .style("opacity", .9);
+        }
       }
 
       //
@@ -3581,7 +3730,7 @@ export default {
           alert("Cannot pan upstream of gene region.")
           resetPanTransform()
         } else {
-          self.$emit("set-site-pan", pan)
+          self.$emit("set-" + junctionSite + "-site-pan", pan)
           self.$nextTick(function() {
             self.$emit("splice-junction-selected", self.clickedObject)
           })
@@ -3605,7 +3754,6 @@ export default {
           variantTransform.x = e.transform.x
           variantTransform.k = 1;
           d3.select(parentContainer + " #variant-diagram svg").attr('transform', variantTransform)
-
         }
       }
       let zoom = d3.zoom()
@@ -3624,9 +3772,6 @@ export default {
                     handlePanEnd(e)
                  })
       svg.call(zoom)
-
-
-
     },
 
     selectZoomedSpliceJunction: function(d, theSpliceJunctions, regionStart, regionEnd) {
@@ -3652,9 +3797,9 @@ export default {
       self.zoomRegionEnd = regionEnd;
 	    d3.selectAll("#zoomed-diagrams svg").remove()
 	    self.drawArcDiagram("#zoomed-diagrams", filteredEdgesClone, self.zoomRegionStart, self.zoomRegionEnd,
-          {'createBrush': false, 
+          {'createBrush': false,
            'allEdges': self.filteredSpliceJunctions,
-           'showXAxis': true, 
+           'showXAxis': true,
            'marginRight': 0,
            'showJunctionArrow': true,
            'isZoomedRegion': true})
@@ -3698,7 +3843,7 @@ export default {
           {'marginTop': 20})
       }
 		},
-				 
+
 
 		showSitePointersOnTranscriptChart: function(d, ySitePointer, action="select") {
 			let self = this;
@@ -3708,19 +3853,19 @@ export default {
 	      	// Show a pointer below donor site
 	      	d3.selectAll("#diagrams #transcript-diagram .donor-pointer-small")
 	      	  .attr("transform", function(d1) {
-		        	return "translate(" + 
-		        	       (self.xTranscriptChart(d.donor.pos) - (self.sitePointerSmallWidth/2))  + 
+		        	return "translate(" +
+		        	       (self.xTranscriptChart(d.donor.pos) - (self.sitePointerSmallWidth/2))  +
 		        	       "," + ySitePointer + ")"
 		        })
 			      .transition()
 			      .duration(200)
-			      .style("opacity", .9); 
+			      .style("opacity", .9);
 
 		      // Show an * below donor pointer if donor site is cryptic-site
 		      if (d.donor.status && d.donor.status == 'cryptic-site') {
 		     		d3.selectAll("#diagrams #transcript-diagram .donor-problem-small")
 		     		  .attr("x", function(d1) {
-									return (self.xTranscriptChart(d.donor.pos) ) 
+									return (self.xTranscriptChart(d.donor.pos) )
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
               .text(function(d1) {
@@ -3728,25 +3873,25 @@ export default {
               })
 							.transition()
 		      		.duration(200)
-		      		.style("opacity", .9); 
+		      		.style("opacity", .9);
 		      }
 
 			    // Show a pointer below acceptor site
 	      	d3.selectAll("#diagrams #transcript-diagram .acceptor-pointer-small")
 	      	  .attr("transform", function(d1) {
-		        	return "translate(" + 
-		        	       (self.xTranscriptChart(d.acceptor.pos) - (self.sitePointerSmallWidth/2))  + 
+		        	return "translate(" +
+		        	       (self.xTranscriptChart(d.acceptor.pos) - (self.sitePointerSmallWidth/2))  +
 		        	       "," + ySitePointer + ")"
 		        })
 			      .transition()
 			      .duration(200)
-			      .style("opacity", .9); 
+			      .style("opacity", .9);
 
 		      // Show an * below acceptor pointer if acceptor site is cryptic-site
 		      if (d.acceptor.status && d.acceptor.status == 'cryptic-site') {
 		     		d3.selectAll("#diagrams #transcript-diagram .acceptor-problem-small")
 		     		  .attr("x", function(d1) {
-									return (self.xTranscriptChart(d.acceptor.pos) ) 
+									return (self.xTranscriptChart(d.acceptor.pos) )
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
               .text(function(d1) {
@@ -3754,7 +3899,7 @@ export default {
               })
 							.transition()
 		      		.duration(200)
-		      		.style("opacity", .9); 
+		      		.style("opacity", .9);
 		      }
 
 	      }
@@ -3764,80 +3909,80 @@ export default {
 	      	// donor site pointer
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-pointer-small")
 	      	  .attr("transform", function(d1) {
-		        	return "translate(" + 
-		        	       (self.xTranscriptChartZoomed(d.donor.pos) - (self.sitePointerSmallWidth/2))  + 
+		        	return "translate(" +
+		        	       (self.xTranscriptChartZoomed(d.donor.pos) - (self.sitePointerSmallWidth/2))  +
 		        	       "," + ySitePointer + ")"
 		        })
 			      .transition()
 			      .duration(200)
-			      .style("opacity", .9); 
+			      .style("opacity", .9);
 
 		      // Show an * below donor pointer if donor site is cryptic-site
 		      if (d.donor.status && d.donor.status == 'cryptic-site') {
 		     		d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-problem-small")
 		     		  .attr("x", function(d1) {
-									return (self.xTranscriptChartZoomed(d.donor.pos) ) 
+									return (self.xTranscriptChartZoomed(d.donor.pos) )
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
               .text(function(d1) {
                 return d.donor.delta && d.donor.delta != 0 ? ((d.donor.delta > 0 ? '+' : '') + d.donor.delta) : "!";
-              })							
+              })
               .transition()
 		      		.duration(200)
-		      		.style("opacity", .9); 
+		      		.style("opacity", .9);
 		      }
 
 
 			    // acceptor site pointer
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-pointer-small")
 	      	  .attr("transform", function(d1) {
-		        	return "translate(" + 
-		        	       (self.xTranscriptChartZoomed(d.acceptor.pos) - (self.sitePointerSmallWidth/2))  + 
+		        	return "translate(" +
+		        	       (self.xTranscriptChartZoomed(d.acceptor.pos) - (self.sitePointerSmallWidth/2))  +
 		        	       "," + ySitePointer + ")"
 		        })
 			      .transition()
 			      .duration(200)
-			      .style("opacity", .9); 
+			      .style("opacity", .9);
 
 		      // Show an * below acceptor pointer if acceptor site is cryptic-site
 		      if (d.acceptor.status && d.acceptor.status == 'cryptic-site') {
 		     		d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-problem-small")
 		     		  .attr("x", function(d1) {
-									return (self.xTranscriptChartZoomed(d.acceptor.pos) ) 
+									return (self.xTranscriptChartZoomed(d.acceptor.pos) )
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerSmallHeight + 6)
               .text(function(d1) {
                 return d.acceptor.delta && d.acceptor.delta != 0 ? ((d.acceptor.delta > 0 ? '+' : '') + d.acceptor.delta) : "!";
               })							.transition()
 		      		.duration(200)
-		      		.style("opacity", .9); 
+		      		.style("opacity", .9);
 		      }
 
 	      }
-      	
+
       } else if (action == "click") {
       	//
-      	// When a splice junction is clicked 
+      	// When a splice junction is clicked
       	//
 
       	// Donor pointer
 	      if (self.xTranscriptChart) {
 	      	d3.selectAll("#diagrams #transcript-diagram .donor-pointer")
 	      	  .attr("transform", function(d1) {
-		        	return "translate(" + 
-		        	       (self.xTranscriptChart(d.donor.pos) - (self.sitePointerWidth/2))  + 
+		        	return "translate(" +
+		        	       (self.xTranscriptChart(d.donor.pos) - (self.sitePointerWidth/2))  +
 		        	       "," + ySitePointer + ")"
 		        })
 			      .transition()
 			      .duration(200)
-			      .style("opacity", .9); 
+			      .style("opacity", .9);
 
 
 		      // Show an * below donor pointer if donor site is cryptic-site
 		      if (d.donor.status && d.donor.status == 'cryptic-site') {
 		     		d3.selectAll("#diagrams #transcript-diagram .donor-problem")
 		     		  .attr("x", function(d1) {
-									return (self.xTranscriptChart(d.donor.pos)) 
+									return (self.xTranscriptChart(d.donor.pos))
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerHeight + 2)
               .text(function(d1) {
@@ -3845,27 +3990,27 @@ export default {
               })
 							.transition()
 		      		.duration(200)
-		      		.style("opacity", .9) 
-		      	
+		      		.style("opacity", .9)
+
 		      }
 
 			    // Acceptor pointer
 	      	d3.selectAll("#diagrams #transcript-diagram .acceptor-pointer")
 	      	  .attr("transform", function(d1) {
-		        	return "translate(" + 
-		        	       (self.xTranscriptChart(d.acceptor.pos) - (self.sitePointerWidth/2))  + 
+		        	return "translate(" +
+		        	       (self.xTranscriptChart(d.acceptor.pos) - (self.sitePointerWidth/2))  +
 		        	       "," + ySitePointer + ")"
 		        })
 			      .transition()
 			      .duration(200)
-			      .style("opacity", .9); 
+			      .style("opacity", .9);
 
 
 		      // Show an * below acceptor pointer if acceptor site is cryptic-site
 		      if (d.acceptor.status && d.acceptor.status == 'cryptic-site') {
 		     		d3.selectAll("#diagrams #transcript-diagram .acceptor-problem")
 		     		  .attr("x", function(d1) {
-									return (self.xTranscriptChart(d.acceptor.pos) ) 
+									return (self.xTranscriptChart(d.acceptor.pos) )
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerHeight + 2)
               .text(function(d1) {
@@ -3873,7 +4018,7 @@ export default {
               })
 							.transition()
 		      		.duration(200)
-		      		.style("opacity", .9); 
+		      		.style("opacity", .9);
 		      }
 
 	      }
@@ -3881,8 +4026,8 @@ export default {
 	      if (self.xTranscriptChartZoomed) {
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-pointer")
 	      	  .attr("transform", function(d1) {
-		        	return "translate(" + 
-		        	       (self.xTranscriptChartZoomed(d.donor.pos) - (self.sitePointerWidth/2))  + 
+		        	return "translate(" +
+		        	       (self.xTranscriptChartZoomed(d.donor.pos) - (self.sitePointerWidth/2))  +
 		        	       "," + ySitePointer + ")"
 		        })
 			      .transition()
@@ -3904,13 +4049,13 @@ export default {
 		      if (d.donor.status && d.donor.status == 'cryptic-site') {
 		     		d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-problem")
 		     		  .attr("x", function(d1) {
-									return (self.xTranscriptChartZoomed(d.donor.pos) ) 
+									return (self.xTranscriptChartZoomed(d.donor.pos) )
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerHeight + 2)
 							.transition()
 		      		.duration(200)
-		      		.style("opacity", .9); 
-            d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-problem") 
+		      		.style("opacity", .9);
+            d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-problem")
               .text(function(d1) {
                 return d.donor.delta && d.donor.delta != 0 ? ((d.donor.delta > 0 ? '+' : '') + d.donor.delta) : "!";
               })
@@ -3918,13 +4063,13 @@ export default {
 
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-pointer")
 	      	  .attr("transform", function(d1) {
-		        	return "translate(" + 
-		        	       (self.xTranscriptChartZoomed(d.acceptor.pos) - (self.sitePointerWidth/2))  + 
+		        	return "translate(" +
+		        	       (self.xTranscriptChartZoomed(d.acceptor.pos) - (self.sitePointerWidth/2))  +
 		        	       "," + ySitePointer + ")"
 		        })
 			      .transition()
 			      .duration(200)
-			      .style("opacity", .9); 
+			      .style("opacity", .9);
           d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-pointer-text")
             .attr("transform", function(d1) {
               let adjustBy = d.strand == '+' ? -55 : 20;
@@ -3940,17 +4085,17 @@ export default {
 		      if (d.acceptor.status && d.acceptor.status == 'cryptic-site') {
 		     		d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-problem")
 		     		  .attr("x", function(d1) {
-									return (self.xTranscriptChartZoomed(d.acceptor.pos) ) 
+									return (self.xTranscriptChartZoomed(d.acceptor.pos) )
 		     		  })
 		     		  .attr("y", ySitePointer + self.sitePointerHeight + 2)
 							.transition()
 		      		.duration(200)
-		      		.style("opacity", .9); 
-            d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-problem") 
+		      		.style("opacity", .9);
+            d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-problem")
             .text(function(d1) {
               return d.acceptor.delta && d.acceptor.delta != 0 ? ((d.acceptor.delta > 0 ? '+' : '') + d.acceptor.delta) : "!";
             })
-  
+
 		      }
 	      }
 
@@ -3965,65 +4110,65 @@ export default {
 	      	d3.selectAll("#diagrams #transcript-diagram .donor-pointer-small")
 			      .transition()
 			      .duration(200)
-			      .style("opacity", 0); 
+			      .style("opacity", 0);
 	      	d3.selectAll("#diagrams #transcript-diagram .acceptor-pointer-small")
 			      .transition()
 			      .duration(200)
-			      .style("opacity", 0); 
+			      .style("opacity", 0);
 					d3.selectAll("#diagrams #transcript-diagram .donor-problem-small")
 			      .transition()
 			      .duration(200)
-			      .style("opacity", 0); 			      
+			      .style("opacity", 0);
 					d3.selectAll("#diagrams #transcript-diagram .acceptor-problem-small")
 			      .transition()
 			      .duration(200)
-			      .style("opacity", 0); 			      
+			      .style("opacity", 0);
 	      }
 	      // Hide the pointers on the zoomed transcript chart
 	      if (self.xTranscriptChartZoomed) {
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-pointer-small")
 			      .transition()
 			      .duration(200)
-			      .style("opacity", 0); 
+			      .style("opacity", 0);
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-pointer-small")
 			      .transition()
 			      .duration(200)
-			      .style("opacity", 0); 
+			      .style("opacity", 0);
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-problem-small")
 			      .transition()
 			      .duration(200)
-			      .style("opacity", 0); 
+			      .style("opacity", 0);
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-problem-small")
 			      .transition()
 			      .duration(200)
-			      .style("opacity", 0); 
+			      .style("opacity", 0);
 	      }
-      	
+
       } else if (action == "click") {
 	      if (self.xTranscriptChart) {
 	      	d3.selectAll("#diagrams #transcript-diagram .donor-pointer")
 			      .transition()
 			      .duration(200)
-			      .style("opacity", 0); 
+			      .style("opacity", 0);
 	      	d3.selectAll("#diagrams #transcript-diagram .acceptor-pointer")
 			      .transition()
 			      .duration(200)
-			      .style("opacity", 0); 
+			      .style("opacity", 0);
 	      	d3.selectAll("#diagrams #transcript-diagram .donor-problem")
 			      .transition()
 			      .duration(200)
-			      .style("opacity", 0); 
+			      .style("opacity", 0);
 	      	d3.selectAll("#diagrams #transcript-diagram .acceptor-problem")
 			      .transition()
 			      .duration(200)
-			      .style("opacity", 0); 
+			      .style("opacity", 0);
 	      }
 	      // Hide the pointers on the zoomed transcript chart
 	      if (self.xTranscriptChartZoomed) {
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-pointer")
 			      .transition()
 			      .duration(200)
-			      .style("opacity", 0); 
+			      .style("opacity", 0);
           d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-pointer-text")
             .transition()
             .duration(200)
@@ -4031,7 +4176,7 @@ export default {
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-pointer")
 			      .transition()
 			      .duration(200)
-			      .style("opacity", .0); 
+			      .style("opacity", .0);
           d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-pointer-text")
             .transition()
             .duration(200)
@@ -4039,11 +4184,11 @@ export default {
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .donor-problem")
 			      .transition()
 			      .duration(200)
-			      .style("opacity", 0); 
+			      .style("opacity", 0);
 	      	d3.selectAll("#zoomed-diagrams #transcript-diagram .acceptor-problem")
 			      .transition()
 			      .duration(200)
-			      .style("opacity", .0); 
+			      .style("opacity", .0);
 	      }
 
       }
@@ -4067,7 +4212,7 @@ export default {
 
       return  'variant ' + d.type.toLowerCase()  + ' ' + colorimpacts + ' ' + (matchedSplice.length > 0 ? ' splicing' : '');
     },
-   
+
     drawVariantDiagram: function(container, width, regionStart, regionEnd, variants, options) {
       let self = this;
       let data = variants;
@@ -4127,7 +4272,7 @@ export default {
 
       var symbolSizeWye = symbolScaleWye(variantHeight*1.5);
 
-    
+
       // Select the svg element, if it exists.
       d3.select(container).select("svg").remove();
       var svg = d3.select(container)
@@ -4147,7 +4292,7 @@ export default {
         .append("g")
         .attr("class", "group")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-     
+
 
       var variantGroup = group
       .append('g')
@@ -4168,7 +4313,7 @@ export default {
                    .size(symbolSizeWye)();
 
         } else if (d.type.toUpperCase() == 'INS') {
-          
+
           return d3.symbol(d3.symbolCircle)
                    .size(symbolSizeCircle)();
 
@@ -4189,9 +4334,9 @@ export default {
         var xCoord = Math.round(x(d.start) + (variantWidth/2));
         var yCoord = innerHeight - ((d.level + 1) * (variantHeight + verticalPadding));
         var tx = "translate(" + xCoord + "," + yCoord + ")";
-        
-        // Keep track of position of variant symbol. We will use these 
-        // coordinates when drawing a circle around a variant or 
+
+        // Keep track of position of variant symbol. We will use these
+        // coordinates when drawing a circle around a variant or
         // drawing a pointer above the variant
         d.x = xCoord;
         d.y = yCoord;
@@ -4225,12 +4370,12 @@ export default {
           svg.select(".variant-pointer-small")
           .attr("transform", function(d1) {
             return "translate(" + (d.x  - (self.arcPointerSmallWidth/2))
-            + "," 
+            + ","
             + (d.y - self.arcPointerSmallHeight - 4) + ")"
            })
           .transition()
           .duration(150)
-          .style("opacity", .9); 
+          .style("opacity", .9);
 
           let tooltipContent = d.type + " " + d.chrom + ":" + d.start + " " + d.ref + " > " + d.alt + "<br>" + "Impact " + Object.keys(d.vepImpact).join(", ") + "<br>" + Object.keys(d.vepConsequence).join(", ").split("_").join(" ");
 
@@ -4249,22 +4394,22 @@ export default {
           let tooltipY =  offsetY + margin.top + d.y - self.arcPointerSmallHeight - 4 - tooltipHeight + scrollOffset;
           let tooltipX =  offsetX + d.x  - (self.arcPointerSmallWidth/2)
           d3.select('.tooltip')
-          .style("top",+ tooltipY + 'px') 
+          .style("top",+ tooltipY + 'px')
           .style("left",  tooltipX + 'px')
           .transition()
           .duration(150)
-          .style("opacity", .9); 
+          .style("opacity", .9);
 
       })
       .on('mouseout', function(event, d) {
         svg.select(".variant-pointer-small")
           .transition()
           .duration(150)
-          .style("opacity", 0); 
+          .style("opacity", 0);
         d3.select('.tooltip')
           .transition()
           .duration(150)
-          .style("opacity", 0); 
+          .style("opacity", 0);
 
       })
 
@@ -4276,7 +4421,7 @@ export default {
          .attr("x", 0)
          .attr("y", 0)
          .attr("width", 0)
-         .attr("height", 0)      
+         .attr("height", 0)
 
       variantGroup.selectAll(".variant-pointer").remove();
       variantGroup
@@ -4284,13 +4429,13 @@ export default {
       .attr("class", "variant-pointer")
       .attr("points", function(d) {
         return self.arcPointerWidth + ",0 "
-               + (self.arcPointerWidth/2) + "," + self.arcPointerHeight 
+               + (self.arcPointerWidth/2) + "," + self.arcPointerHeight
                + " 0,0"
       })
       .style("opacity", "0")
       .on('click', function(d) {
         //self.unclickVariant()
-      }) 	
+      })
 
       variantGroup.selectAll(".variant-pointer-small").remove();
       variantGroup
@@ -4298,11 +4443,11 @@ export default {
       .attr("class", "variant-pointer-small")
       .attr("points", function(d) {
         return self.arcPointerSmallWidth + ",0 "
-               + (self.arcPointerSmallWidth/2) + "," + self.arcPointerSmallHeight 
+               + (self.arcPointerSmallWidth/2) + "," + self.arcPointerSmallHeight
                + " 0,0"
       })
       .style("opacity", "0")
-      
+
     },
 
     getMaxLocal: function(data, numberBins) {
@@ -4400,7 +4545,7 @@ export default {
           width = 220 - margin.left - margin.right,
           height = 120 - margin.top - margin.bottom;
 
-      
+
       // append the svg object to the body of the page
       var svg = d3.select(container).select("#read-count-histogram")
         .append("svg")
@@ -4412,7 +4557,7 @@ export default {
 
       // X axis: scale and draw:
       var x = d3.scaleLinear()
-          .domain([0, maxReadCount])   
+          .domain([0, maxReadCount])
           .range([0, width]);
 
       if (options && options.createBrush) {
@@ -4769,7 +4914,24 @@ export default {
         .on("start brush end", self.onBrushHist)
       )
 
+    },
+
+    copyZoomCoord: function() {
+      let self = this;
+      let coord = self.selectedGene.chr + ":" +
+                  self.zoomRegionStart + "-" + self.zoomRegionEnd;
+      navigator.clipboard.writeText(coord)
+      .then(function() {
+      })
+      .catch(function(error) {
+     })
+    },
+
+    formatRegion: function (value) {
+      return !value ? '' : value.toLocaleString('en-US');
     }
+
+
   },
 
 
@@ -4864,8 +5026,8 @@ export default {
   margin: auto;
 }
 
-#brushable-axis  text { 
-	font-size: 11px; 
+#brushable-axis  text {
+	font-size: 11px;
 	font-family: 'Poppins';
 }
 #arc-diagram, #transcript-diagram {
@@ -4874,7 +5036,7 @@ export default {
 
 rect.bounding-box {
 	fill: #75abffab;
-	fill-opacity: 0.3; 
+	fill-opacity: 0.3;
 	stroke: #fff;
 	visibility: hidden;
 }
@@ -4964,12 +5126,12 @@ svg.hide-strand-mismatches .arc-labels .junction.strand-mismatches {
   display: none !important;
 }
 
-.hide-canonical svg path.junction.canonical, 
+.hide-canonical svg path.junction.canonical,
 .hide-canonical svg .arc-labels .junction.canonical {
 	display: none;
 }
 
-.show-canonical svg path.junction.canonical, 
+.show-canonical svg path.junction.canonical,
 .show-canonical svg .arc-labels .junction.canonical {
 	display: initial;
 }
@@ -5044,16 +5206,16 @@ div.tooltip {
 }
 .transcript.selected .selection-box {
 		stroke: #2383d1;
-    stroke-width: 2.5px;  
+    stroke-width: 2.5px;
 }
 .transcript.current .selection-box {
 	stroke: #2383d1;
-  stroke-width: 1px;  
+  stroke-width: 1px;
 	fill: #ddf0ff;
 }
 .transcript.current.selected .selection-box {
 	stroke: #2383d1;
-  stroke-width: 2.5px;  
+  stroke-width: 2.5px;
 	fill: #ddf0ff;
 }
 
@@ -5074,7 +5236,7 @@ div.tooltip {
 
 .arc-pointer, .donor-pointer, .acceptor-pointer, .variant-pointer, .variant-pointer-small {
 	fill: #03a9f4;
-	stroke: black; 
+	stroke: black;
 	stroke-width: 1;
 }
 
@@ -5093,7 +5255,7 @@ div.tooltip {
 
 .arc-pointer-small, .acceptor-pointer-small, .donor-pointer-small {
 	fill: #03a9f4;
-	stroke: black; 
+	stroke: black;
 	stroke-width: 1;
 }
 
@@ -5219,8 +5381,6 @@ text.seq.T, rect.seq.T {
   stroke: #00000061;
 }
 
-#zoomed-diagrams .junction {
-}
 
 
 
@@ -5229,148 +5389,171 @@ text.seq.T, rect.seq.T {
 <style lang="sass">
 @import '../styles/variables.sass'
 
-.impact_HIGH
-  fill:  $high-impact-color !important
-  color: $high-impact-color !important
-  font-weight: bold
+#splice-junction-viz
+  .impact_HIGH
+    fill:  $high-impact-color !important
+    color: $high-impact-color !important
+    font-weight: bold
 
-.impact_MODERATE
-  fill:  $moderate-impact-color !important
-  color: $moderate-impact-color !important
-  font-weight: bold
+  .impact_MODERATE
+    fill:  $moderate-impact-color !important
+    color: $moderate-impact-color !important
+    font-weight: bold
 
-.impact_MODIFIER
-  fill:  $modifier-impact-color
-  color: $modifier-impact-color
+  .impact_MODIFIER
+    fill:  $modifier-impact-color
+    color: $modifier-impact-color
 
-.impact_LOW
-  fill:  $low-impact-color
-  color: $low-impact-color
+  .impact_LOW
+    fill:  $low-impact-color
+    color: $low-impact-color
 
-.impact_UNKNOWN
-  fill:  $unremarkable-color
-  color: $unremarkable-color
+  .impact_UNKNOWN
+    fill:  $unremarkable-color
+    color: $unremarkable-color
 
-.impact_NOIMPACT, .impact_none, .effect_none
-  fill: #e5e5e3
-  stroke: #807D7D
+  .impact_NOIMPACT, .impact_none, .effect_none
+    fill: #e5e5e3
+    stroke: #807D7D
 
-.read-stat 
-  font-size: 11px
-  color: rgb(73, 73, 73)
-  font-style: italic
-
-.histogram-text
-  font-size: 11px
-  fill: rgb(73, 73, 73)
-
-#hist-button-group, #show-greyed-out-button-group
-  height: 20px !important
-  margin-top: 0px
-  margin-bottom: 5px
-  .v-btn
-    height: 20px !important
-    .v-btn__content
-      font-size: 11px
-      font-weight: 600
-
-#all-histogram
-  #read-count-histogram
-    .histogram-bar
-      fill: gray
-
-#cryptic-site-histogram
-  #read-count-histogram
-    .histogram-bar
-      fill: #e66a7f
-
-#canonical-histogram
-  #read-count-histogram
-    .histogram-bar
-      fill: steelblue 
-
-#exon-skipping-histogram
-  #read-count-histogram
-    .histogram-bar
-      fill: #db9625
-
-#read-count-histogram
-  .mean-line
-    stroke-width: 2
-    stroke: black
-    stroke-dasharray: 3
-
-.legendCells
-  .label 
-    fill: #787878 !important
-    font-size: 12px !important
-    font-weight: 500 !important
-
-  .legend-cell-show
-    fill: rgb(24, 103, 192) !important
-    font-size: 85% !important
-    font-weight: 600 !important
-    cursor: pointer !important
-    font-style: normal !important
-
-
-  .cell.hiding
-    .label
-      font-weight: 500 !important
-      fill: #9c9b9b !important
-    .legend-cell-show
-      font-weight: 600 !important
-      font-style: normal !important
-  .cell.showing
-    .legend-cell-show
-      font-weight: 700 !important
-      font-style: italic !important
-
-
-
-.hint-box
-  background-color: #f7eccd9e
-  border: 0.5px #a7a7a7 solid
-  width: max-content
-  margin: auto
-  padding: 0px 4px 0px 4px
-  display: flex
-  justify-content: center
-  align-items: center
-  line-height: 13px
-  i.mdi
-    margin-right: 4px
-    font-size: 16px
-  div
+  .read-stat
     font-size: 11px
+    color: rgb(73, 73, 73)
     font-style: italic
 
-.v-input__control
-  input
-    font-size: 13px !important
-  .v-field__field
-    .v-label.v-field-label
+  .histogram-text
+    font-size: 11px
+    fill: rgb(73, 73, 73)
+
+  #hist-button-group, #show-greyed-out-button-group
+    height: 20px !important
+    margin-top: 0px
+    margin-bottom: 5px
+    .v-btn
+      height: 20px !important
+      .v-btn__content
+        font-size: 11px
+        font-weight: 600
+
+  #all-histogram
+    #read-count-histogram
+      .histogram-bar
+        fill: gray
+
+  #cryptic-site-histogram
+    #read-count-histogram
+      .histogram-bar
+        fill: #e66a7f
+
+  #canonical-histogram
+    #read-count-histogram
+      .histogram-bar
+        fill: steelblue
+
+  #exon-skipping-histogram
+    #read-count-histogram
+      .histogram-bar
+        fill: #db9625
+
+  #read-count-histogram
+    .mean-line
+      stroke-width: 2
+      stroke: black
+      stroke-dasharray: 3
+
+  .legendCells
+    .label
+      fill: #787878 !important
+      font-size: 12px !important
+      font-weight: 500 !important
+
+    .legend-cell-show
+      fill: rgb(24, 103, 192) !important
+      font-size: 85% !important
+      font-weight: 600 !important
+      cursor: pointer !important
+      font-style: normal !important
+
+
+    .cell.hiding
+      .label
+        font-weight: 500 !important
+        fill: #9c9b9b !important
+      .legend-cell-show
+        font-weight: 600 !important
+        font-style: normal !important
+    .cell.showing
+      .legend-cell-show
+        font-weight: 700 !important
+        font-style: italic !important
+
+
+
+  .hint-box
+    background-color: #f7eccd9e
+    border: 0.5px #a7a7a7 solid
+    width: max-content
+    margin: auto
+    padding: 0px 4px 0px 4px
+    display: flex
+    justify-content: center
+    align-items: center
+    line-height: 13px
+    i.mdi
+      margin-right: 4px
+      font-size: 16px
+    div
+      font-size: 11px
+      font-style: italic
+
+  .v-input__control
+    input
+      font-size: 13px !important
+    .v-field__field
+      .v-label.v-field-label
+        font-size: 13px
+    .v-select__selection-text
       font-size: 13px
-  .v-select__selection-text
-    font-size: 13px
 
-#coverage-diagram
-  svg
-    path
-      fill: rgb(45 45 45 / 45%)
-      stroke: #09344f
-      stroke-width: 0.5
-
-#diagrams
   #coverage-diagram
     svg
       path
-        transform: translate(0px, -6px)
+        fill: rgb(45 45 45 / 45%)
+        stroke: #09344f
+        stroke-width: 0.5
 
-.zoom-button
-  background-color: #728dac !important
-  .v-btn__content
-    i
-      font-size: 26px
-      color: white !important
+  #diagrams
+    #coverage-diagram
+      svg
+        path
+          transform: translate(0px, -6px)
+
+  .zoom-button
+    background-color: #728dac !important
+    .v-btn__content
+      i
+        font-size: 26px
+        color: white !important
+
+  .donor-site, .acceptor-site
+    border-top: 10px solid #e7e7e7
+    padding-top: 10px
+    &.right-panel
+      border-left: 10px solid #e7e7e7
+      padding-left: 5px
+      margin-right: 5px
+
+  .coord
+    font-size: 14px !important
+    margin-top: 11px !important
+    font-weight: 500
+    margin-left: 43px
+
+
+  .coord-button
+    height: 28px
+    margin-top: 6px
+    color: #30638f
+
+
 </style>

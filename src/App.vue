@@ -1,9 +1,9 @@
 <template>
     <v-layout class="bg-grey-lighten-3">
 
-      <Navigation 
+      <Navigation
       ref="ref_Navigation"
-      :genes="genes" 
+      :genes="genes"
       :alerts="appAlerts"
       :alertCounts="appAlertCounts"
       :sampleNames="sampleNames"
@@ -18,15 +18,15 @@
       @show-legend="onShowLegend(true)"
       />
 
-       <v-navigation-drawer 
+       <v-navigation-drawer
         id="left-nav-drawer"
         width="400"
         v-model="showLeftNavDrawer"
         permanent
         location="left">
-          
-            <GenesPanel 
-              class="d-flex flex-column" 
+
+            <GenesPanel
+              class="d-flex flex-column"
               :show="showLeftNavDrawer"
               :geneModel="geneModel"
               :selectedObject="selectedObject"
@@ -39,7 +39,7 @@
             />
 
             <ObjectDetails :show="selectedGene && selectedObject"
-              class="d-flex flex-column" 
+              class="d-flex flex-column"
               :selectedObject="selectedObject"
               :selectedGene="selectedGene"
             />
@@ -73,27 +73,32 @@
       </v-navigation-drawer>
 
       <v-main  >
-         <SpliceJunctionHome 
+         <SpliceJunctionHome
           ref="ref_SpliceJunctionHome"
           :loadInfo="loadInfo"
-          :genes="genes" 
+          :genes="genes"
           :searchedGene="searchedGene"
           :selectedGene="selectedGene"
           :alerts="appAlerts"
           :alertCounts="appAlertCounts"
           :geneToAlerts="geneToAppAlerts"
           :spliceJunctionsForGene="spliceJunctionsForGene"
-          :junctionSiteSeqRange="junctionSiteSeqRange"
-          :junctionSitePan="junctionSitePan"
+          :donorSiteSeqRange="donorSiteSeqRange"
+          :acceptorSiteSeqRange="acceptorSiteSeqRange"
+          :donorSitePan="donorSitePan"
+          :acceptorSitePan="acceptorSitePan"
           @add-alert="addAlert"
           @gene-selected="onGeneSelected"
           @reinit="onReinit"
           @gene-model-initialized="onGeneModelInitialized"
           @splice-junctions-loaded="onSpliceJunctionsLoaded"
           @object-selected="onObjectSelected"
-          @set-site-zoom-factor="onSetSiteZoomFactor"
-          @set-site-pan="onSetSitePan"
-          @reset-site-pan="junctionSitePan = 0"
+          @set-donor-site-zoom-factor="onSetDonorSiteZoomFactor"
+          @set-acceptor-site-zoom-factor="onSetAcceptorSiteZoomFactor"
+          @set-donor-site-pan="onSetDonorSitePan"
+          @set-acceptor-site-pan="onSetAcceptorSitePan"
+          @reset-donor-site-pan="donorSitePan = 0"
+          @reset-acceptor-site-pan="acceptorSitePan = 0"
           @sample-names-loaded="onSampleNamesLoaded"
           @load-data-from-url-params="onLoadDataFromURL"
           @show-legend="showLegendDrawer=true"/>
@@ -160,13 +165,15 @@ export default {
     acceptorReferenceSequence: null,
 
 
-    junctionSiteSeqRange:      30,
-    junctionSitePan:            0,
+    donorSiteSeqRange:         30,
+    acceptorSiteSeqRange:      30,
+    donorSitePan:               0,
+    acceptorSitePan:            0,
 
     showLegendDrawer: false
 
 
-    
+
   }),
   created: function() {
     let idx = window.location.hash.indexOf("#access_token")
@@ -176,7 +183,7 @@ export default {
       localStorage.setItem('hub-iobio-tkn', token_type + ' ' + access_token);
       let urlPath = window.location.origin + "?" + qs.stringify(otherQueryParams)
       window.history.pushState({},"", urlPath);
-    } 
+    }
     d3.select("body")
   },
   methods: {
@@ -184,7 +191,7 @@ export default {
       let self = this;
       this.geneModel = geneModel;
 
-      // TODO - Remove. This is temporary code until we have worked out 
+      // TODO - Remove. This is temporary code until we have worked out
       // how the app is launched
       if (self.loadInfo == null) {
         setTimeout(function() {
@@ -272,14 +279,23 @@ export default {
     onAcceptorReferenceSequenceLoaded: function(referenceSequenceData) {
       this.acceptorReferenceSequence = referenceSequenceData;
     },
-    onSetSiteZoomFactor: function(factor) {
-      this.junctionSiteSeqRange = this.junctionSiteSeqRange + factor;
-      if (this.junctionSiteSeqRange <= 0) {
-        this.junctionSiteSeqRange = 1;
+    onSetDonorSiteZoomFactor: function(factor) {
+      this.donorSiteSeqRange = this.donorSiteSeqRange + factor;
+      if (this.donorSiteSeqRange <= 0) {
+        this.donorSiteSeqRange = 1;
       }
     },
-    onSetSitePan: function(pan) {
-      this.junctionSitePan = this.junctionSitePan + pan;
+    onSetAcceptorSiteZoomFactor: function(factor) {
+      this.acceptorSiteSeqRange = this.acceptorSiteSeqRange + factor;
+      if (this.acceptorSiteSeqRange <= 0) {
+        this.acceptorSiteSeqRange = 1;
+      }
+    },
+    onSetDonorSitePan: function(pan) {
+      this.donorSitePan = this.donorSitePan + pan;
+    },
+    onSetAcceptorSitePan: function(pan) {
+      this.acceptorSitePan = this.acceptorSitePan + pan;
     },
     onSampleNamesLoaded: function(sampleNames) {
       this.sampleNames = sampleNames;
@@ -288,9 +304,9 @@ export default {
       let self = this;
 
       let matching = self.appAlerts.filter(function(alert) {
-        if (alert.type == type && 
+        if (alert.type == type &&
             alert.message == message &&
-            alert.genes == genes && 
+            alert.genes == genes &&
             alert.details == details) {
           return true;
         } else {
@@ -300,7 +316,7 @@ export default {
 
       if (matching.length == 0) {
         let pad2 = function(n) { return n < 10 ? '0' + n : n }
-        let pad3 = function(n) { 
+        let pad3 = function(n) {
           if (n < 10) {
             return '00' + n;
           } else if (n < 100) {
@@ -310,19 +326,19 @@ export default {
           }
         }
         let date = new Date();
-        let timestamp = date.getFullYear().toString() 
-         + pad2(date.getMonth() + 1) 
+        let timestamp = date.getFullYear().toString()
+         + pad2(date.getMonth() + 1)
          + pad2( date.getDate())
-         + pad2( date.getHours() ) 
-         + pad2( date.getMinutes() ) 
+         + pad2( date.getHours() )
+         + pad2( date.getMinutes() )
          + pad2( date.getSeconds() )
          + pad3( date.getMilliseconds() );
 
-        let theAlert = {'type': type, 
-        'message': message, 
-        'genes': genes, 
-        'timestamp': timestamp, 
-        'key': timestamp + "-" + this.appAlerts.length, 
+        let theAlert = {'type': type,
+        'message': message,
+        'genes': genes,
+        'timestamp': timestamp,
+        'key': timestamp + "-" + this.appAlerts.length,
         'showDetails': false}
         if (details) {
           theAlert.details = details;
@@ -337,13 +353,13 @@ export default {
               self.geneToAppAlerts[theGeneName] = theAlerts;
             }
             theAlerts.push(alert)
-          }) 
+          })
         }
 
-        this.appAlertCounts[type] += 1 
+        this.appAlertCounts[type] += 1
         this.appAlertCounts.total += 1
-        
-      } 
+
+      }
       if (type == 'error' || type == 'warning') {
         this.onShowAlertPanel();
       }
@@ -362,7 +378,7 @@ export default {
       matching.forEach(function(alertToRemove) {
         let index = self.appAlerts.indexOf(alertToRemove);
         if (index >= 0) {
-          self.appAlertCounts[alertToRemove.type] -= 1 
+          self.appAlertCounts[alertToRemove.type] -= 1
           self.appAlertCounts.total -= 1;
 
           self.appAlerts.splice(index, 1)
@@ -389,7 +405,7 @@ export default {
       matching.forEach(function(alertToRemove) {
         let index = self.appAlerts.indexOf(alertToRemove);
         if (index >= 0) {
-          self.appAlertCounts[alertToRemove.type] -= 1 
+          self.appAlertCounts[alertToRemove.type] -= 1
           self.appAlertCounts.total -= 1;
 
           self.appAlerts.splice(index, 1)
@@ -412,7 +428,7 @@ export default {
       this.searchedGene = null;
       this.selectedGene = null;
       this.geneModel.clearAllGenes();
-      
+
     },
     onClearGene: function(geneName) {
       this.geneModel.removeGene(geneName)
@@ -441,7 +457,7 @@ export default {
     },
     onVcfURLEntered: function(vcfURL, tbiURL) {
       // This is called when the user enters a vcf URL and optionally a tbi URL.
-      // Here we call a method on SpliceJunctionHome to indicate that  
+      // Here we call a method on SpliceJunctionHome to indicate that
       // we are ready to read the VCF header to get the sample names
       if (this.$refs.ref_SpliceJunctionHome) {
         this.$refs.ref_SpliceJunctionHome.onVcfURLEntered(vcfURL, tbiURL)
@@ -479,14 +495,14 @@ export default {
     top: 0px
     z-index: 1
 
-h1, .h1 
+h1, .h1
   font-size: 20px !important
   margin-top: 0px !important
   margin-bottom: 5px !important
   color: $link-color !important
   font-weight: 500 !important
 
-h2, .h2 
+h2, .h2
   font-size: 18px !important
   margin-top: 0px !important
   margin-bottom: 5px !important
@@ -512,7 +528,7 @@ h3, .h3
   font-size: 15px;
   color: #494949;
 }
-.v-application .text-body-1, 
+.v-application .text-body-1,
 .v-application .text-body-2{
   font-family: 'Poppins' !important;
   font-size: 15px;

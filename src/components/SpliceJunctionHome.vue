@@ -10,9 +10,9 @@
 
     <v-card  v-show="selectedGene" class="full-width-card" style="padding-top:0px !important;min-height: calc(100vh + 20px);">
 
-            <SpliceJunctionD3 
+            <SpliceJunctionD3
             ref="ref_SpliceJunctionD3"
-            :selectedGene="selectedGene" 
+            :selectedGene="selectedGene"
             :geneStart="geneStart"
             :geneEnd="geneEnd"
             :genomeBuildHelper="genomeBuildHelper"
@@ -22,8 +22,10 @@
             :variants="variants"
             :tab="tab"
             :loadInProgress="loadInProgress"
-            :junctionSiteSeqRange="junctionSiteSeqRange"
-            :junctionSitePan="junctionSitePan"
+            :donorSiteSeqRange="donorSiteSeqRange"
+            :acceptorSiteSeqRange="acceptorSiteSeqRange"
+            :donorSitePan="donorSitePan"
+            :acceptorSitePan="acceptorSitePan"
             :variantHeight="variantHeight"
             :variantWidth="variantWidth"
             :vcf="vcf"
@@ -32,14 +34,17 @@
             @object-selected="onObjectSelected"
             @transcript-selected="onTranscriptSelected"
             @splice-junction-selected="onSpliceJunctionSelected"
-            @set-site-zoom-factor="onSetSiteZoomFactor"
-            @set-site-pan="onSetSitePan"
-            @reset-site-pan="$emit('reset-site-pan')"
+            @set-donor-site-zoom-factor="onSetDonorSiteZoomFactor"
+            @set-acceptor-site-zoom-factor="onSetAcceptorSiteZoomFactor"
+            @set-donor-site-pan="onSetDonorSitePan"
+            @set-acceptor-site-pan="onSetAcceptorSitePan"
+            @reset-donor-site-pan="$emit('reset-donor-site-pan')"
+            @reset-acceptor-site-pan="$emit('reset-acceptor-site-pan')"
             @show-legend="$emit('show-legend')"/>
 
-       
+
     </v-card>
-    
+
       <v-snackbar
         v-model="snackbar"
         location="center"
@@ -61,10 +66,10 @@
 <v-dialog v-model="showIGVPopup" persistent fullscreen >
   <v-card class="full-width">
     <div style="margin-right: 5px">
-      <v-btn variant="tonal" color="#094792" size="large" 
+      <v-btn variant="tonal" color="#094792" size="large"
       style="float:right;margin-bottom:10px;" @click="onShowIGV(false)">Close</v-btn>
     </div>
-    <SpliceJunctionViz 
+    <SpliceJunctionViz
     ref="ref_SpliceJunctionViz"
     :loadInfo="loadInfo"
     :tab="tab"
@@ -99,11 +104,11 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       SpliceJunctionViz,
       SpliceJunctionD3
     },
-    props: { 
+    props: {
       loadInfo: Object,
       genes: Array,
       genomeBuild: Array,
-      
+
       searchedGene: Object,
       selectedGene: Object,
       spliceJunctionsForGene: Object,
@@ -112,8 +117,10 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       alertCounts: Object,
       geneToAlerts: Object,
 
-      junctionSiteSeqRange: Number,
-      junctionSitePan: Number,
+      donorSiteSeqRange: Number,
+      acceptorSiteSeqRange: Number,
+      donorSitePan: Number,
+      acceptorSitePan: Number,
 
     },
     data: () => ({
@@ -173,10 +180,10 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
 
         self.loadURLParameters();
 
-        self.genomeBuildHelper = new GenomeBuildHelper(self.globalApp, 
-                                                       true, 
+        self.genomeBuildHelper = new GenomeBuildHelper(self.globalApp,
+                                                       true,
                                                        { DEFAULT_BUILD: 'GRCh38' });
-        self.geneModel =         new GeneModel(self.globalApp, 
+        self.geneModel =         new GeneModel(self.globalApp,
                                                self.genomeBuildHelper)
         self.geneModel.setAllKnownGenes(self.genes)
         self.geneModel.addEventListener("alertIssued", function(eventArgs) {
@@ -192,8 +199,8 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         self.vcf = new Vcf(self.globalApp)
         self.vcf.setEndpoint(self.endpoint)
         self.vcf.setGenomeBuildHelper(self.genomeBuildHelper)
-        
-       
+
+
 
       },
 
@@ -223,7 +230,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
             self.geneModel.adjustGeneRegion(theGeneObject);
             self.geneRegionStart = theGeneObject.start;
             self.geneRegionEnd   = theGeneObject.end;
-            self.$emit("gene-selected", theGeneObject)   
+            self.$emit("gene-selected", theGeneObject)
 
             if (self.loadInfo == null) {
               self.snackbarText = "Click on 'Load data' to continue."
@@ -268,11 +275,17 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       addAppAlert: function(type, message, genes, details) {
         this.$emit("add-alert", type, message, genes, details)
       },
-      onSetSiteZoomFactor: function(factor) {
-        this.$emit("set-site-zoom-factor", factor)
+      onSetDonorSiteZoomFactor: function(factor) {
+        this.$emit("set-donor-site-zoom-factor", factor)
       },
-      onSetSitePan: function(factor) {
-        this.$emit("set-site-pan", factor)
+      onSetAcceptorSiteZoomFactor: function(factor) {
+        this.$emit("set-acceptor-site-zoom-factor", factor)
+      },
+      onSetDonorSitePan: function(factor) {
+        this.$emit("set-donor-site-pan", factor)
+      },
+      onSetAcceptorSitePan: function(factor) {
+        this.$emit("set-acceptor-site-pan", factor)
       },
       clearAndReload: function(geneNameToLoad) {
         let self = this;
@@ -283,7 +296,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
             return geneNameToLoad == null || geneName != geneNameToLoad;
           });
         }
-        
+
         self.geneModel.clearAllGenes();
         geneNames.forEach(function(geneName) {
           self.loadGene(geneName);
@@ -297,7 +310,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         let self = this;
         let spliceJunctionRecords = self.geneModel.geneToSpliceJunctionRecords[self.selectedGene.gene_name];
         if (spliceJunctionRecords && spliceJunctionRecords.length > 0) {
-          let spliceJunctions  = {'gene': self.selectedGene.gene_name, 
+          let spliceJunctions  = {'gene': self.selectedGene.gene_name,
                                   'spliceJunctions': spliceJunctionRecords}
           self.$emit('splice-junctions-loaded', spliceJunctions)
         } else {
@@ -312,8 +325,8 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
           let region = {'refName':  chr,
                          'start':   self.selectedGene.start,
                          'end':     self.selectedGene.end };
-          self.endpoint.promiseGetBedRegion(self.loadInfo.bedURL, 
-                                            self.loadInfo.bedIndexURL, 
+          self.endpoint.promiseGetBedRegion(self.loadInfo.bedURL,
+                                            self.loadInfo.bedIndexURL,
                                             region)
           .then(function(bedRecords) {
             self.loadInProgess = false;
@@ -322,7 +335,7 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
 
 
             //self.geneModel.geneToSpliceJunctionRecords[self.selectedGene.gene_name] = spliceJunctionRecords;
-            //let spliceJunctions  = {'gene': self.selectedGene.gene_name, 
+            //let spliceJunctions  = {'gene': self.selectedGene.gene_name,
              //                       'spliceJunctions': spliceJunctions}
             self.$emit('splice-junctions-loaded', self.selectedGene.gene_name, spliceJunctions, summary)
           })
@@ -372,9 +385,9 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         }
 
         let regions = [];
-        regions.push({'name': self.selectedGene.chr, 'start': self.selectedGene.start, 'end': self.selectedGene.end})        
+        regions.push({'name': self.selectedGene.chr, 'start': self.selectedGene.start, 'end': self.selectedGene.end})
         let isMultiSample = true;
-        let samplesToRetrieve = [{'vcfSampleName': self.loadInfo.sampleName, 
+        let samplesToRetrieve = [{'vcfSampleName': self.loadInfo.sampleName,
                                   'sampleName': self.loadInfo.sampleName}]
 
         self.vcf.promiseGetVariants(self.selectedGene.chr, self.selectedGene, self.selectedTranscript, regions,isMultiSample, samplesToRetrieve)
@@ -391,18 +404,18 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
       onSpliceJunctionSelected: function(spliceJunction) {
         let self = this;
         let promises = [];
-        let p = self.promiseGetReferenceSequence('donor', 
-          self.selectedGene.chr, 
-          spliceJunction.donor.pos - self.junctionSiteSeqRange + self.junctionSitePan,
-          spliceJunction.donor.pos + self.junctionSiteSeqRange + self.junctionSitePan)
+        let p = self.promiseGetReferenceSequence('donor',
+          self.selectedGene.chr,
+          spliceJunction.donor.pos - self.donorSiteSeqRange + self.donorSitePan,
+          spliceJunction.donor.pos + self.donorSiteSeqRange + self.donorSitePan)
         .then(function(sequenceData) {
           self.donorReferenceSequence = sequenceData;
         })
         promises.push(p)
-        p = self.promiseGetReferenceSequence('acceptor', 
-          self.selectedGene.chr, 
-          spliceJunction.acceptor.pos - self.junctionSiteSeqRange + self.junctionSitePan,
-          spliceJunction.acceptor.pos + self.junctionSiteSeqRange + self.junctionSitePan)
+        p = self.promiseGetReferenceSequence('acceptor',
+          self.selectedGene.chr,
+          spliceJunction.acceptor.pos - self.acceptorSiteSeqRange + self.acceptorSitePan,
+          spliceJunction.acceptor.pos + self.acceptorSiteSeqRange + self.acceptorSitePan)
         .then(function(sequenceData) {
           self.acceptorReferenceSequence = sequenceData;
         })
@@ -415,17 +428,17 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
           let acceptorVariants = null;
           if (self.variants) {
             donorVariants = self.variants.filter(function(d) {
-              return d.start >= spliceJunction.donor.pos - self.junctionSiteSeqRange + self.junctionSitePan &&
-                     d.start <= spliceJunction.donor.pos + self.junctionSiteSeqRange + self.junctionSitePan
+              return d.start >= spliceJunction.donor.pos - self.donorSiteSeqRange + self.donorSitePan &&
+                     d.start <= spliceJunction.donor.pos + self.donorSiteSeqRange + self.donorSitePan
             })
             acceptorVariants = self.variants.filter(function(d) {
-              return d.start >= spliceJunction.acceptor.pos - self.junctionSiteSeqRange + self.junctionSitePan &&
-                     d.start <= spliceJunction.acceptor.pos + self.junctionSiteSeqRange + self.junctionSitePan
+              return d.start >= spliceJunction.acceptor.pos - self.acceptorSiteSeqRange + self.acceptorSitePan &&
+                     d.start <= spliceJunction.acceptor.pos + self.acceptorSiteSeqRange + self.acceptorSitePan
             })
 
           }
           if (self.$refs.ref_SpliceJunctionD3) {
-            self.$refs.ref_SpliceJunctionD3.drawAcceptorAndDonorSites(self.donorReferenceSequence, 
+            self.$refs.ref_SpliceJunctionD3.drawAcceptorAndDonorSites(self.donorReferenceSequence,
               self.acceptorReferenceSequence, donorVariants, acceptorVariants)
           }
         })
@@ -439,10 +452,10 @@ import SpliceJunctionD3  from './SpliceJunctionD3.vue'
         let self = this;
         return new Promise(function(resolve, reject) {
           self.loadInProgress = true;
-          let region = {'refName': refName, 
+          let region = {'refName': refName,
                          'start':  start,
                          'end':    end };
-          self.endpoint.promiseGetReferenceSequence(refName, 
+          self.endpoint.promiseGetReferenceSequence(refName,
                                                     region)
           .then(function(fastaRecords) {
             self.loadInProgess = false;
