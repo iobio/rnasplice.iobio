@@ -1,6 +1,6 @@
 {
-  "name": "vuetify-project",
-  "version": "0.0.0",
+  "name": "rnasplice.iobio",
+  "version": "1.0.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -19,8 +19,8 @@
     "roboto-fontface": "*",
     "uiv": "^2.0.6",
     "vite-plugin-node-polyfills": "^0.11.3",
-    "vue": "^3.2.0",
-    "vuetify": "^3.0.0",
+    "vue": "3.2.0",
+    "vuetify": "3.0.0",
     "webfontloader": "^1.0.0"
   },
   "devDependencies": {
