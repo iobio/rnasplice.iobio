@@ -1,18 +1,16 @@
 <template>
   <div class="text-center">
-    <v-dialog 
+    <v-dialog
       v-model="show"
       width="auto">
 
       <v-form ref="ref_Form" v-model="isFormValid" @submit.prevent fast-fail>
 
         <v-card style="width:900px">
-          <v-card-title> 
+          <v-card-title>
               <div class="d-flex" style="align-items:center">
                 Load data files
-                <v-btn style="margin-left:40px" variant="text" density="compact" @click="demoNumber='demo1';onTryDemoBed()">Load 1099</v-btn>
-                <v-btn variant="text" density="compact" @click="demoNumber='demo3';onTryDemoBed()">Load R2003</v-btn>
-              </div>
+                </div>
           </v-card-title>
           <v-card-text id="load-data-dialog-content">
 
@@ -39,10 +37,10 @@
 
 
               <div class="">
-                <v-text-field id="bed-url-text" 
+                <v-text-field id="bed-url-text"
                   v-model="bedURL"
                   :rules="bedRules"
-                  density="compact" 
+                  density="compact"
                   hide-details
                   label="Splice Junction BED URL (.bed.gz)">
                 </v-text-field>
@@ -59,9 +57,9 @@
 
 
               <div class="pt-8">
-                <v-text-field id="bigwig-url-text" 
+                <v-text-field id="bigwig-url-text"
                   v-model="bigwigURL"
-                  density="compact" 
+                  density="compact"
                   :rules="bigwigRules"
                   hide-details
                   label="Coverage URL (.bw or .bigWig)">
@@ -92,27 +90,27 @@
 
 
               <div class="pt-8">
-                <v-text-field id="vcf-url-text" 
+                <v-text-field id="vcf-url-text"
                   v-model="vcfURL"
                   :rules="vcfRules"
-                  density="compact" 
+                  density="compact"
                   hide-details
                   label="VCF URL (.vcf.gz)">
                 </v-text-field>
               </div>
 
               <div class="pt-2">
-                <v-text-field id="tbi-url-text" 
+                <v-text-field id="tbi-url-text"
                   v-model="tbiURL"
                   :rules="tbiRules"
-                  density="compact" 
+                  density="compact"
                   hide-details
                   label="tbi URL (.vcf.gz.tbi)">
                 </v-text-field>
               </div>
 
               <div style="width:255px" class="pt-2">
-                <v-select 
+                <v-select
                   v-model="selectedSampleName"
                   :rules="sampleNameRules"
                   hide-details="auto"
@@ -123,10 +121,9 @@
               </div>
 
             </div>
-            
+
           </v-card-text>
           <v-card-actions  class="mt-1">
-            <v-btn type="submit" class="mt-1" v-if="false" density="compact" size="medium" color="primary" variant="tonal" @click="onTryDemoBed">Load demo data</v-btn>
 
             <v-spacer/>
             <v-btn elevation="2" variant="flat" :disabled="!isFormValid" density="compact" color="blue-darken-4" size="large"  @click="onLoad">Load</v-btn>
@@ -164,25 +161,7 @@ export default {
         demoNumber: 'demo1',
 
         urlRegExp: /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi,
-            
 
-        demoInfo: {
-          'demo1': {
-            'bedURL': "https://s3.amazonaws.com/tony.splicejunction.bed/1099_SJ.out.bed.gz",
-            'bedIndexURL': "https://s3.amazonaws.com/tony.splicejunction.bed/1099_SJ.out.bed.gz.tbi",
-            'bigwigURL': "https://s3.amazonaws.com/tony.splicejunction.bed/1099_RNA.bigWig"
-          },
-          'demo2': {
-            'bedURL': "splice_junction_track_test_cases_sampleA.chr15-92835700-93031800.SJ.out.bed.gz?dl=0",
-            'bedIndexURL': "https://www.dropbox.com/s/iv5tcg3t8v3xu23/splice_junction_track_test_cases_sampleA.chr15-92835700-93031800.SJ.out.bed.gz.tbi?dl=0",
-            'bigwigURL': "https://www.dropbox.com/s/8j2uf0hsqprusnc/splice_junction_track_test_cases_sampleA.chr15-92835700-93031800.bigWig?dl=0"
-          },
-          'demo3': {
-            'bedURL': "https://s3.amazonaws.com/tony.splicejunction.bed/R2003-01.SJ.out.bed.gz",
-            "bedIndexURL": "https://s3.amazonaws.com/tony.splicejunction.bed/R2003-01.SJ.out.bed.gz.tbi",
-            'bigwigURL': "https://s3.amazonaws.com/tony.splicejunction.bed/R2003-01.Aligned.out.bw"
-          }
-        },
 
         bedRules: [
           v => { if (v) {
@@ -196,14 +175,14 @@ export default {
               return true;
             } else {
               return 'The bed file must be bgzipped (.bed.gz)'
-            } 
+            }
           },
           v => {
             if (v && v.match(new RegExp(self.urlRegExp))) {
               return true;
             } else {
               return 'Invalid URL';
-            } 
+            }
           }
         ],
         bedIndexRules: [
@@ -330,7 +309,7 @@ export default {
           v => {
             if (self.vcf == null) {
               return true;
-            } 
+            }
             if (self.sampleNames && self.samples.length > 0) {
               if (v) {
                 return true;
@@ -351,10 +330,8 @@ export default {
       // TODO - Remove. Temporary code to default to demo data on load.
       if (this.preLoadInfo && Object.keys(this.preLoadInfo).length > 0) {
         this.init();
-      } else {
-        //this.onTryDemoBed();
       }
-      
+
     },
     methods: {
       init: function() {
@@ -390,8 +367,8 @@ export default {
           alert("Select a sample name from the dropdown")
           return;
         }
-        let loadInfo = {'buildName': this.buildName, 
-                        'bedURL': this.bedURL.trim(), 
+        let loadInfo = {'buildName': this.buildName,
+                        'bedURL': this.bedURL.trim(),
                         'bedIndexURL': this.bedIndexURL ? this.bedIndexURL.trim() : this.bedURL.trim() + '.tbi',
                         'bigwigURL': this.bigwigURL ? this.bigwigURL.trim() : null,
                         'alignmentURL': this.alignmentURL ? this.alignmentURL.trim() : null,
@@ -406,8 +383,6 @@ export default {
       },
       onTryDemoBed: function() {
         let self = this;
-        this.bedURL = this.demoInfo[self.demoNumber].bedURL;
-        this.bigwigURL = this.demoInfo[self.demoNumber].bigwigURL;
       },
       parseCopyPasteURLs: function() {
         let self = this;
