@@ -1,5 +1,5 @@
 <template>
-  <v-app-bar 
+  <v-app-bar
       dark height="50"
       style="padding-top:2px"
     >
@@ -8,23 +8,23 @@
         <v-app-bar-nav-icon @click="onShowGenesPanel"></v-app-bar-nav-icon>
       </template>
 
-      <v-app-bar-title>splicejunction.iobio</v-app-bar-title>
+      <v-app-bar-title>rnasplice.iobio  prd</v-app-bar-title>
 
       <v-spacer></v-spacer>
 
 
       <div id="search-gene-box" style="min-width:200px">
         <v-text-field id="search-gene-input" class="pl-2"
-        hide-details 
+        hide-details
         v-model="searchedGeneInput"
-        density="compact" 
-        label="Gene" 
-        prepend-icon="mdi-magnify" 
+        density="compact"
+        label="Gene"
+        prepend-icon="mdi-magnify"
         />
-        <Typeahead  v-model="searchedGene" 
-        target="#search-gene-input" 
-        :data="genes" 
-        item-key="gene_name" /> 
+        <Typeahead  v-model="searchedGene"
+        target="#search-gene-input"
+        :data="genes"
+        item-key="gene_name" />
       </div>
       <v-spacer></v-spacer>
 
@@ -44,17 +44,17 @@
 
 
 
-      <AlertButton 
+      <AlertButton
       class="mr-9"
-      :alerts="alerts" 
+      :alerts="alerts"
       :alertCounts="alertCounts"
       @show-alert-panel="onShowAlertPanel"/>
 
 
 
 
-      <v-btn id="legend-button" 
-      @click="$emit('show-legend')" 
+      <v-btn id="legend-button"
+      @click="$emit('show-legend')"
       v-tooltip.bottom-left="{content: 'Show legend'}">
         <v-icon class="mr-1">mdi-map</v-icon>
       </v-btn>
