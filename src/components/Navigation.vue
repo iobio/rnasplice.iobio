@@ -8,8 +8,8 @@
         <v-app-bar-nav-icon @click="onShowGenesPanel"></v-app-bar-nav-icon>
       </template>
 
-      <v-app-bar-title>rnasplice.iobio  prd</v-app-bar-title>
-
+      <v-app-bar-title>rnasplice.iobio</v-app-bar-title>
+      <div class="app-version">v{{ appVersion }}</div>
       <v-spacer></v-spacer>
 
 
@@ -67,7 +67,7 @@
         <v-menu activator="parent">
           <v-list>
             <v-list-item>
-              <v-list-item-title>Version {{ globalApp.version }}</v-list-item-title>
+              <v-list-item-title>Version {{ appVersion }}</v-list-item-title>
             </v-list-item>
             <v-list-item>
               <v-list-item-title @click="showDisclaimer=true">Disclaimer</v-list-item-title>
@@ -121,6 +121,7 @@ import { Typeahead } from 'uiv'
       LoadDataDialog
     },
     props: {
+      appVersion: String,
       genes: Array,
       genomeBuild: Array,
       alerts: Array,
@@ -185,4 +186,11 @@ import { Typeahead } from 'uiv'
   .v-btn
     font-size: 16px !important
     font-weight: 500
+
+  .v-toolbar-title.v-app-bar-title
+    max-width:  150px
+
+.app-version
+  font-size: 15px
+  padding-top: 4px
 </style>

@@ -3,6 +3,7 @@
 
       <Navigation
       ref="ref_Navigation"
+      :appVersion="appVersion"
       :genes="genes"
       :alerts="appAlerts"
       :alertCounts="appAlertCounts"
@@ -139,6 +140,8 @@ export default {
   },
 
   data: () => ({
+    appVersion:  import.meta.env.PACKAGE_VERSION,
+
     genes:       genesData,
 
     geneModel: null,
