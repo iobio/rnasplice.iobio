@@ -5,14 +5,14 @@
 
     <div style="text-align:left;width:200px;margin-right:15px;margin-bottom:10px">
 
-      <legend-icon style="margin-top: 10px"
+      <legend-icon style="margin-top: 10px" class="junction-non-mane-transcript"
        icon="junction-non-mane-transcript"
        level="none"
        width="25"
        label="  Not MANE transcript">
       </legend-icon>
 
-      <legend-icon
+      <legend-icon class="junction-strand-mismatch"
        icon="junction-strand-mismatch"
        level="none"
        width="25"
@@ -81,7 +81,7 @@
          height="14"
          label="Low">
         </legend-icon>
-        
+
       </div>
 
 
@@ -93,7 +93,6 @@
 
         <div style="display:flex">
           <legend-icon
-           style="display:inline-block;fill:lightgray"
            icon="impact"
            type="snp"
            level="none"
@@ -105,7 +104,6 @@
 
         <legend-icon
          icon="impact"
-         style="fill:lightgray"
          type="del"
          level="none"
          width="16"
@@ -115,7 +113,6 @@
 
         <legend-icon
          icon="impact"
-         style="fill:lightgray"
          type="ins"
          level="none"
          width="16"
@@ -125,7 +122,6 @@
 
         <legend-icon
          icon="impact"
-         style="fill:lightgray"
          type="complex"
          level="none"
          width="18"
@@ -252,6 +248,26 @@ export default {
   font-size: 18px
 
 #legend
+  svg.impact-badge.level-none
+    stroke-width: 1.5px !important
+    stroke: #949494 !important
+    fill: white !important
+
+
+  .impact_HIGH
+    fill: $high-impact-color
+  .impact_MODERATE
+    fill: $moderate-impact-color
+  .impact_MODIFIER
+    fill: $modifier-impact-color
+  .impact_LOW
+    fill: $low-impact-color
+
+  #junction-non-mane-transcript-symbol path
+    stroke: #787878
+  #junction-strand-mismatch-symbol path
+    stroke: #787878
+
   .legend-element
     cursor: auto
     padding: 1px
