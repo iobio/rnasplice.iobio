@@ -109,15 +109,30 @@
                 </v-text-field>
               </div>
 
-              <div style="width:255px" class="pt-2">
-                <v-select
-                  v-model="selectedSampleName"
-                  :rules="sampleNameRules"
-                  hide-details="auto"
-                  label="Sample name"
-                  density="compact"
-                  :items="sampleNames"
-                ></v-select>
+              <div class="d-flex" style="align-items: center">
+                <div style="width:255px" class="pt-2">
+                  <v-select
+                    v-model="selectedSampleName"
+                    :rules="sampleNameRules"
+                    hide-details="auto"
+                    label="Sample name"
+                    density="compact"
+                    :items="sampleNames"
+                  ></v-select>
+                </div>
+
+                <div v-if="samplesLoading" class="ml-2">Loading sample names</div>
+                <v-progress-circular class="ml-2" v-if="samplesLoading"
+                  indeterminate
+                  size="20"
+                  color="primary"
+                ></v-progress-circular>
+                <v-alert type="info" variant="tonal"
+                 density="compact" style="margin-top:8px !important;font-size:13px !important"
+                 v-if="samplesLoading == false && vcfURL != null && vcfURL != '' && (selectedSampleName == null || selectedSampleName == '')">
+                    Select a sample from the dropdown
+                </v-alert>
+
               </div>
 
             </div>
@@ -158,6 +173,7 @@ export default {
         tbiURL: null,
         selectedSampleName: null,
         copyPasteURLs: null,
+        loadingSamples: null,
         demoNumber: 'demo1',
 
         urlRegExp: /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi,
@@ -427,6 +443,7 @@ export default {
             this.tbiURL = this.tbiURL.trim();
           }
           if (this.vcfURL && this.tbiURL) {
+            this.samplesLoading = true;
             this.$emit("vcf-url-entered", this.vcfURL, this.tbiURL)
           }
         }
@@ -446,6 +463,11 @@ export default {
         if (this.copyPasteURLs && this.copyPasteURLs.length > 0) {
           this.parseCopyPasteURLs()
         }
+      },
+      sampleNames: function() {
+        if (this.sampleNames != null && this.sampleNames.length > 0) {
+          this.samplesLoading = false;
+        }
       }
 
     }
@@ -456,6 +478,8 @@ export default {
 #load-data-dialog-content #bed-url-text,
 #load-data-dialog-content #bed-index-url-text,
 #load-data-dialog-content #bigwig-url-text,
+#load-data-dialog-content #alignment-url-text,
+#load-data-dialog-content #alignment-index-url-text,
 #load-data-dialog-content #vcf-url-text,
 #load-data-dialog-content #tbi-url-text
  {
