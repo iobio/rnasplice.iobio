@@ -5443,17 +5443,17 @@ text.seq.T, rect.seq.T {
   #cryptic-site-histogram
     #read-count-histogram
       .histogram-bar
-        fill: #e66a7f
+        fill: $cryptic-site-color
 
   #canonical-histogram
     #read-count-histogram
       .histogram-bar
-        fill: steelblue
+        fill: $canonical-site-color
 
   #exon-skipping-histogram
     #read-count-histogram
       .histogram-bar
-        fill: #db9625
+        fill: $exon-skipping-color
 
   #read-count-histogram
     .mean-line
