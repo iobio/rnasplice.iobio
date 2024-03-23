@@ -238,8 +238,29 @@ export default {
       if (self.loadInfo.vcfURL && self.loadInfo.tbiURL) {
         self.$nextTick(function() {
           self.onVcfURLEntered(self.loadInfo.vcfURL, self.loadInfo.tbiURL)
+
+          if (self.preLoadInfo.genes != null && self.preLoadInfo.genes.length > 0) {
+            self.$nextTick(function(){
+              self.onShowLeftNavDrawer();
+              let genes = self.geneModel.sortedGeneNames;
+              if (genes && genes.length > 0) {
+                  self.onGeneClicked(genes[0])
+              }
+            })
+          }
+
         })
+      } else {
+        if (self.preLoadInfo.genes != null && self.preLoadInfo.genes.length > 0) {
+          self.$nextTick(function(){
+            self.onShowLeftNavDrawer();
+            self.$nextTick(function() {
+              self.onGene
+            })
+          })
+        }
       }
+
     },
     onLoadData: function(loadInfo) {
       let self = this;

@@ -10,8 +10,13 @@
 
       <v-app-bar-title>rnasplice.iobio</v-app-bar-title>
       <div class="app-version">v{{ appVersion }}</div>
-      <v-spacer></v-spacer>
 
+
+      <div v-if="buildName" class="app-label ml-8 mr-5" >{{ buildName }}</div>
+      <div id="project-name" v-if="projectName" class="app-label mr-5" >Project {{ projectName }}</div>
+      <div id="sample-name"  v-if="sampleName" class="app-label" >Sample {{ sampleName }}</div>
+
+      <v-spacer></v-spacer>
 
       <div id="search-gene-box" style="min-width:200px">
         <v-text-field id="search-gene-input" class="pl-2"
@@ -45,7 +50,7 @@
 
 
       <AlertButton
-      class="mr-9"
+      class="mr-4"
       :alerts="alerts"
       :alertCounts="alertCounts"
       @show-alert-panel="onShowAlertPanel"/>
@@ -134,14 +139,15 @@ import { Typeahead } from 'uiv'
       searchedGene: null,
       searchedGeneInput: null,
       showLoadDataDialog: false,
-      showDisclaimer: false
+      showDisclaimer: false,
     }),
     watch: {
       searchedGene: function() {
         if (this.searchedGene && this.searchedGene.gene_name) {
           this.$emit("gene-searched", this.searchedGene)
         }
-      }
+      },
+
     },
     methods: {
       onShowAlertPanel: function() {
@@ -166,6 +172,40 @@ import { Typeahead } from 'uiv'
       setGeneSearchField: function(theValue) {
         this.searchedGeneInput = theValue;
       }
+    },
+    computed: {
+      sampleName: function() {
+        if (this.preLoadInfo && this.preLoadInfo.sampleName) {
+          return this.preLoadInfo.sampleName;
+        } else {
+          return null;
+        }
+      },
+      buildName: function() {
+        if (this.preLoadInfo && this.preLoadInfo.buildName) {
+          return this.preLoadInfo.buildName;
+        } else {
+          return null;
+        }
+      },
+      projectName: function() {
+        if (this.preLoadInfo && this.preLoadInfo.project) {
+          if (false && this.preLoadInfo.project.nickname && this.preLoadInfo.project.nickname != "" ) {
+            return this.preLoadInfo.project.nickname;
+          } else {
+            let name = this.preLoadInfo.project.name;
+            name = name.replaceAll("-", " ")
+            name = name.replaceAll("_", " ")
+            if (name.length > 30) {
+              let endPos = Math.min(30, name.length)
+              name = name.slice(0,endPos) + "..."
+            }
+            return name;
+          }
+        } else {
+          return null;
+        }
+      }
     }
   }
 </script>
@@ -179,6 +219,9 @@ import { Typeahead } from 'uiv'
 </style>
 
 <style lang="sass">
+
+@import '../styles/variables.sass'
+
 .navbar-icon-button
   background-color: transparent !important
 
@@ -189,6 +232,29 @@ import { Typeahead } from 'uiv'
 
   .v-toolbar-title.v-app-bar-title
     max-width:  150px
+
+  .app-label
+    font-size: 12px
+    font-style: italic
+    font-weight: 500
+    color:  $app-label-color
+    margin-top: 3px
+
+  #sample-name
+    max-width: 50px
+    overflow-y: hidden
+    font-size: 12px
+    line-height: 13px
+    white-space: break-spaces
+    max-height: 38px
+
+  #project-name
+    max-width: 90px
+    overflow-y: hidden
+    font-size: 12px
+    line-height: 13px
+    white-space: break-spaces
+    max-height: 38px
 
 .app-version
   font-size: 15px

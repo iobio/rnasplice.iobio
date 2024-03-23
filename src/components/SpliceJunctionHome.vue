@@ -236,11 +236,29 @@ import { reject } from 'async'
             self.user = data.user;
             loadInfo = data.loadInfo;
 
+            let genes = self.urlParams.get('genes')
+            loadInfo.genes = genes;
+            if (genes && genes.length > 0) {
+              let promises = []
+              genes.split(",").forEach(function(geneName){
+                let p = self.geneModel.promiseAddGeneName(geneName)
+                promises.push(p)
+              })
+              Promise.all(promises)
+              .then(function(){
+
+              })
+              .catch(function(error) {
+              })
+            }
+
+
             self.projectId = self.urlParams.get('project_id')
             return self.mosaicSession.promiseGetProject(self.projectId)
           })
           .then(project => {
-            self.project = project
+            self.project = project;
+            loadInfo.project = project;
             resolve(loadInfo);
           })
           .catch(function (error) {
@@ -620,7 +638,8 @@ import { reject } from 'async'
       loadInfo: function() {
         let self = this;
 
-        if (self.loadInfo != null ) {
+        if (self.loadInfo != null &&
+           (self.geneModel.sortedGeneNames == null || self.geneModel.sortedGeneNames.length == 0) ) {
 
           self.snackbarText = "Type in a gene name to display splice junctions."
           self.snackbar = true;

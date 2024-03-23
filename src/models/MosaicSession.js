@@ -34,9 +34,8 @@ export default class MosaicSession {
       .then(function(data) {
         geneSet = data;
 
-        self.promiseGetSampleInfo(projectId, sampleId, false).then(data => {
+        self.promiseGetSample(projectId, sampleId, null).then(theSample => {
           // Let's get the proband info first
-          let theSample = data.proband;
           self.promiseGetFileMapForSample(projectId, theSample, 'proband', experimentId)
           .then(data => {
             theSample.files = data.fileMap;
@@ -63,18 +62,33 @@ export default class MosaicSession {
             resolve({'loadInfo': loadInfo,  'geneSet': geneSet, 'user': self.user});
           })
           .catch(error => {
-            reject(error);
+            let errorMsg = error.responseText ? error.responseText : error.toString();
+            console.log(errorMsg)
+            reject(errorMsg);
           })
         })
       })
       .catch(function(error) {
-        console.log(error)
-        reject(error)
+        let errorMsg = error.responseText ? error.responseText : error.toString();
+        console.log(errorMsg)
+        reject(errorMsg)
       })
 
     })
 
   }
+
+  getErrorMessage(error) {
+    if (error.hasOwnProperty('responseJSON') && error.responseJSON.hasOwnProperty('message')) {
+      return error.responseJSON.message;
+    } else if (error.hasOwnProperty('responseText')) {
+      return error.responseText;
+    } else {
+      return error.toString()
+    }
+
+  }
+
 
   hasVariantSets(modelInfos, rel='proband') {
     let proband = modelInfos.filter(function(mi) {
@@ -92,24 +106,18 @@ export default class MosaicSession {
     let self = this;
 
     return new Promise(function(resolve, reject) {
-      // TODO uncomment when we have an app in Utah Mosaic for rnasplice
       if(self.client_application_id){
         resolve();
       }
-      else{
+      else {
+        //TODO: uncomment reject when launch for rnasplice.iobio is set up in Mosaic
         resolve();
         //reject("Cannot find Mosaic client_application for gene");
-      }})
+      }
+    })
   }
 
-  promiseGetSampleInfo(project_id, sample_id, isPedigree) {
-    let self = this;
-    if (isPedigree) {
-      return self.promiseGetPedigreeForSample(project_id, sample_id);
-    } else {
-      return self.promiseGetSample(project_id, sample_id, 'proband');
-    }
-  }
+
   promiseGetProject(project_id) {
     let self = this;
     return new Promise(function(resolve, reject) {
