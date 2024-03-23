@@ -37,7 +37,7 @@ export default class MosaicSession {
         self.promiseGetSampleInfo(projectId, sampleId, false).then(data => {
           // Let's get the proband info first
           let theSample = data.proband;
-          self.promiseGetFileMapForSample(projectId, probandSample, 'proband', experimentId)
+          self.promiseGetFileMapForSample(projectId, theSample, 'proband', experimentId)
           .then(data => {
             theSample.files = data.fileMap;
             let loadInfo = {
@@ -49,14 +49,14 @@ export default class MosaicSession {
                         'tbiURL':      theSample.files['tbi'],
                         'sampleName':  theSample.name}
             if (theSample.files.bam != null) {
-              loadInfo.bam = theSample.files.bam;
+              loadInfo.alignmentURL = theSample.files.bam;
               if (theSample.files.bai) {
-                loadInfo.bai = theSample.files.bai;
+                loadInfo.alignmentIndexURL = theSample.files.bai;
               }
             } else if (theSample.files.cram != null) {
-              loadInfo.bam = theSample.files.cram;
+              loadInfo.alignmentURL = theSample.files.cram;
               if (theSample.files.crai) {
-                loadInfo.bai = theSample.files.crai;
+                loadInfo.alignmentIndexURL = theSample.files.crai;
               }
             }
 
@@ -66,6 +66,10 @@ export default class MosaicSession {
             reject(error);
           })
         })
+      })
+      .catch(function(error) {
+        console.log(error)
+        reject(error)
       })
 
     })
@@ -84,84 +88,18 @@ export default class MosaicSession {
     }
   }
 
-  promiseParseVariantSets(modelInfos, rel='proband') {
-    let self = this;
-    return new Promise(function(resolve,reject) {
-      let proband = modelInfos.filter(function(mi) {
-        return mi.relationship == rel;
-      })
-      let variantSets = {};
-      if (proband && proband.length > 0) {
-        var promises = [];
-        let fileInfos = proband[0].txt;
-        fileInfos.forEach(function(fileInfo) {
-          let p = self.promiseParseVariantSetFile(fileInfo, proband[0])
-          .then(function(data) {
-            if (data) {
-              variantSets[data.nickname] = data.records;
-            }
-          })
-          promises.push(p);
-        })
-        Promise.all(promises)
-        .then(function() {
-          resolve(variantSets)
-        })
-      } else {
-        resolve(variantSets);
-      }
-
-    })
-  }
-
-
-
   promiseGetClientApplication() {
     let self = this;
+
     return new Promise(function(resolve, reject) {
-      $.ajax({
-        url: self.api + '/client-applications',
-        type: 'GET',
-        contentType: 'application/json',
-        headers: {
-          Authorization: localStorage.getItem('hub-iobio-tkn'),
-        },
-      })
-      .done(data => {
-        let clientApps = data.data;
-        let matchingApp = clientApps.filter(function(clientApp) {
-          return clientApp.display_name == 'rnasplice.iobio';
-        })
-        if (matchingApp.length > 0) {
-          console.log("client_application_id = " + matchingApp[0].id)
-          self.client_application_id = matchingApp[0].id;
-          resolve();
-        } else {
-          reject("Cannot find Mosaic client_application for rnasplice.iobio")
-        }
-
-      })
-      .fail(error => {
-        console.log("Error getting applications ");
-        console.log(error);
-        reject(error);
-      })
-
-    })
-  }
-
-
-  promiseGetProject(project_id) {
-    let self = this;
-    return new Promise(function(resolve, reject) {
-      self.getProject(project_id)
-      .done(data => {
-          resolve(data);
-      })
-      .fail(error => {
-        reject("Error getting project " + project_id + ": " + error);
-      });
-    });
+      // TODO uncomment when we have an app in Utah Mosaic for rnasplice
+      if(self.client_application_id){
+        resolve();
+      }
+      else{
+        resolve();
+        //reject("Cannot find Mosaic client_application for gene");
+      }})
   }
 
   promiseGetSampleInfo(project_id, sample_id, isPedigree) {
@@ -172,6 +110,21 @@ export default class MosaicSession {
       return self.promiseGetSample(project_id, sample_id, 'proband');
     }
   }
+  promiseGetProject(project_id) {
+    let self = this;
+    return new Promise(function(resolve, reject) {
+      self.getProject(project_id)
+      .done(data => {
+          resolve(data);
+      })
+      .fail(error => {
+        let errorMsg = self.getErrorMessage(error);
+        reject("Error getting project " + project_id + ": " + errorMsg);
+      });
+    });
+  }
+
+
 
   promiseGetSample(project_id, sample_id, rel) {
     let self = this;
@@ -189,33 +142,58 @@ export default class MosaicSession {
         }
       })
       .fail(error => {
-        reject("Error getting sample " + sample_id + ": " + error);
+        let errorMsg = self.getErrorMessage(error);
+        reject("Error getting sample " + sample_id + ": " + errorMsg);
       })
     })
   }
 
-  promiseGetPedigreeForSample(project_id, sample_id) {
+  promiseGetPedigreeForSample(project_id, sample_id, isPedigree) {
     let self = this;
 
     return new Promise(function(resolve, reject) {
-      // Get pedigree for sample
-      self.getPedigreeForSample(project_id, sample_id)
-      .done(rawPedigree => {
-        const rawPedigreeOrig = $.extend({}, rawPedigree);
-        let pedigree = self.parsePedigree(rawPedigree, sample_id)
-        if (pedigree) {
-          resolve({pedigree: pedigree, rawPedigree: rawPedigreeOrig});
-        } else {
-          reject("Error parsing pedigree");
-        }
-      })
-      .fail(error => {
-        reject("Error getting pedigree for sample " + sample_id + ": " + error);
-      })
+      if (isPedigree) {
+        // If the user click 'Pedigree' from the Mosaic launch dialog,
+        // get the pedigree for this sample. We will launch gene.iobio
+        // for the proband of this pedigree, regardless of which sample
+        // was selected. For example, the father could be selected, and
+        // the pedigree will be located for the father, and we will launch
+        // gene.iobio for the proband of that pedigree.
+        self.getPedigreeForSample(project_id, sample_id)
+        .done(rawPedigree => {
+          const rawPedigreeOrig = $.extend({}, rawPedigree);
+          let pedigree = self.parsePedigree(rawPedigree, sample_id)
+          if (pedigree) {
+            resolve({foundPedigree: true, pedigree: pedigree, rawPedigree: rawPedigreeOrig});
+          }
+          else {
+            self.promiseGetSample(project_id, sample_id, 'proband')
+            .then(function(data) {
+              data.foundPedigree = false;
+              resolve(data);
+            })
+          }
+        })
+        .fail(error => {
+          let errorMsg = self.getErrorMessage(error);
+          reject("Error getting pedigree for sample " + sample_id + ": " + errorMsg);
+        })
+
+      } else {
+        // If the user clicked 'Individual' from the Mosaic launch dialog, we
+        // will treat the selected sample as the proband.
+        self.promiseGetSample(project_id, sample_id, 'proband')
+        .then(function(data) {
+          data.foundPedigree = false;
+          resolve(data);
+        })
+
+      }
     })
   }
 
   parsePedigree(raw_pedigree, sample_id) {
+    let self = this;
 
     // This assumes only 1 proband. If there are multiple affected samples then
     // the proband will be overwritten
@@ -240,6 +218,9 @@ export default class MosaicSession {
       // Assume proband if there is only one sample in the pedigree
       if (raw_pedigree.length == 1) {
         probandIndex = 0;
+      } else {
+        // Assume proband is the sample selected
+        probandIndex = raw_pedigree.findIndex(d => (d.id == sample_id));
       }
     }
 
@@ -262,23 +243,24 @@ export default class MosaicSession {
         pedigree['father'] = raw_pedigree.splice(fatherIndex, 1)[0]
         this.isFather = true;
       }
+
+      raw_pedigree.forEach(sample => {
+        if (sample.pedigree.maternal_id != null || sample.pedigree.paternal_id != null
+            && sample.pedigree.id != pedigree.proband.id) {
+          pedigree['siblings'] = (pedigree['siblings'] || [] )
+          pedigree['siblings'].push(sample);
+        } else {
+          pedigree['unparsed'] = (pedigree['siblings'] || []).push(sample)
+        }
+      })
+
+      return pedigree;
+
+
     } else {
-      alertify.alert("Error", "Could not load the trio.  Unable to identify a proband (offspring) from this pedigree.")
       return null;
     }
 
-    raw_pedigree.forEach(sample => {
-      if (sample.pedigree.maternal_id != null || sample.pedigree.paternal_id != null
-          && sample.pedigree.id != pedigree.proband.id) {
-        pedigree['siblings'] = (pedigree['siblings'] || [] )
-        pedigree['siblings'].push(sample);
-      } else {
-        pedigree['unparsed'] = (pedigree['siblings'] || []).push(sample)
-      }
-    })
-
-
-    return pedigree;
   }
 
   getPedigreeForSample(project_id, sample_id) {
@@ -307,7 +289,7 @@ export default class MosaicSession {
   }
 
 
-  promiseGetFileMapForSample(project_id, sample, relationship, experimentId) {
+  promiseGetFileMapForSample(project_id, sample, relationship) {
     let self = this;
     return new Promise((resolve,reject) => {
       var promises = [];
@@ -316,14 +298,14 @@ export default class MosaicSession {
       self.promiseGetFilesForSample(project_id, currentSample.id)
       .then(files => {
         files.filter(file => {
-          return file.type
-        })
-        .filter(file =>  {
-          if (experimentId) {
-            return file.experimentId == experimentId
-          } else {
-            return true;
+          if(self.experiment_id){
+            return file.experiment_ids.includes(Number(self.experiment_id))
           }
+          else {
+            return file
+          }
+        }).filter(file => {
+          return file.type
         })
         .forEach(file => {
 
@@ -341,7 +323,7 @@ export default class MosaicSession {
               fileMap[file.type] = signed.url
               if (file.type == 'vcf') {
                 if (file.vcf_sample_name == null || file.vcf_sample_name == "") {
-                  alertify.error("Missing vcf_sample_name for file " + file.name, 20)
+                  reject("Missing vcf_sample_name for file " + file.name)
                 } else {
                   sample.vcf_sample_name = file.vcf_sample_name;
                 }
@@ -354,8 +336,8 @@ export default class MosaicSession {
         .then(response => {
           resolve({'sample': sample, 'relationship': relationship, 'fileMap': fileMap});
         })
-        .catch(error => {
-          reject(error);
+        .catch(errorMsg => {
+          reject(errorMsg);
         })
       })
     })
@@ -371,8 +353,9 @@ export default class MosaicSession {
         resolve(response.data);
       })
       .fail(error => {
-        console.log("Unable to get files for sample " + sample_id)
-        reject(error);
+        let errorMsg = self.getErrorMessage(error);
+        console.log("Unable to get files for sample " + sample_id + " error: " + errorMsg)
+        reject(errorMsg);
       })
     })
   }
@@ -381,7 +364,7 @@ export default class MosaicSession {
   getFilesForSample(project_id, sample_id) {
     let self = this;
     return $.ajax({
-      url: self.api +  '/samples/' + sample_id + '/files',
+      url: self.api + '/projects/' + project_id +  '/samples/' + sample_id + '/files',
       type: 'GET',
       contentType: 'application/json',
       headers: {
@@ -398,8 +381,9 @@ export default class MosaicSession {
                   resolve(response);
               })
               .fail(error => {
-                  console.log("Unable to get files for project " + project_id);
-                  reject(error);
+                let errorMsg = self.getErrorMessage(error);
+                console.log("Unable to get files for project " + project_id + " error: " + errorMsg);
+                reject(errorMsg);
               })
       })
   }
@@ -425,7 +409,10 @@ export default class MosaicSession {
         resolve(file);
       })
       .fail(error => {
-        reject(error);
+        let errorMsg = self.getErrorMessage(error);
+        let msg = "Could not get signed url for file_id  " + file.id + " error: " + errorMsg;
+        console.log(msg)
+        reject(msg);
       })
     })
   }
@@ -462,7 +449,129 @@ export default class MosaicSession {
         resolve(response)
       })
       .fail(error => {
-        reject("Error getting gene set " + geneSetId + ": " + error);
+        let errorMsg = self.getErrorMessage(error);
+        console.log("Error getting gene set from Mosaic with gene_set_id " + geneSetId);
+        console.log(errorMsg)
+        reject("Error getting gene set " + geneSetId + ": " + errorMsg);
+      })
+    })
+
+  }
+
+
+  promiseGetVariantSet(projectId, variantSetId, build) {
+    let self = this;
+    return new Promise(function(resolve, reject) {
+      self.getVariantSet(projectId, variantSetId, build)
+      .done(response => {
+        let data = response;
+
+        // The gene symbol is in a different field depending on the genome build.
+        // Set the 'gene_symbol' field so that we can pull it from one field.
+        let geneSymbolField = null
+        let impactField = null
+        let consequenceField = null
+        let afField = null
+        if (build === "GRCh38"){
+          geneSymbolField  = 'gene_symbol_GRCh38';
+          impactField      = 'gene_impact_GRCh38';
+          consequenceField = 'gene_consequence_GRCh38';
+          afField          = 'gnomad_allele_frequency_GRCh38';
+        }
+        else if (build === "GRCh37"){
+          geneSymbolField = 'gene_symbol_GRCh37';
+          impactField      = 'gene_impact_GRCh37';
+          consequenceField = 'gene_consequence_GRCh37';
+          afField          = 'gnomad_allele_frequency_GRCh37';
+        }
+        data.variants.forEach(function(variant) {
+          if (geneSymbolField &&  variant[geneSymbolField].length > 0 && !variant.hasOwnProperty('gene_symbol')) {
+            variant['gene_symbol'] = variant[geneSymbolField][0];
+          }
+          if (impactField && variant[impactField] && variant[impactField].length > 0) {
+            variant['gene_impact'] = variant[impactField][0];
+          }
+          if (consequenceField && variant[consequenceField] && variant[consequenceField].length > 0) {
+            variant['gene_consequence'] = variant[consequenceField][0];
+          }
+          if (afField && variant.hasOwnProperty(afField) && variant[afField].length > 0) {
+            variant['gnomad_allele_frequency'] = variant[afField][0];
+          }
+          variant['mosaic_id'] = variant.id
+        })
+
+        resolve(data)
+      })
+      .fail(error => {
+        self.getVariantSet(projectId, variantSetId, 'old_project')
+        .done(response => {
+          resolve(response)
+        })
+        .fail(error => {
+          let errorMsg = self.getErrorMessage(error);
+          console.log("Error getting variant set " + variantSetId + " from Mosaic. This project may not be up to date with the latest variant annotations.");
+          console.log();
+          reject("Error getting variant set " + variantSetId + ": " + errorMsg);
+        })
+
+
+      })
+    })
+
+  }
+
+  promiseGetVariant(projectId, variant_id, includeAnnotationData=true) {
+    let self = this;
+    return new Promise(function(resolve, reject) {
+      self.getVariant(projectId, variant_id, includeAnnotationData)
+      .done(response => {
+        resolve(response)
+      })
+      .fail(error => {
+        let errorMsg = self.getErrorMessage(error);
+        reject("Error getting mosaic variant : " + errorMsg + "." )
+      })
+    })
+  }
+
+  promiseLookupVariantByPosition(projectId, variant) {
+    let self = this;
+    return new Promise(function(resolve, reject) {
+      let chr = self.globalApp.utility.stripRefName(variant.chrom)
+      self.promiseGetVariantsByPosition(projectId, chr, variant.start, true)
+      .then(function(variants) {
+        let matching = variants.filter(function(v) {
+          if (v.chr == chr &&
+              v.r_start == variant.start &&
+              v.alt == variant.alt &&
+              v.ref == variant.ref) {
+            return true;
+          } else {
+            return false;
+          }
+        })
+        if (matching.length > 0) {
+          resolve(matching[0])
+        } else {
+          reject("Cannot find matching Mosaic variant " + variant.chrom + " " + variant.start )
+        }
+      })
+      .catch(function(error) {
+        reject(self.getErrorMessage(error))
+      })
+    })
+  }
+
+  promiseGetVariantsByPosition(projectId, chr, start, includeAnnotationData) {
+    let self = this;
+    return new Promise(function(resolve, reject) {
+      self.getVariantsByPosition(projectId, chr, start, includeAnnotationData)
+      .done(response => {
+        resolve(response)
+      })
+      .fail(error => {
+        let errorMsg = self.getErrorMessage(error);
+        reject("Error getting mosaic variants by position: " + errorMsg + "." )
       })
     })
 
@@ -476,7 +585,8 @@ export default class MosaicSession {
         resolve(response)
       })
       .fail(error => {
-        reject("Error getting analysis " + analysisId + ": " + error);
+        let errorMsg = self.getErrorMessage(error);
+        reject("Error getting analysis: " + errorMsg + "." )
       })
     })
 
@@ -489,7 +599,8 @@ export default class MosaicSession {
         resolve(response)
       })
       .fail(error => {
-        reject("Error adding analysis for project " + projectId + ": " + error);
+        let errorMsg = self.getErrorMessage(error);
+        reject("Error adding analysis: " + errorMsg + "." )
       })
     })
 
@@ -503,7 +614,8 @@ export default class MosaicSession {
         resolve(response)
       })
       .fail(error => {
-        reject("Error updating analysis " + analysis.id  + ": " + error);
+        let errorMsg = self.getErrorMessage(error);
+        reject("Error saving analysis: " + errorMsg + "." )
       })
     })
 
@@ -517,10 +629,98 @@ export default class MosaicSession {
         resolve(response)
       })
       .fail(error => {
-        reject("Error updating analysis title " + analysis.id + ": " + error);
+        let errorMsg = self.getErrorMessage(error);
+        reject("Error updating analysis title " + analysis.id + ": " + errorMsg);
       })
     })
 
+  }
+
+
+  promiseGetVariantAnnotations(project_id) {
+    let self = this;
+    return new Promise(function(resolve, reject) {
+      self.getVariantAnnotations(project_id)
+      .done(response => {
+        resolve(response)
+      })
+      .fail(error => {
+        let errorMsg = self.getErrorMessage(error);
+        console.log("Error getting variant annotations for project " + project_id)
+        console.log(errorMsg)
+        reject(errorMsg);
+      })
+    })
+
+  }
+
+
+
+  promiseCreateInterpretationAnnotation(project_id) {
+    let self = this;
+    return new Promise(function(resolve, reject) {
+      self.createInterpretationAnnotation(project_id)
+      .done(response => {
+        resolve(response)
+      })
+      .fail(error => {
+        let errorMsg = self.getErrorMessage(error);
+        console.log("Error creating variant annotation " + annotationName + " for project " + project_id)
+        console.log(errorMsg)
+        reject(errorMsg);
+      })
+    })
+  }
+
+
+
+  promiseAddVariantAnnotationValue(project_id, variant_id, annotation_id, annotationValue) {
+    let self = this;
+    return new Promise(function(resolve, reject) {
+      self.addVariantAnnotationValue(project_id, variant_id, annotation_id, annotationValue)
+      .done(response => {
+        resolve(response)
+      })
+      .fail(error => {
+        let errorMsg = self.getErrorMessage(error);
+        console.log("Error adding variant annotation value " + annotationValue + " for project " + project_id)
+        console.log(errorMsg)
+        reject(errorMsg);
+      })
+    })
+  }
+
+
+  promiseDeleteVariantAnnotationValue(project_id, variant_id, annotation_id, annotationValue) {
+    let self = this;
+    return new Promise(function(resolve, reject) {
+      self.deleteVariantAnnotationValue(project_id, variant_id, annotation_id, annotationValue)
+      .done(response => {
+        resolve(response)
+      })
+      .fail(error => {
+        let errorMsg = self.getErrorMessage(error);
+        console.log("Error deleting variant annotation value" + annotationValue + " for project " + project_id)
+        console.log(errorMsg)
+        reject(errorMsg);
+      })
+    })
+  }
+
+  promiseGetSampleHPOTerms(project_id, sample_id) {
+    let self = this;
+    return new Promise(function(resolve, reject) {
+      self.getSampleHPOTerms(project_id, sample_id)
+      .done(response => {
+        resolve(response)
+      })
+      .fail(error => {
+        let errorMsg = self.getErrorMessage(error);
+        console.log("Error getting sample HPO terms for project " + project_id + " and sample " + sample_id)
+        console.log(errorMsg)
+        reject(errorMsg);
+      })
+    })
   }
 
   getAnalysis(projectId, analysisId) {
@@ -590,7 +790,9 @@ export default class MosaicSession {
           resolve(response)
         })
         .fail(error => {
-          reject("Error getting currentUser :" + error);
+          let errorMsg = error.responseText ? error.responseText : "";
+          let msg = "Error getting current Mosaic user.  Your authorization may have expired.  Make sure you are still logged into Mosaic, and relaunch the project."
+          reject(msg);
         })
     })
   }
@@ -609,11 +811,134 @@ export default class MosaicSession {
 
   }
 
+
+
+  getVariant(project_id, variant_id, includeAnnotationData) {
+    let self = this;
+
+    return $.ajax({
+          url: self.api + '/projects/' + project_id + '/variants/'+ variant_id + "?include_annotation_data=" + (includeAnnotationData ? 'true' : 'false'),
+      type: 'GET',
+      contentType: 'application/json',
+      headers: {
+        Authorization: localStorage.getItem('hub-iobio-tkn'),
+      },
+    });
+
+  }
+
+  getVariantsByPosition(project_id, chr, start, includeAnnotationData) {
+    let self = this;
+
+    return $.ajax({
+      url: self.api + '/projects/' + project_id + '/variants/position/' + chr + ":" + start + "?include_annotation_data=" + (includeAnnotationData ? 'true' : 'false'),
+      type: 'GET',
+      contentType: 'application/json',
+      headers: {
+        Authorization: localStorage.getItem('hub-iobio-tkn'),
+      },
+    });
+
+  }
+
+
+
+  getVariantAnnotations(project_id) {
+    let self = this;
+
+    return $.ajax({
+      url: self.api + '/projects/' + project_id + '/variants/annotations',
+      type: 'GET',
+      contentType: 'application/json',
+      headers: {
+        Authorization: localStorage.getItem('hub-iobio-tkn'),
+      },
+    });
+
+  }
+
+  createInterpretationAnnotation(project_id) {
+    let self = this;
+    let annotationObj = {"name": 'Interpretation',
+     "value_type": "string",
+     "display_type": "badge",
+     "privacy_level": "private",
+     "severity": {"Significant": 1, "Uncertain significance": 2, "Not significant": 3, "Not reviewed": 4}};
+    return $.ajax({
+      url: self.api + '/projects/' + project_id + '/variants/annotations',
+      type: 'POST',
+      data: JSON.stringify(annotationObj),
+      contentType: 'application/json',
+      headers: {
+        Authorization: localStorage.getItem('hub-iobio-tkn'),
+      },
+    });
+  }
+
+
+  addVariantAnnotationValue(project_id, variant_id, annotation_id, annotationValue) {
+    let self = this;
+    let annotationValObj = {"value": annotationValue};
+    return $.ajax({
+      url: self.api + '/projects/' + project_id + '/variants/' + variant_id + '/annotations/' + annotation_id,
+      type: 'POST',
+      data: JSON.stringify(annotationValObj),
+      contentType: 'application/json',
+      headers: {
+        Authorization: localStorage.getItem('hub-iobio-tkn'),
+      },
+    });
+  }
+
+  deleteVariantAnnotationValue(project_id, variant_id, annotation_id, annotationValue) {
+    let self = this;
+    let annotationValObj = {"value": annotationValue};
+    return $.ajax({
+      url: self.api + '/projects/' + project_id + '/variants/' + variant_id + '/annotations/' + annotation_id,
+      type: 'DELETE',
+      data: JSON.stringify(annotationValObj),
+      contentType: 'application/json',
+      headers: {
+        Authorization: localStorage.getItem('hub-iobio-tkn'),
+      },
+    });
+  }
+
   getGeneSet(projectId, geneSetId) {
     let self = this;
 
     return $.ajax({
       url: self.api + '/projects/' + projectId + '/genes/sets/' + geneSetId,
+      type: 'GET',
+      contentType: 'application/json',
+      headers: {
+        Authorization: localStorage.getItem('hub-iobio-tkn'),
+      },
+    });
+  }
+
+
+  getVariantSet(projectId, variantSetId, build) {
+    let self = this;
+    return $.ajax({
+      url: self.api + '/projects/' + projectId + '/variants/sets/' + variantSetId + "?include_variant_data=true&include_genotype_data=true",
+      data: {
+      },
+      type: 'GET',
+      contentType: 'application/json',
+      headers: {
+        Authorization: localStorage.getItem('hub-iobio-tkn'),
+      },
+    });
+  }
+
+
+
+  getSampleHPOTerms(project_id, sample_id) {
+    let self = this;
+
+    return $.ajax({
+          url: self.api + '/projects/' + project_id + '/samples/'+ sample_id + "/hpo-terms",
       type: 'GET',
       contentType: 'application/json',
       headers: {
@@ -630,25 +955,25 @@ export default class MosaicSession {
 
     // First get rid of full gene and transcript objects from variants
     // These are too big to stringify and store
-    analysisDataCopy.payload.variants.forEach(function(variant) {
-      if (variant.gene && self.globalApp.utility.isObject(variant.gene)) {
-        variant.gene = variant.gene.gene_name;
-      }
-      if (variant.transcript && self.globalApp.utility.isObject(variant.transcript)) {
-        variant.transcriptId = variant.transcript.transcript_id;
-        variant.transcript = null;
-      }
-//      variant.variantInspect = null;
-      if (variant.variantInspect && variant.variantInspect.geneObject) {
-        variant.variantInspect.geneName = variant.variantInspect.geneObject.gene_name
-        variant.variantInspect.geneObject = null;
-      }
-      if (variant.variantInspect && variant.variantInspect.transcriptObject) {
-        variant.variantInspect.transcriptId = variant.variantInspect.transcriptObject.transcript_id
-        variant.variantInspect.transcriptObject = null;
-      }
-    })
-    analysisDataCopy.payload.filters = null;
+    if (analysisDataCopy.payload.hasOwnProperty('variants')) {
+      analysisDataCopy.payload.variants.forEach(function(variant) {
+        if (variant.gene && self.globalApp.utility.isObject(variant.gene)) {
+          variant.gene = variant.gene.gene_name;
+        }
+        if (variant.transcript && self.globalApp.utility.isObject(variant.transcript)) {
+          variant.transcriptId = variant.transcript.transcript_id;
+          variant.transcript = null;
+        }
+        if (variant.variantInspect && variant.variantInspect.geneObject) {
+          variant.variantInspect.geneName = variant.variantInspect.geneObject.gene_name
+          variant.variantInspect.geneObject = null;
+        }
+        if (variant.variantInspect && variant.variantInspect.transcriptObject) {
+          variant.variantInspect.transcriptId = variant.variantInspect.transcriptObject.transcript_id
+          variant.variantInspect.transcriptObject = null;
+        }
+      })
+    }
 
 
     let analysisString = JSON.stringify(analysisDataCopy, function(key, value) {
@@ -665,6 +990,4 @@ export default class MosaicSession {
     cache = [];
     return analysisString;
   }
-
-
 }

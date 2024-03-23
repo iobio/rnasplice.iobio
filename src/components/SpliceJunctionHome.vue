@@ -180,72 +180,68 @@ import { reject } from 'async'
         let self = this;
         window.globalSpliceJunctionHome = self;
 
-        let initPromise = null;
+        self.loadURLParameters();
+
         if (localStorage.getItem('hub-iobio-tkn') && localStorage.getItem('hub-iobio-tkn').length > 0) {
           self.launchedFromMosaic = true;
-          initPromise = this.promiseInitMosaicSession()
-
-        } else {
-          self.launchedFromMosaic = false;
-          initPromise = Promise.resolve();
         }
 
-        initPromise
-        .then(function() {
+        self.globalApp.initServices(self.launchedFromMosaic)
 
-
-          self.globalApp.initServices(self.launchedFromMosaic)
-
-          self.loadURLParameters();
-
-          self.genomeBuildHelper = new GenomeBuildHelper(self.globalApp,
-                                                        true,
-                                                        { DEFAULT_BUILD: 'GRCh38' });
-          self.geneModel =         new GeneModel(self.globalApp,
-                                                self.genomeBuildHelper)
-          self.geneModel.setAllKnownGenes(self.genes)
-          self.geneModel.addEventListener("alertIssued", function(eventArgs) {
-            let [type, message, genes, details] = eventArgs
-            self.addAppAlert(type, message, genes, details)
-          })
-          self.$emit("gene-model-initialized", self.geneModel)
-
-          self.addAppAlert('success', 'app initialized')
-
-          self.endpoint = new Endpoint(self.globalApp, self.genomeBuildHelper)
-
-          self.vcf = new Vcf(self.globalApp)
-          self.vcf.setEndpoint(self.endpoint)
-          self.vcf.setGenomeBuildHelper(self.genomeBuildHelper)
-
+        self.genomeBuildHelper = new GenomeBuildHelper(self.globalApp,
+                                                      true,
+                                                      { DEFAULT_BUILD: 'GRCh38' });
+        self.geneModel =         new GeneModel(self.globalApp,
+                                              self.genomeBuildHelper)
+        self.geneModel.setAllKnownGenes(self.genes)
+        self.geneModel.addEventListener("alertIssued", function(eventArgs) {
+          let [type, message, genes, details] = eventArgs
+          self.addAppAlert(type, message, genes, details)
         })
+        self.$emit("gene-model-initialized", self.geneModel)
 
+        self.addAppAlert('success', 'app initialized')
 
+        self.endpoint = new Endpoint(self.globalApp, self.genomeBuildHelper)
+
+        self.vcf = new Vcf(self.globalApp)
+        self.vcf.setEndpoint(self.endpoint)
+        self.vcf.setGenomeBuildHelper(self.genomeBuildHelper)
+
+        if (localStorage.getItem('hub-iobio-tkn') && localStorage.getItem('hub-iobio-tkn').length > 0) {
+          self.promiseInitMosaicSession()
+          .then(function(loadInfo) {
+            self.$emit('load-data-from-mosaic', loadInfo)
+          })
+        }
       },
 
       promiseInitMosaicSession: function() {
         let self = this;
         return new Promise(function(resolve, reject) {
-          self.mosaicSession =  new MosaicSession(self.urlParams.get('clientApplicationId'));
+          let loadInfo = null;
+
+          self.mosaicSession =  new MosaicSession(self.urlParams.get('client_application_id'));
           self.mosaicSession.globalApp = self.globalApp;
           self.mosaicSession.promiseInit(
-            self.urlParams.get('sampleId'),
+            self.urlParams.get('sample_id'),
             self.urlParams.get('source'),
-            self.urlParams.get('projectId'),
-            self.urlParams.get('geneSetId'),
-            self.urlParams.get('experimentId'),
+            self.urlParams.get('project_id'),
+            self.urlParams.get('gene_set_id'),
+            self.urlParams.get('experiment_id'),
             self.urlParams.get('build')
           )
           .then(data => {
-            self.loadInfo = data.loadInfo;
             self.geneSet = data.geneSet;
             self.user = data.user;
+            loadInfo = data.loadInfo;
 
-            return self.hubSession.promiseGetProject(self.projectId)
+            self.projectId = self.urlParams.get('project_id')
+            return self.mosaicSession.promiseGetProject(self.projectId)
           })
           .then(project => {
             self.project = project
-            resolve();
+            resolve(loadInfo);
           })
           .catch(function (error) {
             self.addAppAlert('error', 'Unable to intialize Mosaic session', null, [error])

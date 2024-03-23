@@ -173,7 +173,7 @@ export default {
         tbiURL: null,
         selectedSampleName: null,
         copyPasteURLs: null,
-        loadingSamples: null,
+        samplesLoading: null,
         demoNumber: 'demo1',
 
         urlRegExp: /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi,

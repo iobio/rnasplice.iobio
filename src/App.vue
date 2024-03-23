@@ -102,6 +102,7 @@
           @reset-acceptor-site-pan="acceptorSitePan = 0"
           @sample-names-loaded="onSampleNamesLoaded"
           @load-data-from-url-params="onLoadDataFromURL"
+          @load-data-from-mosaic="onLoadDataFromMosaic"
           @show-legend="showLegendDrawer=true"/>
 
 
@@ -196,12 +197,11 @@ export default {
 
       // TODO - Remove. This is temporary code until we have worked out
       // how the app is launched
-      if (self.loadInfo == null) {
+      if (self.loadInfo == null && !localStorage.getItem('hub-iobio-tkn')) {
         setTimeout(function() {
           if (self.$refs && self.$refs.ref_Navigation) {
             self.$refs.ref_Navigation.onShowLoadDataDialog()
           }
-
         }, 1000)
       }
 
@@ -230,6 +230,16 @@ export default {
     },
     onShowLegend: function(show) {
       this.showLegendDrawer = show;
+    },
+    onLoadDataFromMosaic: function(loadInfo) {
+      let self = this;
+      this.loadInfo = loadInfo;
+      self.preLoadInfo = $.extend({}, loadInfo);
+      if (self.loadInfo.vcfURL && self.loadInfo.tbiURL) {
+        self.$nextTick(function() {
+          self.onVcfURLEntered(self.loadInfo.vcfURL, self.loadInfo.tbiURL)
+        })
+      }
     },
     onLoadData: function(loadInfo) {
       let self = this;
