@@ -13,7 +13,7 @@ class GeneModel {
 
     this.NCBI_PUBMED_SEARCH_URL    = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&usehistory=y&retmode=json";
     this.NCBI_PUBMED_SUMMARY_URL   = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&usehistory=y&retmode=json";
-    
+
     this.ENSEMBL_GENE_URL          = "https://rest.ensembl.org/xrefs/symbol/homo_sapiens/GENESYMBOL?content-type=application/json"
     this.ENSEMBL_LOOKUP_BY_ID      = "https://rest.ensembl.org/xrefs/id/ENSEMBL-GENE-ID?content-type=application/json"
     this.OMIM_URL                  = "https://api.omim.org/api/";
@@ -135,7 +135,7 @@ class GeneModel {
       self.candidateGenes[gene] = true;
     })
   }
-  
+
   getCandidateGenes() {
     let self = this;
     return Object.keys(self.candidateGenes);
@@ -405,7 +405,7 @@ class GeneModel {
               if (genesToAdd.indexOf(geneName.trim().toUpperCase()) < 0
                   && (options.replace || me.geneNames.indexOf(geneName.trim().toUpperCase()) < 0)) {
                 genesToAdd.push(geneName.trim().toUpperCase());
-              } 
+              }
             }
           })
           promises.push(p);
@@ -724,7 +724,7 @@ class GeneModel {
       canonical.canonical_reason = ''
       if (canonical.is_mane_select && canonical.is_mane_select == 'true') {
         canonical.canonical_reason = 'MANE SELECT'
-      }         
+      }
     }
     return canonical;
   }
@@ -758,19 +758,19 @@ class GeneModel {
           return feature.feature_type != 'UTR';
         }).map(function(feature) {
           return $.extend({'key': feature.start + "-" + feature.end}, feature);
-        })   
+        })
         codingRegions.forEach(function(feature) {
           if (featureMap[feature.key] ==  null) {
             feature.ADDITIONAL = true;
-            featureMap[feature.key] = feature;          
+            featureMap[feature.key] = feature;
           }
-        })     
+        })
       }
     })
 
     let start = 999999;
     let end = 0;
-    let unionedTranscript = {'transcript_id': geneObject.gene_name + ' Unioned', 
+    let unionedTranscript = {'transcript_id': geneObject.gene_name + ' Unioned',
                              'UNIONED': true,
                              'chr':  geneObject.chr,
                              'start': null,
@@ -823,7 +823,7 @@ class GeneModel {
         acceptor = {'exon': exonMatchAcceptor.exon, pos: +acceptorPos, 'transcript': exonMatchAcceptor.transcript, 'delta': exonMatchAcceptor.delta, 'status': exonMatchAcceptor.status}
       } else {
         if (exonMatchDonor == null && exonMatchAcceptor == null) {
-          let donorClosest     = self.locateExonsBetween(transcript, +donorPos, 'donor'); 
+          let donorClosest     = self.locateExonsBetween(transcript, +donorPos, 'donor');
           let acceptorClosest  = self.locateExonsBetween(transcript, +acceptorPos, 'acceptor');
           if (donorClosest && donorClosest.closestExon && acceptorClosest && acceptorClosest.closestExon) {
             countSkippedExons = Math.abs(+donorClosest.closestExon.number - +acceptorClosest.closestExon.number) - 1;
@@ -845,7 +845,7 @@ class GeneModel {
           }
           donor    = {'exon': exonMatchDonor.exon,                pos: +donorPos,    'transcript': exonMatchDonor.transcript, 'delta': exonMatchDonor.delta, 'status': exonMatchDonor.status }
           acceptor = {'exonClosest': acceptorClosest.closestExon, pos: +acceptorPos, 'transcript': acceptorClosest.transcript,'delta': acceptorClosest.delta, 'status': acceptorClosest.status}
-        } 
+        }
       }
 
       if (donor.status == 'cryptic-site' || acceptor.status == 'cryptic-site') {
@@ -858,7 +858,7 @@ class GeneModel {
 
       let donorLabel = "";
       if (donor.exon) {
-        donorLabel =  'Exon ' + donor.exon.number 
+        donorLabel =  'Exon ' + donor.exon.number
         if (donor.delta) {
           donorLabel += " " + (donor.delta > 0 ? "+" : "") + donor.delta + ""
         }
@@ -867,7 +867,7 @@ class GeneModel {
       }
       let acceptorLabel = "";
       if (acceptor.exon) {
-        acceptorLabel = 'Exon ' + acceptor.exon.number 
+        acceptorLabel = 'Exon ' + acceptor.exon.number
         if (acceptor.delta) {
           acceptorLabel += " " + (acceptor.delta > 0 ? "+" : "") + acceptor.delta + ""
         }
@@ -888,8 +888,8 @@ class GeneModel {
         isPreferredTranscript = false;
       }
 
-      let label = donorLabel + 
-                  "      >      " + 
+      let label = donorLabel +
+                  "      >      " +
                   acceptorLabel +
                   (isPreferredTranscript == false ? '      (' + junctionTranscript.transcript_id + ')' : '');
 
@@ -951,7 +951,7 @@ class GeneModel {
     let summary = null;
     let spliceJunctions = self.geneToSpliceJunctionObjects[geneObject.gene_name];
     if (spliceJunctions) {
-      
+
       let crypticSiteSplice = spliceJunctions.filter(function(spliceJunction) {
         return spliceJunction.spliceKind == 'cryptic-site';
       })
@@ -997,7 +997,7 @@ class GeneModel {
     return summary;
   }
 
- 
+
   locateExons(geneObject, preferredTranscript, donorPos, acceptorPos, options) {
     let self = this;
 
@@ -1006,7 +1006,7 @@ class GeneModel {
 
     // Check for matching exons on donor and acceptor site on preferred (MANE SELECT)
     // transcript first. Site must be positioned on exon boundary (isExact=true)
-    let exonDonorPreferred    = self._locateExon(preferredTranscript, +donorPos,    'donor',    true); 
+    let exonDonorPreferred    = self._locateExon(preferredTranscript, +donorPos,    'donor',    true);
     let exonAcceptorPreferred = self._locateExon(preferredTranscript, +acceptorPos, 'acceptor', true);
 
 
@@ -1018,7 +1018,7 @@ class GeneModel {
       exonMatchDonor   = exonDonorPreferred;
       exonMatchAcceptor = exonAcceptorPreferred;
     } else if (options && options.allTranscripts) {
-        
+
       // Loop through all of the transcripts, trying to find a matching
       // exon for the donor and acceptor site
       let transcripts = geneObject.transcripts.filter(function(transcript) {
@@ -1028,7 +1028,7 @@ class GeneModel {
       let idx = 0;
       for (idx = 0; idx < transcripts.length; idx++) {
         let transcript = transcripts[idx]
-        let exonDonor    = self._locateExon(transcript, +donorPos,    'donor',    true); 
+        let exonDonor    = self._locateExon(transcript, +donorPos,    'donor',    true);
         let exonAcceptor = self._locateExon(transcript, +acceptorPos, 'acceptor', true);
         if (exonDonor && exonAcceptor) {
           // If we match on the donor and acceptor exon on the same transcript,
@@ -1038,11 +1038,11 @@ class GeneModel {
             exonMatchDonor    = exonDonor;
             exonMatchAcceptor = exonAcceptor;
           }
-          matchesOnOtherTranscripts.push({'matchDonor': exonDonor, 
+          matchesOnOtherTranscripts.push({'matchDonor': exonDonor,
                                           'matchAcceptor': exonAcceptor})
-        } 
+        }
       }
-    } 
+    }
 
     // If we found an exact match on the donor and acceptor site for a transcript,
     // use those; otherwise, fuzzy match on preferred transcript
@@ -1054,15 +1054,15 @@ class GeneModel {
 
     } else if (exonAcceptorPreferred) {
       exonMatchAcceptor = exonAcceptorPreferred;
-      exonMatchDonor    = self._locateExon(preferredTranscript, +donorPos,    'donor',    false); 
+      exonMatchDonor    = self._locateExon(preferredTranscript, +donorPos,    'donor',    false);
     } else {
       exonMatchAcceptor = self._locateExon(preferredTranscript, +acceptorPos, 'acceptor', false);
-      exonMatchDonor    = self._locateExon(preferredTranscript, +donorPos,    'donor',    false); 
+      exonMatchDonor    = self._locateExon(preferredTranscript, +donorPos,    'donor',    false);
 
     }
 
-    return {'donor': exonMatchDonor, 
-            'acceptor': exonMatchAcceptor, 
+    return {'donor': exonMatchDonor,
+            'acceptor': exonMatchAcceptor,
             'matchesOnOtherTranscripts': matchesOnOtherTranscripts}
 
   }
@@ -1072,7 +1072,7 @@ class GeneModel {
     if (transcript.exons) {
 
       // The position provided in the bed has an offset.
-      //   For plus strand: 
+      //   For plus strand:
       //     donor site    is stated as position at exon end
       //     acceptor site is stated as position at exon start - 1
       //   For minus strand
@@ -1087,14 +1087,14 @@ class GeneModel {
           thePosition = thePosition + 1;
         } else {
           // The acceptor position is stated as 1 bp before the exon start.
-          // Adjust it to the correct coordinates (subtract 1), which is 2 bp 
+          // Adjust it to the correct coordinates (subtract 1), which is 2 bp
           // before the exon start (considering the splice site is 2 bp long)
           thePosition = thePosition - 1;
         }
       } else if (site == 'donor') {
         if (transcript.strand == '-') {
           // The donor position is stated as 1 bp before the exon start.
-          // Adjust it to the correct coordinates (subtract 1), which is 2 bp 
+          // Adjust it to the correct coordinates (subtract 1), which is 2 bp
           // before the exon start (considering the splice site is 2 bp long)
           thePosition = thePosition - 1;
         } else {
@@ -1112,7 +1112,7 @@ class GeneModel {
           if (transcript.strand == '-') {
             // The acceptor site is 1 bp after the exon end.
             start = isExact ? +exon.end + 1 : +exon.start;
-            end   = isExact ? +exon.end + 1 : +exon.end; 
+            end   = isExact ? +exon.end + 1 : +exon.end;
             delta = (thePosition - end);
           } else {
             // The acceptor site is 2 bp before the exon start
@@ -1129,7 +1129,7 @@ class GeneModel {
           } else {
             // The donor site is 1 bp after the exon end
             start = isExact ? +exon.end + 1 : +exon.start;
-            end   = isExact ? +exon.end + 1 : +exon.end; 
+            end   = isExact ? +exon.end + 1 : +exon.end;
             delta = thePosition - end;
           }
         }
@@ -1139,21 +1139,21 @@ class GeneModel {
         return boundary.start <= thePosition && boundary.end >= thePosition;
       })
       if (matched.length > 0) {
-        return {'transcript': transcript, 
-                'exon': matched[0].exon, 
+        return {'transcript': transcript,
+                'exon': matched[0].exon,
                 'delta': matched[0].delta,
-                'boundaryStart': matched[0].start, 
-                'boundaryEnd': matched[0].end, 
+                'boundaryStart': matched[0].start,
+                'boundaryEnd': matched[0].end,
                 'status': isExact ? 'canonical' : 'cryptic-site' };
       } else {
         return null;
-      }      
+      }
     } else {
       return null;
     }
   }
 
-  
+
 
 
 
@@ -1193,10 +1193,10 @@ class GeneModel {
           }
           break;
         }
-      } 
-    } 
-    return {'transcript': transcript, 
-            'closestExon': exonClosest, 
+      }
+    }
+    return {'transcript': transcript,
+            'closestExon': exonClosest,
             'betweenExons': betweenExons,
             'status': 'cryptic-site'};
   }
@@ -1428,8 +1428,8 @@ class GeneModel {
           })
           .fail(function() {
             console.log("Error occurred when making http request to NCBI eutils esummary for gene " + geneName);
-            me.dispatch.alertIssued("info", 
-              "Unable to get NCBI gene summary (esummary) for gene <pre>" + geneName + "</pre>", geneName, 
+            me.dispatch.alertIssued("info",
+              "Unable to get NCBI gene summary (esummary) for gene <pre>" + geneName + "</pre>", geneName,
               ['Error occurred when making http request to NCBI eutils esummary',summaryUrl])
             me.geneNCBISummaries[geneName] = unknownGeneInfo;
             resolve(unknownGeneInfo);
@@ -1438,8 +1438,8 @@ class GeneModel {
         })
         .fail(function() {
           console.log("Error occurred when making http request to NCBI eutils esearch for gene " + geneName);
-            me.dispatch.alertIssued("info", 
-              "Unable to get NCBI gene summary (esearch) for gene <pre>" + geneName + "</pre>", geneName, 
+            me.dispatch.alertIssued("info",
+              "Unable to get NCBI gene summary (esearch) for gene <pre>" + geneName + "</pre>", geneName,
               ['Error occurred when making http request to NCBI eutils esearch',url])
           me.geneNCBISummaries[geneName] = unknownGeneInfo;
           resolve(geneInfo);
@@ -1463,7 +1463,7 @@ class GeneModel {
           var pubMedEntries = [];
           var searchUrl = me.NCBI_PUBMED_SEARCH_URL  + "&term=" + geneName + "[title/abstract]";
           me.pendingNCBIRequests[geneName] = true;
-  
+
           $.ajax( searchUrl )
            .done(function(data) {
 
@@ -1475,7 +1475,7 @@ class GeneModel {
               $.ajax( summaryUrl )
               .done(function(sumData) {
                 delete me.pendingNCBIRequests[geneName];
-  
+
                 if (sumData.result != null && sumData.result.uids && sumData.result.uids.length > 0) {
                   sumData.result.uids.forEach(function(uid) {
                     var entry = sumData.result[uid];
@@ -1507,7 +1507,7 @@ class GeneModel {
            })
            .fail(function(error) {
               delete me.pendingNCBIRequests[geneName];
-  
+
               let msg = "Unable to get PubMed entries for " + geneName;
               console.log(msg);
               console.log("Error occurred when making http request to NCBI eutils esummary pubmed for gene " + geneName);
@@ -1515,7 +1515,7 @@ class GeneModel {
               reject();
            })
 
-         }, 
+         },
          (Object.keys(me.pendingNCBIRequests).length > 0 ? 5000 : 3000));
 
       }
@@ -1564,8 +1564,8 @@ class GeneModel {
               let p = self._promiseGetOMIMClinicalSynopsis(data.geneName, phenotype)
               .then(function(data) {
                 omimEntries.push(data);
-              })      
-              promises.push(p)      
+              })
+              promises.push(p)
             })
             Promise.all(promises)
             .then(function() {
@@ -1615,7 +1615,7 @@ class GeneModel {
               console.log(msg);
               console.log(error)
               self.dispatch.alertIssued("warning", "Cannot get HPO terms for gene <pre>" + geneName + "</pre>", geneName, [error])
-              reject(msg + '. Error: ' + error);        
+              reject(msg + '. Error: ' + error);
             })
           } else {
             self.dispatch.alertIssued("info", "Cannot get HPO terms for gene <pre>" + geneName + "</pre>. Unable to lookup NCBI id for gene.", geneName)
@@ -1635,7 +1635,7 @@ class GeneModel {
         if (!self.warnedMissingOMIMApiKey) {
           let msg ="Unable to access OMIM.  API key is required in env."
           self.dispatch.alertIssued("warning", msg, geneName)
-          self.warnedMissingOMIMApiKey = true;          
+          self.warnedMissingOMIMApiKey = true;
         }
         resolve();
       } else {
@@ -1651,9 +1651,9 @@ class GeneModel {
           .done(function(data) {
             let mimNumber = null;
             let phenotypes = null;
-            if (data 
-              && data.omim.searchResponse 
-              && data.omim.searchResponse.geneMapList 
+            if (data
+              && data.omim.searchResponse
+              && data.omim.searchResponse.geneMapList
               && data.omim.searchResponse.geneMapList.length > 0) {
               let geneMap = data.omim.searchResponse.geneMapList[0].geneMap;
               mimNumber = geneMap.mimNumber;
@@ -1668,7 +1668,7 @@ class GeneModel {
               let msg = "No OMIM entry found for gene " + geneName;
               reject(msg)
             }
-          
+
           })
           .fail(function(error) {
               let msg = "Unable to get phenotype mim number OMIM for gene " + geneName;
@@ -1677,7 +1677,7 @@ class GeneModel {
               self.dispatch.alertIssued("warning", msg, geneName)
               reject(msg + '. Error: ' + error);
           })
-        
+
       }
 
     })
@@ -1699,7 +1699,7 @@ class GeneModel {
           let clinicalSynopsis = null;
           if (data && data.omim.clinicalSynopsisList && data.omim.clinicalSynopsisList.length > 0) {
             clinicalSynopsis = data.omim.clinicalSynopsisList[0].clinicalSynopsis;
-          } 
+          }
           resolve({geneName: geneName, phenotype: phenotype, clinicalSynopsis: clinicalSynopsis});
         })
         .fail(function(error) {
@@ -1827,7 +1827,7 @@ class GeneModel {
               Promise.all(lookupPromises).then(function() {
                 if (matchingEnsemblGeneId) {
                   self.geneToEnsemblId[geneName] = matchingEnsemblGeneId;
-                  resolve({geneName: geneName, ensemblGeneId: matchingEnsemblGeneId});                  
+                  resolve({geneName: geneName, ensemblGeneId: matchingEnsemblGeneId});
                 } else {
                   let msg = "Unable to find ensembl gene id that matches gene name " + geneName;
                   console.log(msg);
@@ -1886,7 +1886,7 @@ class GeneModel {
             reject("An error occurred from ENSEMBL gene lookup for gene <pre>" + theGeneName + "</pre>. "  + error.responseJSON.error);
       })
     })
-  }  
+  }
 
 
 
@@ -1931,7 +1931,7 @@ class GeneModel {
         theGeneSource = defaultGeneSource
       } else if (knownGene && knownGene.refseq) {
         theGeneSource = 'refseq';
-        let msg = "No Gencode transcripts for " + geneName + ". Using Refseq transcripts instead.";        
+        let msg = "No Gencode transcripts for " + geneName + ". Using Refseq transcripts instead.";
         me.dispatch.alertIssued( "warning", msg, geneName)
       } else if (knownGene && knownGene.gencode) {
         let msg = "No Refseq transcripts for " + geneName + ". Using Gencode transcripts instead.";
@@ -1950,6 +1950,10 @@ class GeneModel {
           if (response.length > 0 && response[0].hasOwnProperty('gene_name')) {
             var theGeneObject = response[0];
             //me.addUnionedTranscript(theGeneObject)
+
+            // Create an array of exons by filtering the features. Number the exons
+            // according to the strand (direction)
+            me.determineExons(theGeneObject)
             me.geneObjects[theGeneObject.gene_name] = theGeneObject;
             resolve(theGeneObject);
           } else {
@@ -1969,7 +1973,7 @@ class GeneModel {
         let msg = ""
         if (knownGene) {
           msg = "No Refseq or Gencode transcripts for " + geneName + ".";
-          
+
         } else {
           msg = "Unknown gene " + geneName;
         }
@@ -1982,7 +1986,135 @@ class GeneModel {
     });
   }
 
+  /*
+   * Capture the exons for a gene transcript. For the user interface,
+   * this is a convenience function that represents each rectangle on the
+   * transcript diagram, which will be a UTR or a CDS for protein coding
+   * genes. But for non-protein coding genes, just filter by feature type
+   * 'exon'.
+   * This function also numbers the exons and sorts them accordingly. The
+   * strand determines which is the first exon.
+   */
+  determineExons(gene) {
+    let self = this;
+    gene.transcripts.forEach(function(transcript) {
 
+      // Exons are what we use the number the features. Each exon is assigned
+      // a number sequentially. For forward strand, we number exons from
+      // first to last exon; For reverse strand, we number from last to
+      // first exon.
+      let exons = transcript.features.filter(function(feature) {
+        return feature.feature_type.toLowerCase() == 'exon';
+      })
+      .sort(function(a,b) {
+        if (gene.strand == "+") {
+          return a.start - b.start;
+        } else {
+          return (a.start - b.start) * -1;
+        }
+      })
+
+      // These are the features (UTRs and CDSs for protein coding transcripts,
+      // EXONs for non-protein coding transcripts) that we treat as exons, that we
+      // will draw on the trascript diagram
+      let exonicFeatures  = transcript.features.filter(function(feature) {
+        if ( transcript.transcript_type == 'protein_coding'
+            || transcript.transcript_type == 'UNIONED'
+            || feature.transcript_type == 'mRNA'
+            || feature.transcript_type == 'transcript'
+            || feature.transcript_type == 'primary_transcript') {
+          return feature.feature_type.toLowerCase() == 'utr' || feature.feature_type.toLowerCase() == 'cds';
+        } else {
+          return feature.feature_type.toLowerCase() == 'exon';
+        }
+      })
+      .sort(function(a,b) {
+        if (gene.strand == "+") {
+          return a.start - b.start;
+        } else {
+          return (a.start - b.start) * -1;
+        }
+      })
+
+      // Assign the exon number sequentially
+      let count = 1;
+      exons.forEach(function(exon) {
+        exon.number = count++;
+        exon.name = 'Exon ' + exon.number + ' (of ' + exons.length + ')'
+      })
+
+      let getEncapsulatingExon = function(feature) {
+        let matched = exons.filter(function(exon) {
+          return exon.start <= feature.start && exon.end >= feature.end;
+        })
+        if (matched.length > 0) {
+          return matched[0];
+        } else {
+          return null;
+        }
+      }
+
+       // Number the UTR and CDS according to the encapsulating EXON.
+      exonicFeatures.forEach(function(feature) {
+        if (!feature.hasOwnProperty("number")) {
+          let theExon = getEncapsulatingExon(feature, exons)
+          if (theExon) {
+            feature.number = theExon.number;
+          } else {
+            console.log("Unable to find encapsulating exon in gene " +
+              gene.gene_name + " for feature " +
+              feature.feature_type + " " +
+              feature.start + "-" + feature.end +
+              ". Feature will not numbered.")
+          }
+
+        }
+      })
+
+
+      transcript.exons = exonicFeatures;
+      transcript.exonsOnly = exons;
+
+    })
+    return gene;
+  }
+
+
+
+  promiseGetGeneObjectsInRegion(chr, start, end) {
+    var me = this;
+    return new Promise(function(resolve, reject) {
+      var url = me.globalApp.geneInfoServer + "api/region/" + chr + ":" + start + "-" + end;
+
+      // If current build not specified, default to GRCh37
+      var buildName = me.genomeBuildHelper.getCurrentBuildName() ? me.genomeBuildHelper.getCurrentBuildName() : "GRCh37";
+      var theGeneSource = me.geneSource ? me.geneSource : 'gencode';
+
+      url += "?source="  + theGeneSource;
+      url += "&species=" + me.genomeBuildHelper.getCurrentSpeciesLatinName();
+      url += "&build="   + buildName;
+
+      fetch(url).then(r => r.json())
+      .then((response) => {
+        if (response.length > 0 && response[0].hasOwnProperty('gene_name')) {
+          var geneObjects = response.map(function(geneObject) {
+            // Create an array of all exons from the features array. Number the
+            // exons and order them accordingly.
+            return me.determineExons(geneObject)
+          })
+          resolve(geneObjects);
+        }
+      })
+      .catch((errorThrown) => {
+        console.log("An error occurred when getting genes in region for <pre>" +
+                    chr + ":" + start + "-" + end + "</pre>.");
+        console.log( "Error: " + errorThrown );
+        let msg = "Error " + errorThrown + " occurred when getting genes in region " +
+                   chr + ":" + start + "-" + end;
+        reject({'message': msg});
+      });
+    });
+  }
   promiseGetGeneForVariant(variant) {
     var me = this;
     return new Promise(function(resolve, reject) {
@@ -2137,11 +2269,11 @@ class GeneModel {
           if (geneUID && theLink.url.indexOf('GENEUID') >= 0) {
             theLink.url = theLink.url.replace(/GENEUID/g, geneUID );
             resolved = true;
-          } 
+          }
           if (geneObject && theLink.url.indexOf('GENESYMBOL') >= 0) {
             theLink.url = theLink.url.replace(/GENESYMBOL/g, geneName);
             resolved = true;
-          } 
+          }
           if (geneCoord && theLink.url.indexOf('GENECOORD') >= 0) {
             theLink.url = theLink.url.replace(/GENECOORD/g, geneCoord);
             resolved = true;
@@ -2593,7 +2725,7 @@ class GeneModel {
     }
 
   }
-  
+
   setSourceForGenes(genes, source) {
     let self = this;
     let sourceIndicatorMap = {
@@ -2625,7 +2757,7 @@ class GeneModel {
       }
     })
   }
-  
+
   getSourceForGenes() {
     let self = this;
     return self.genesAssociatedWithSource;

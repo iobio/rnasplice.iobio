@@ -200,33 +200,56 @@
 		    <svg/>
 		  </div>
 	  </div>
-	  <div class="d-flex"  style="margin-top:-70px">
-      <v-spacer/>
-      <v-btn variant="tonal"  id="transcript-menu-button" style="margin-left:10px;"
-            icon="mdi-dots-vertical" color="#094792" density="compact">
-
-          </v-btn>
-        <v-menu eager bottom activator="#transcript-menu-button">
-
-           <v-list id="list-for-transcript-menu" style="margin-right:20px">
-            <v-list-item>
-              <div id="transcript-menu-panel">
-                <div id="transcript-menu-diagram" class="multiple" style="margin-right:0px;">
-                  <svg/>
-                </div>
-              </div>
-            </v-list-item>
-           </v-list>
-
-        </v-menu>
-    </div>
-    <div class="d-flex" style="margin-top:10px;" v-if="selectedTranscript">
-      <v-spacer/>
-      <h3 style="font-size:14px !important">
-        {{ selectedTranscript.transcript_id}} {{ selectedTranscript.is_mane_select ? `MANE SELECT` : `` }}
+	  <div class="d-flex"  style="margin-top:-40px;align-items:center;justify-content: end;margin-bottom:20px">
+      <h3 style="font-size:14px !important;margin-bottom:0px!important" v-if="selectedTranscript">
+        {{ selectedGene.gene_name}} {{ selectedTranscript.transcript_id}} {{ selectedTranscript.is_mane_select ? `MANE SELECT` : `` }}
       </h3>
+      <v-btn variant="tonal"  id="transcript-menu-button" style="margin-left:10px;"
+      icon="mdi-dots-vertical" color="#094792" density="compact">
+      </v-btn>
+      <v-menu eager bottom activator="#transcript-menu-button">
+
+          <v-list id="list-for-transcript-menu" style="margin-right:20px">
+          <v-list-item>
+            <div id="transcript-menu-panel">
+              <div id="transcript-menu-diagram" class="multiple" style="margin-right:0px;">
+                <svg/>
+              </div>
+            </div>
+          </v-list-item>
+          </v-list>
+
+      </v-menu>
     </div>
 
+
+    <div style="" class="d-flex flex-column "
+     v-for="otherGene in geneObjectsInRegion" key="gene_name">
+      <div :id="'other-transcript-panel-' + otherGene.gene_name" v-show="showTranscriptMenu" >
+        <div id="transcript-diagram" >
+        </div>
+      </div>
+      <div v-if="false" class="d-flex align-center">
+        <v-spacer/>
+        <v-btn variant="tonal"  :id="'transcript-menu-button-' + otherGene.gene_name" style="margin-left:10px;"
+              icon="mdi-dots-vertical" color="#094792" density="compact">
+
+            </v-btn>
+          <v-menu eager bottom :activator="'#transcript-menu-button-' + otherGene.gene_name">
+
+            <v-list id="list-for-transcript-menu" style="margin-right:20px">
+              <v-list-item>
+                <div :id="'transcript-menu-panel-'+ otherGene.gene_name">
+                  <div id="transcript-menu-diagram" class="multiple" style="margin-right:0px;">
+
+                  </div>
+                </div>
+              </v-list-item>
+            </v-list>
+
+          </v-menu>
+        </div>
+    </div>
 
 
 
@@ -463,6 +486,8 @@ export default {
 
 		clickedObject: null,
 
+    geneObjectsInRegion: [],
+
     selectedSpliceKind: null,
 
 		regionIsSelected: false,
@@ -604,7 +629,6 @@ export default {
   	onGeneSelected: function() {
   		let self = this;
 
-		  this.determineExons(this.selectedGene);
       self.selectedTranscript = null;
 		  this.selectedGene.transcripts.forEach(function(transcript) {
 		    if (transcript.is_mane_select) {
@@ -650,10 +674,8 @@ export default {
 		    self.xArcDiagram = null;
 
         d3.selectAll('#diagrams #arc-diagram svg').remove();
-        d3.selectAll('#diagrams #selected-transcript-panel svg').remove();
-        //d3.selectAll('#diagrams #variant-diagram svg').remove();
+        d3.selectAll('#diagrams #transcript-diagram svg').remove();
 		    d3.selectAll('#diagrams #brushable-axis svg').remove();
-        //d3.selectAll('#diagrams #coverage-diagram svg').remove();
         d3.selectAll('#zoomed-diagrams svg').remove();
         self.resetZoom();
 
@@ -664,14 +686,60 @@ export default {
 		    	{'createBrush': false, 'isZoomedRegion': false});
         self.drawArcColorLegend('#arc-color-legend')
 
-		    self.drawTranscriptDiagram("#diagrams #selected-transcript-panel #transcript-diagram", self.selectedGene, self.geneStart, self.geneEnd,
-		      {'selectedTranscriptOnly': true, 'allowSelection': false, 'showBoundingBox': true})
+		    self.drawTranscriptDiagram("#diagrams #selected-transcript-panel #transcript-diagram",
+        self.selectedGene, self.geneStart, self.geneEnd, self.selectedTranscript,
+		      {'selectedTranscriptOnly': true, 'allowSelection': false, 'showPointers': true,
+           'labelExons': true, 'showBoundingBox': true})
 
 
-		    d3.selectAll("#transcript-menu-panel #transcript-menu-diagram svg").remove();
-		    self.drawTranscriptDiagram('#transcript-menu-panel #transcript-menu-diagram', self.selectedGene, self.geneStart, self.geneEnd,
-		    	{'selectedTranscriptOnly': false, 'allowSelection': true});
+		    d3.selectAll("#diagrams #transcript-menu-diagram svg").remove();
+		    self.drawTranscriptDiagram('#transcript-menu-panel #transcript-menu-diagram',
+        self.selectedGene, self.geneStart, self.geneEnd, null,
+		    	{'selectedTranscriptOnly': false, 'showPointers': true,
+           'labelExons': true, 'allowSelection': true});
         self.showTranscriptMenu = true;
+
+        self.geneModel.promiseGetGeneObjectsInRegion(self.selectedGene.chr, self.geneStart, self.geneEnd)
+        .then(function(geneObjects) {
+          if (geneObjects && geneObjects.length > 0) {
+            self.geneObjectsInRegion = geneObjects.filter(function(geneObject) {
+              return geneObject.gene_name != self.selectedGene.gene_name;
+            })
+
+            self.$nextTick(function() {
+              self.geneObjectsInRegion.forEach(function(geneObject) {
+                let theTranscript = null;
+                geneObject.transcripts.forEach(function(transcript) {
+                  if (transcript.is_mane_select) {
+                    transcript.isSelected = true;
+                    theTranscript = transcript;
+                  }
+                })
+                if (theTranscript == null) {
+                  theTranscript = self.geneModel.getCanonicalTranscript(geneObject);
+                  if (theTranscript) {
+                    theTranscript.isSelected = true;
+                  }
+                }
+
+                if (theTranscript) {
+                  self.drawTranscriptDiagram("#diagrams #other-transcript-panel-" + geneObject.gene_name + " #transcript-diagram",
+                    geneObject, self.geneStart, self.geneEnd, theTranscript,
+		                {'selectedTranscriptOnly': true, 'allowSelection': false,
+                    'showPointers': false, 'labelExons': false, 'labelGene': true, 'showBoundingBox': false})
+                }
+
+
+                /*self.drawTranscriptDiagram(
+                '#transcript-menu-panel-' + geneObject.gene_name + ' #transcript-menu-diagram',
+                geneObject, self.geneStart, self.geneEnd, null,
+                {'selectedTranscriptOnly': false, 'allowSelection': true});
+                */
+              })
+            })
+
+          }
+        })
 
         self.drawBrushableHistAxis('#all-histogram');
 
@@ -685,90 +753,6 @@ export default {
   			console.log("Problem encountered. Splice junctions gene does not match selected gene.")
   		}
   	},
-
-		determineExons: function(gene) {
-		  gene.transcripts.forEach(function(transcript) {
-
-		  	// Exons are what we use the number the features. Each exon is assigned
-		  	// a number sequentially. For forward strand, we number exons from
-		  	// first to last exon; For reverse strand, we number from last to
-		  	// first exon.
-		    let exons = transcript.features.filter(function(feature) {
-		    	return feature.feature_type.toLowerCase() == 'exon';
-		    })
-		    .sort(function(a,b) {
-		      if (gene.strand == "+") {
-		        return a.start - b.start;
-		      } else {
-		        return (a.start - b.start) * -1;
-		      }
-		    })
-
-		    // These are the features (UTRs and CDSs for protein coding transcripts,
-		    // EXONs for non-protein coding transcripts) that we treat as exons, that we
-		    // will draw on the trascript diagram
-		    let exonicFeatures  = transcript.features.filter(function(feature) {
-		      if ( transcript.transcript_type == 'protein_coding'
-		      	  || transcript.transcript_type == 'UNIONED'
-		          || feature.transcript_type == 'mRNA'
-		          || feature.transcript_type == 'transcript'
-		          || feature.transcript_type == 'primary_transcript') {
-		        return feature.feature_type.toLowerCase() == 'utr' || feature.feature_type.toLowerCase() == 'cds';
-		      } else {
-		        return feature.feature_type.toLowerCase() == 'exon';
-		      }
-		    })
-		    .sort(function(a,b) {
-		      if (gene.strand == "+") {
-		        return a.start - b.start;
-		      } else {
-		        return (a.start - b.start) * -1;
-		      }
-		    })
-
-		    // Assign the exon number sequentially
-		    let count = 1;
-		    exons.forEach(function(exon) {
-		      exon.number = count++;
-		      exon.name = 'Exon ' + exon.number + ' (of ' + exons.length + ')'
-		    })
-
-		    let getEncapsulatingExon = function(feature) {
-		    	let matched = exons.filter(function(exon) {
-		    		return exon.start <= feature.start && exon.end >= feature.end;
-		    	})
-		    	if (matched.length > 0) {
-		    		return matched[0];
-		    	} else {
-		    		return null;
-		    	}
-		    }
-
-		   	// Number the UTR and CDS according to the encapsulating EXON.
-		    exonicFeatures.forEach(function(feature) {
-		    	if (!feature.hasOwnProperty("number")) {
-			    	let theExon = getEncapsulatingExon(feature, exons)
-			    	if (theExon) {
-			    		feature.number = theExon.number;
-			    	} else {
-			    		console.log("Unable to find encapsulating exon in gene " +
-			    			gene.gene_name + " for feature " +
-			    			feature.feature_type + " " +
-			    			feature.start + "-" + feature.end +
-			    			". Feature will not numbered.")
-			    	}
-
-		    	}
-		    })
-
-
-		    transcript.exons = exonicFeatures;
-		    transcript.exonsOnly = exons;
-
-		  })
-		  return gene;
-		},
-
 
 		locateExon: function(bedPos) {
 		  var matched = this.selectedTranscript.exons.filter(function(exon) {
@@ -995,8 +979,9 @@ export default {
 
 
 			    self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram", self.selectedGene,
-            self.zoomRegionStart, self.zoomRegionEnd,
-			      {'selectedTranscriptOnly': true, 'allowSelection': false, 'marginRight': 0})
+            self.zoomRegionStart, self.zoomRegionEnd, self.selectedTranscript,
+			      {'selectedTranscriptOnly': true, 'allowSelection': false,
+              'showPointers': true, 'labelExons': true, 'marginRight': 0})
 
           if (self.variants && self.variants.length > 0) {
             let filteredVariants = self.variants.filter(function(d) {
@@ -1176,13 +1161,17 @@ export default {
 		      )
 		},
 
-		drawTranscriptDiagram: function(container, gene, regionStart, regionEnd, options) {
+		drawTranscriptDiagram: function(container, gene, regionStart, regionEnd, theSelectedTranscript, options) {
 			let self = this;
 		  // dimensions
-		  var margin = {top: (options && options.selectedTranscriptOnly ? 0 : 5),
+		  var margin = {top: (options && options.selectedTranscriptOnly ? 0 : 10),
 		  	            right: (options && options.hasOwnProperty('marginRight') ? options.marginRight : 5),
-		  	            bottom: (options && options.selectedTranscriptOnly ? 50 : 30),
+		  	            bottom: (options && options.selectedTranscriptOnly && options.showPointers ? 50 : 30),
 		  	            left: 0};
+
+      if (options && options.hasOwnProperty('labelExons') && options.labelExons == false) {
+        margin.bottom = 0;
+      }
 
 		  var width = self.$el.offsetWidth - 20;
 		  if (options.width) {
@@ -1223,7 +1212,9 @@ export default {
 		  // Keep track of x according to container (e.g. diagrams and zoomed-diagrams)
 		  if (container.indexOf('#zoomed-diagrams') >= 0) {
 		  	self.xTranscriptChartZoomed = x;
-		  } else {
+		  } else if (options &&
+                 options.selectedTranscriptOnly &&
+                 theSelectedTranscript.transcript_id == self.selectedTranscript.transcript_id) {
 		  	self.xTranscriptChart = x;
 		  }
 
@@ -1239,7 +1230,7 @@ export default {
 		  // TODO: Need to order transcripts descending (most important should be at top)
 		  var transcripts = svg
 		      .selectAll("g.transcript")
-		      .data(options && options.selectedTranscriptOnly ? [self.selectedTranscript] : gene.transcripts,
+		      .data(options && options.selectedTranscriptOnly ? [theSelectedTranscript] : gene.transcripts,
 		        function(d) {
 		        return d.transcript_id;
 		      })
@@ -1250,9 +1241,9 @@ export default {
 		      })
 		      .attr("transform", function(d) {
 		      	if (options && options.selectedTranscriptOnly) {
-		      		return `translate(${margin.left},0)`
+		      		return `translate(${margin.left},-10)`
 		      	} else {
-			        return `translate(${margin.left},${d.y = y(d) - transcriptHeight})`
+			        return `translate(${margin.left},${d.y = y(d) - transcriptHeight - 10})`
 		      	}
 		      })
 
@@ -1286,44 +1277,6 @@ export default {
 
         })
      	}
-
-
-      transcripts.selectAll("line.gene").remove();
-      transcripts.selectAll("line.gene")
-      .data(function(d) {
-        return [{'start': d.start, 'end': d.end}]
-      })
-      .enter()
-      .append('line')
-      .attr("class", "gene")
-      .attr("x1", function(d) {
-        return x(Math.min(regionStart, d.start))
-      })
-      .attr("x2", function(d) {
-        return x(Math.min(regionEnd, d.end))
-      })
-      .attr("y1", self.CDS_HEIGHT)
-      .attr("y2", self.CDS_HEIGHT)
-
-      if (options && options.allowSelection) {
-        transcripts.selectAll(".transcript-label").remove();
-        transcripts.selectAll(".transcript-label")
-        .data(function(d) {
-  	       return [d];
-        })
-        .enter()
-        .append('text')
-  			.attr("class", "transcript-label")
-  			.attr("text-anchor", 'start')
-  			.attr("x", 5)
-  			.attr("y", 0)
-  			.attr("dy", "0.35em")
-  			.text(function(d) {
-  			  return d.transcript_id + (d.is_mane_select ? " MANE" : "");
-  			})
-      }
-
-
 
 
 		  var nodes = transcripts
@@ -1365,20 +1318,111 @@ export default {
 		               (options && options.allowSelection ? " no-pointer" : "");
 		      })
 		      .on("click", function(event,d) {
-		      	self.onSelectExon(d, {'click': true});
-		      	self.clickedObject = d;
+		      	//self.onSelectExon(d, {'click': true});
+		      	//self.clickedObject = d;
 		     	})
 		      .on("mouseover", function(event,d) {
-		      	self.onSelectExon(d, {'click': false});
+		      	//self.onSelectExon(d, {'click': false});
 		      })
 		     .on("mouseout", function(d) {
 
-		     		d3.selectAll('#transcript-diagram .transcript.selected .exon-' + d.number).classed("exon-highlight",false);
+		     		//d3.selectAll('#transcript-diagram .transcript.selected .exon-' + d.number).classed("exon-highlight",false);
 		      });
 
-		  if (options && options.selectedTranscriptOnly) {
 
-		  	let exons = self.selectedTranscript.features.filter(function(feature) {
+      // Draw line for transcript
+      transcripts.selectAll("line.gene").remove();
+      transcripts.selectAll("line.gene")
+      .data(function(d) {
+        return [{'start': d.start, 'end': d.end}]
+      })
+      .enter()
+      .append('line')
+      .attr("class", "gene")
+      .attr("x1", function(d) {
+        return x(d.start)
+      })
+      .attr("x2", function(d) {
+        return x(d.end)
+      })
+      .attr("y1", self.CDS_HEIGHT)
+      .attr("y2", self.CDS_HEIGHT)
+
+      // Draw arrows to indicate direction (strand)
+      if (options && options.selectedTranscriptOnly) {
+
+        let exonsForTranscript = theSelectedTranscript['exons']
+        .filter(function(exon) {
+          let exonInRegion      = +exon.start >= +regionStart && +exon.end <= +regionEnd
+          let exonStartInRegion = +exon.start >= +regionStart && +exon.start <= +regionEnd
+          let exonEndInRegion   = +exon.end   >= +regionStart && +exon.end <= +regionEnd
+          return exonInRegion || exonStartInRegion || exonEndInRegion;
+        })
+        .sort(function(a,b) {
+          return a.start - b.start;
+        })
+
+        let arrows = []
+        for (let i = 0; i < exonsForTranscript.length-1; i++) {
+          let xStart = x(exonsForTranscript[i].end)
+          let xEnd  = x(exonsForTranscript[i+1].start)
+          let distanceBetween = (xEnd - xStart);
+          if (Math.abs(distanceBetween) > 20) {
+            arrows.push({'x': Math.round(xStart) + Math.round(distanceBetween/2)})
+          }
+        }
+        if (arrows.length == 0 && exonsForTranscript.length > 0) {
+          for (let i = 0; i < exonsForTranscript.length-1; i++) {
+            let xStart = x(exonsForTranscript[i].end)
+            let xEnd  = x(exonsForTranscript[i+1].start)
+            let distanceBetween = (xEnd - xStart);
+            arrows.push({'x': Math.round(xStart) + Math.round(distanceBetween/2)})
+          }
+        }
+        if (arrows.length == 0) {
+          for (let i = 0; i < exonsForTranscript.length; i++) {
+            let xStart = x(exonsForTranscript[i].start)
+            let xEnd  = x(exonsForTranscript[i].end)
+            let distanceBetween = (xEnd - xStart);
+            arrows.push({'x': Math.round(xStart) + Math.round(distanceBetween/2)})
+          }
+        }
+
+
+        transcripts.selectAll(".arrow").remove();
+        transcripts.selectAll('.arrow')
+        .data(arrows)
+        .enter()
+        .append('path')
+        .attr('class', 'arrow')
+        .style('transform', 'translate(0px,10px)')
+        .attr('d', function(d) {
+          return self.centerArrow(theSelectedTranscript.strand, d, innerHeight, 15)
+        })
+      }
+
+
+      if (options && options.allowSelection) {
+        transcripts.selectAll(".transcript-label").remove();
+        transcripts.selectAll(".transcript-label")
+        .data(function(d) {
+  	       return [d];
+        })
+        .enter()
+        .append('text')
+  			.attr("class", "transcript-label")
+  			.attr("text-anchor", 'start')
+  			.attr("x", 5)
+  			.attr("y", 0)
+  			.attr("dy", "0.35em")
+  			.text(function(d) {
+  			  return d.transcript_id + (d.is_mane_select ? " MANE" : "");
+  			})
+      }
+
+		  if (options && options.selectedTranscriptOnly && options.labelExons) {
+
+		  	let exons = theSelectedTranscript.features.filter(function(feature) {
           let featureInRegion      = +feature.start >= +regionStart && +feature.end <= +regionEnd
           let featureStartInRegion = +feature.start >= +regionStart && +feature.start <= +regionEnd
           let featureEndInRegion   = +feature.end   >= +regionStart && +feature.end <= +regionEnd
@@ -1437,7 +1481,7 @@ export default {
 		  }
 
 		  // Draw draw triangles to point out donor and acceptor sites
-		  if (options && options.selectedTranscriptOnly) {
+		  if (options && options.selectedTranscriptOnly && options.showPointers) {
 		  	if (!options || !options.exonsOnly) {
 				 svg
 				 .append("polygon")
@@ -1540,7 +1584,8 @@ export default {
 				 .text("!")
 
 
-				 if (self.clickedObject && self.clickedObject.type == 'splice-junction') {
+				 if (self.clickedObject && self.clickedObject.type == 'splice-junction' &&
+            theSelectedTranscript && theSelectedTranscript.transcript_id == self.selectedTranscript.transcript_id) {
 
 			     let donorExon      = self.locateExon(self.clickedObject.donor.pos);
 			     let acceptorExon   = self.locateExon(self.clickedObject.acceptor.pos);
@@ -1563,6 +1608,32 @@ export default {
 				}
 			}
 
+      // Show the gene name to the left or right of the transcript-diagram
+      if (options && options.labelGene) {
+        let xStart = x(theSelectedTranscript.start)
+        let xEnd = x(theSelectedTranscript.end)
+        let xPos = null;
+        let textAnchor = null;
+        if (xStart < 0 && xEnd > 0) {
+          xPos = xEnd + 10;
+          textAnchor = 'start';
+        } else if (xEnd > innerWidth && xStart > 0) {
+          xPos = xStart - 10;
+          textAnchor = 'end'
+        } else {
+          xPos = 0;
+          textAnchor = 'start';
+        }
+        transcripts.selectAll("gene-label").remove();
+        transcripts
+        .append("text")
+        .attr("class", "gene-label")
+        .attr("x", xPos)
+        .attr("y", 25)
+        .style('text-anchor', textAnchor)
+        .text(gene.gene_name)
+      }
+
 		},
 
     switchTranscripts: function(selectedTranscriptId) {
@@ -1579,15 +1650,18 @@ export default {
       })
 
       d3.select('#diagrams #selected-transcript-panel #transcript-diagram svg').remove();
-      self.drawTranscriptDiagram("#diagrams #selected-transcript-panel #transcript-diagram", self.selectedGene, self.geneStart, self.geneEnd,
-      {'selectedTranscriptOnly': true, 'allowSelection': false})
+      self.drawTranscriptDiagram("#diagrams #selected-transcript-panel #transcript-diagram",
+      self.selectedGene, self.geneStart, self.geneEnd, self.selectedTranscript,
+      {'selectedTranscriptOnly': true, 'allowSelection': false, 'showPointers': true, 'labelExons': true})
 
       d3.select('#zoomed-diagrams #transcript-diagram svg').remove();
       self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram",
         self.selectedGene,
         self.zoomRegionStart,
         self.zoomRegionEnd,
-        {'selectedTranscriptOnly': true, 'allowSelection': false, marginRight: 0})
+        self.selectedTranscript,
+        {'selectedTranscriptOnly': true, 'allowSelection': false,  'showPointers': true,
+         'labelExons': true, marginRight: 0})
 
       self.$emit("splice-junction-selected", self.clickedObject)
 
@@ -1598,10 +1672,10 @@ export default {
 		onSelectExon: function(exon, options={'click': false}) {
 
 			let self = this;
-			d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight.selected').classed("exon-highlight", false)
-    	d3.selectAll('#transcript-diagram .transcript.selected .exon-' + exon.number).classed("exon-highlight",true);
-    	d3.selectAll('#transcript-diagram .transcript.selected .exon-' + exon.number).classed("selected",true);
-    	d3.selectAll('#transcript-diagram .transcript.selected .exon-' + exon.number).classed("clicked",options.click);
+			d3.selectAll('#selected-transcript-panel #transcript-diagram .transcript.selected .exon-highlight.selected').classed("exon-highlight", false)
+    	d3.selectAll('#selected-transcript-panel #transcript-diagram .transcript.selected .exon-' + exon.number).classed("exon-highlight",true);
+    	d3.selectAll('#selected-transcript-panel #transcript-diagram .transcript.selected .exon-' + exon.number).classed("selected",true);
+    	d3.selectAll('#selected-transcript-panel #transcript-diagram .transcript.selected .exon-' + exon.number).classed("clicked",options.click);
 
     	let count = 0;
     	let donorSpliceJunctions = self.filteredSpliceJunctions.filter(function(edge) {
@@ -1699,7 +1773,7 @@ export default {
           .enter().append('path')
           .attr('class', 'arrow')
           .attr('d', function(d) {
-            return self.centerArrow(d, innerHeight, 15)
+            return self.centerArrow(self.selectedGene.strand, d, innerHeight, 15)
           })
           .style('transform', 'translate(-10px, -8px)')
 
@@ -1713,12 +1787,13 @@ export default {
 		},
 
 
-	  centerArrow: function(d, height, arrowHeight) {
-	    var arrowHead = parseInt(d.gene.strand + '5');
+	  centerArrow: function(strand, d, height, arrowHeight) {
+	    var arrowHead = parseInt(strand + '5');
+      let xPos = strand == "+" ? d.x : d.x - arrowHead;
 	    var pathStr = "M ";
-	    pathStr += d.x + ' ' + (height - arrowHeight)/2;
-	    pathStr += ' L ' + parseInt(d.x+arrowHead) + ' ' + height/2;
-	    pathStr += ' L ' + d.x + ' ' + parseInt(height + arrowHeight)/2;
+	    pathStr += xPos + ' ' + (height - arrowHeight)/2;
+	    pathStr += ' L ' + parseInt(xPos+arrowHead) + ' ' + height/2;
+	    pathStr += ' L ' + xPos + ' ' + parseInt(height + arrowHeight)/2;
 	    return pathStr;
 	  },
 
@@ -1858,7 +1933,7 @@ export default {
             .enter().append('path')
             .attr('class', 'arrow')
             .attr('d', function(d) {
-              return self.centerArrow(d, innerHeight, 15)
+              return self.centerArrow(self.selectedGene.strand, d, innerHeight, 15)
             })
             .style('transform', 'translate(-10px, -' + (margin.top - 10) + 'px)')
       }
@@ -2080,19 +2155,19 @@ export default {
 				      .style("opacity", 0)
 			   }
 
-		     d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)
-		     d3.selectAll('#transcript-diagram .transcript.selected .clicked').classed("clicked", false)
+		     d3.selectAll('#selected-transcript-panel #transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)
+		     d3.selectAll('#selected-transcript-panel #transcript-diagram .transcript.selected .clicked').classed("clicked", false)
 
 
 		     let donorExon      = self.locateExon(d.donor.pos);
 		     let acceptorExon   = self.locateExon(d.acceptor.pos);
 		     if (donorExon) {
-		      	d3.selectAll('#transcript-diagram .exon-' + donorExon.number).classed("exon-highlight",true);
-		      	d3.selectAll('#transcript-diagram .exon-' + donorExon.number).classed("clicked",true);
+		      	d3.selectAll('#selected-transcript-panel #transcript-diagram .exon-' + donorExon.number).classed("exon-highlight",true);
+		      	d3.selectAll('#selected-transcript-panel #transcript-diagram .exon-' + donorExon.number).classed("clicked",true);
 		     }
 		     if (acceptorExon) {
-		        d3.selectAll('#transcript-diagram .exon-' + acceptorExon.number).classed("exon-highlight", true);
-		        d3.selectAll('#transcript-diagram .exon-' + acceptorExon.number).classed("clicked", true);
+		        d3.selectAll('#selected-transcript-panel #transcript-diagram .exon-' + acceptorExon.number).classed("exon-highlight", true);
+		        d3.selectAll('#selected-transcript-panel #transcript-diagram .exon-' + acceptorExon.number).classed("clicked", true);
 		     }
 
 				 self.hideSitePointersOnTranscriptChart("select")
@@ -2181,19 +2256,19 @@ export default {
 				     .style("opacity", .9);
 			   }
 
-		     d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight.selected').classed("exon-highlight", false)
-		     d3.selectAll('#transcript-diagram .transcript.selected .selected').classed("selected", false)
+		     d3.selectAll('#selected-transcript-panel #transcript-diagram .transcript.selected .exon-highlight.selected').classed("exon-highlight", false)
+		     d3.selectAll('#selected-transcript-panel #transcript-diagram .transcript.selected .selected').classed("selected", false)
 
 
 		     let donorExon      = self.locateExon(d.donor.pos);
 		     let acceptorExon   = self.locateExon(d.acceptor.pos);
 		     if (donorExon) {
-		      	d3.selectAll('#transcript-diagram .exon-' + donorExon.number).classed("exon-highlight",true);
-		      	d3.selectAll('#transcript-diagram .exon-' + donorExon.number).classed("selected",true);
+		      	d3.selectAll('#selected-transcript-panel #transcript-diagram .exon-' + donorExon.number).classed("exon-highlight",true);
+		      	d3.selectAll('#selected-transcript-panel #transcript-diagram .exon-' + donorExon.number).classed("selected",true);
 		     }
 		     if (acceptorExon) {
-		        d3.selectAll('#transcript-diagram .exon-' + acceptorExon.number).classed("exon-highlight", true);
-		        d3.selectAll('#transcript-diagram .exon-' + acceptorExon.number).classed("selected", true);
+		        d3.selectAll('#selected-transcript-panel #transcript-diagram .exon-' + acceptorExon.number).classed("exon-highlight", true);
+		        d3.selectAll('#selected-transcript-panel #transcript-diagram .exon-' + acceptorExon.number).classed("selected", true);
 		     }
 
 		     self.showSitePointersOnTranscriptChart(d, self.ySitePointer, "select")
@@ -2213,8 +2288,8 @@ export default {
 		 .on("mouseout", function(d) {
 
 
-		    d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)
-		    d3.selectAll('#transcript-diagram .transcript.selected .clicked').classed("exon-highlight", true)
+		    d3.selectAll('#selected-transcript-panel #transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)
+		    d3.selectAll('#selected-transcript-panel #transcript-diagram .transcript.selected .clicked').classed("exon-highlight", true)
 
 		    d3.selectAll("#arc-diagram path.junction.selected").classed("selected", false);
 		    d3.selectAll("#arc-diagram path.junction.clicked").classed("selected", true);
@@ -2914,9 +2989,9 @@ export default {
 
  	 	  d3.selectAll("#transcript-diagram .transcript.selected .selected")
  	 	    .classed("selected",false);
- 	 	  d3.selectAll("#transcript-diagram .transcript.selected .clicked")
+ 	 	  d3.selectAll("#selected-transcript-panel #transcript-diagram .transcript.selected .clicked")
  	 	    .classed("clicked",false);
- 	 	  d3.selectAll("#transcript-diagram .transcript.selected .exon-highlight")
+ 	 	  d3.selectAll("#selected-transcript-panel #transcript-diagram .transcript.selected .exon-highlight")
  	 	    .classed("exon-highlight",false);
  	 	  d3.selectAll(".arc-pointer")
          .style("opacity", 0)
@@ -3110,16 +3185,16 @@ export default {
 	   	  d3.selectAll("#diagrams #arc-diagram").select(".arc-pointer-small")
 	         .style("opacity", 0)
 
-	      d3.selectAll('#transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)
-	      d3.selectAll('#transcript-diagram .transcript.selected .clicked').classed("clicked", false)
+	      d3.selectAll('#selected-transcript-panel #transcript-diagram .transcript.selected .exon-highlight').classed("exon-highlight", false)
+	      d3.selectAll('#selected-transcript-panel #transcript-diagram .transcript.selected .clicked').classed("clicked", false)
 
 	      if (d.donor.exon) {
-	      	d3.selectAll('#transcript-diagram .exon-' + d.donor.exon.number).classed("exon-highlight",true);
-	      	d3.selectAll('#transcript-diagram .exon-' + d.donor.exon.number).classed("clicked",true);
+	      	d3.selectAll('#selected-transcript-panel #transcript-diagram .exon-' + d.donor.exon.number).classed("exon-highlight",true);
+	      	d3.selectAll('#selected-transcript-panel #transcript-diagram .exon-' + d.donor.exon.number).classed("clicked",true);
 	      }
 	      if (d.acceptor.exon) {
-	        d3.selectAll('#transcript-diagram .exon-' + d.acceptor.exon.number).classed("exon-highlight", true);
-	        d3.selectAll('#transcript-diagram .exon-' + d.acceptor.exon.number).classed("clicked", true);
+	        d3.selectAll('#selected-transcript-panel #transcript-diagram .exon-' + d.acceptor.exon.number).classed("exon-highlight", true);
+	        d3.selectAll('#selected-transcript-panel #transcript-diagram .exon-' + d.acceptor.exon.number).classed("clicked", true);
 	      }
 			  self.hideSitePointersOnTranscriptChart("select")
 			  self.hideSitePointersOnTranscriptChart("click")
@@ -3378,7 +3453,7 @@ export default {
       .enter().append('path')
       .attr('class', 'arrow')
       .attr('d', function(d) {
-        return self.centerArrow(d, innerHeight, 15)
+        return self.centerArrow(self.selectedGene.strand, d, innerHeight, 15)
       })
       .style('transform', 'translate(-10px, -39px)')
 
@@ -3821,8 +3896,9 @@ export default {
         })
 	    self.drawTranscriptDiagram("#zoomed-diagrams #transcript-diagram",
         self.selectedGene,
-        self.zoomRegionStart, self.zoomRegionEnd,
-	      {'selectedTranscriptOnly': true, 'allowSelection': false, marginRight: 0})
+        self.zoomRegionStart, self.zoomRegionEnd, self.selectedTranscript,
+	      {'selectedTranscriptOnly': true, 'allowSelection': false,  'showPointers': true,
+         'labelExons': true, marginRight: 0})
 
 
 
@@ -5170,6 +5246,7 @@ div.tooltip {
 .arrow {
 	stroke: #494949;
 	stroke-width: 1.5;
+  fill: none;
 }
 .cdf path {
   stroke: #59638c9c;
@@ -5523,10 +5600,19 @@ text.seq.T, rect.seq.T {
         stroke-width: 0.5
 
   #diagrams
+    #transcript-diagram
+      svg
+        gene-label
+          font-size: 13px
     #coverage-diagram
       svg
         path
           transform: translate(0px, -6px)
+
+    .other-gene-label
+      margin-top: 0px
+      color: $app-label-color
+      font-weight: 500
 
   .zoom-button
     background-color: #728dac !important
