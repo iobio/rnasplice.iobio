@@ -237,7 +237,7 @@ import { Typeahead } from 'uiv'
     font-size: 12px
     font-style: italic
     font-weight: 500
-    color:  $app-label-color
+    color:  $nav-label-color
     margin-top: 3px
 
   #sample-name
