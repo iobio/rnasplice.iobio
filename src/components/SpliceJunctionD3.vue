@@ -3065,10 +3065,16 @@ export default {
         self.$nextTick(function() {
           setTimeout(function() {
             self._selectSpliceJunctionImpl(d)
+            self.$nextTick(function() {
+              self.globalApp.scrollToBottom("#site-diagrams");
+            })
           }, 1000)
         })
       } else {
         self._selectSpliceJunctionImpl(d)
+        self.$nextTick(function() {
+          self.globalApp.scrollToBottom("#site-diagrams");
+        })
       }
     },
 
