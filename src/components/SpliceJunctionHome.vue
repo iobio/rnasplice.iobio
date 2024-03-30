@@ -318,17 +318,20 @@ import { reject } from 'async'
         // are visible and selectable in the diagrams.
         if (self.spliceJunctionsForGene) {
           self.spliceJunctionsForGene.forEach(function(junction) {
-            if (junction.donor.pos < self.selectedGene.start) {
-              self.selectedGene.start = junction.donor.pos - 100;
-            }
-            if (junction.acceptor.pos < self.selectedGene.start) {
-              self.selectedGene.start = junction.acceptor.pos - 100;
-            }
-            if (junction.donor.pos > self.selectedGene.end) {
-              self.selectedGene.end = junction.donor.pos + 100;
-            }
-            if (junction.acceptor.pos > self.selectedGene.end) {
-              self.selectedGene.end = junction.acceptor.pos + 100;
+            if (junction.strand == null || junction.strand == "" || self.selectedGene.start == junction.strand ) {
+              if (junction.donor.pos < self.selectedGene.start) {
+                self.selectedGene.start = junction.donor.pos - 100;
+              }
+              if (junction.acceptor.pos < self.selectedGene.start) {
+                self.selectedGene.start = junction.acceptor.pos - 100;
+              }
+              if (junction.donor.pos > self.selectedGene.end) {
+                self.selectedGene.end = junction.donor.pos + 100;
+              }
+              if (junction.acceptor.pos > self.selectedGene.end) {
+                self.selectedGene.end = junction.acceptor.pos + 100;
+              }
+
             }
           })
         }
