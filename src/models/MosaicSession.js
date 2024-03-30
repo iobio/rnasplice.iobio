@@ -305,48 +305,51 @@ export default class MosaicSession {
       var currentSample = sample;
       self.promiseGetFilesForSample(project_id, currentSample.id)
       .then(files => {
-        files.filter(file => {
-          if(self.experiment_id){
-            return file.experiment_ids.includes(Number(self.experiment_id))
-          }
-          else {
-            return file
-          }
-        }).filter(file => {
-          return file.type
-        })
-        .forEach(file => {
+        if (files) {
+          files.filter(file => {
+            if(self.experiment_id){
+              return file.experiment_ids.includes(Number(self.experiment_id))
+            }
+            else {
+              return file
+            }
+          }).filter(file => {
+            return file.type
+          })
+          .forEach(file => {
 
-          var p = self.promiseGetSignedUrlForFile(project_id, currentSample.id, file)
-          .then(signed => {
-            if (file.type == 'txt' || file.type == 'tsv') {
-              var files = fileMap.txt;
-              if (files == null) {
-                files = [];
-                fileMap.txt = files;
-              }
-              files.push({'url': signed.url, 'name': file.nickname});
+            var p = self.promiseGetSignedUrlForFile(project_id, currentSample.id, file)
+            .then(signed => {
+              if (file.type == 'txt' || file.type == 'tsv') {
+                var files = fileMap.txt;
+                if (files == null) {
+                  files = [];
+                  fileMap.txt = files;
+                }
+                files.push({'url': signed.url, 'name': file.nickname});
 
-            } else {
-              fileMap[file.type] = signed.url
-              if (file.type == 'vcf') {
-                if (file.vcf_sample_name == null || file.vcf_sample_name == "") {
-                  reject("Missing vcf_sample_name for file " + file.name)
-                } else {
-                  sample.vcf_sample_name = file.vcf_sample_name;
+              } else {
+                fileMap[file.type] = signed.url
+                if (file.type == 'vcf') {
+                  if (file.vcf_sample_name == null || file.vcf_sample_name == "") {
+                    reject("Missing vcf_sample_name for file " + file.name)
+                  } else {
+                    sample.vcf_sample_name = file.vcf_sample_name;
+                  }
                 }
               }
-            }
+            })
+            promises.push(p);
           })
-          promises.push(p);
-        })
-        Promise.all(promises)
-        .then(response => {
-          resolve({'sample': sample, 'relationship': relationship, 'fileMap': fileMap});
-        })
-        .catch(errorMsg => {
-          reject(errorMsg);
-        })
+          Promise.all(promises)
+          .then(response => {
+            resolve({'sample': sample, 'relationship': relationship, 'fileMap': fileMap});
+          })
+          .catch(errorMsg => {
+            reject(errorMsg);
+          })
+        }
+
       })
     })
   }
