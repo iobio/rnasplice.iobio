@@ -2081,7 +2081,7 @@ class GeneModel {
 
 
 
-  promiseGetGeneObjectsInRegion(chr, start, end) {
+  promiseGetOtherGeneObjectsInRegion(geneNameToExclude, chr, start, end, transcriptsMode) {
     var me = this;
     return new Promise(function(resolve, reject) {
       var url = me.globalApp.geneInfoServer + "api/region/" + chr + ":" + start + "-" + end;
@@ -2101,6 +2101,9 @@ class GeneModel {
             // Create an array of all exons from the features array. Number the
             // exons and order them accordingly.
             return me.determineExons(geneObject)
+          }).filter(function(geneObject) {
+            let transcriptsInRegion = me.getTranscriptsInRegion(geneObject, start, end, transcriptsMode)
+            return geneObject.gene_name != geneNameToExclude && transcriptsInRegion.length > 0;
           })
           resolve(geneObjects);
         }
@@ -2115,6 +2118,34 @@ class GeneModel {
       });
     });
   }
+
+  getTranscriptsInRegion(geneObject, start, end, otherTranscriptsMode) {
+    let self = this;
+    let theTranscripts = []
+    if (otherTranscriptsMode == 'mane') {
+      geneObject.transcripts.forEach(function(transcript) {
+      if (transcript.is_mane_select) {
+          transcript.isSelected = true;
+          theTranscripts.push(transcript);
+        }
+      })
+      if (theTranscripts.length == 0) {
+        let canonicalTranscript = self.getCanonicalTranscript(geneObject);
+        if (canonicalTranscript) {
+          canonicalTranscript.isSelected = true;
+          theTranscripts.push(canonicalTranscript)
+        }
+      }
+    } else {
+      geneObject.transcripts.forEach(function(transcript) {
+        theTranscripts.push(transcript)
+      })
+    }
+    return theTranscripts.filter(function(transcript) {
+      return transcript.start >= start || transcript.end <= end;
+    })
+  }
+
   promiseGetGeneForVariant(variant) {
     var me = this;
     return new Promise(function(resolve, reject) {

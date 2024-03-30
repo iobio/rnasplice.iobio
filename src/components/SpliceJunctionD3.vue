@@ -200,7 +200,7 @@
 		    <svg/>
 		  </div>
 	  </div>
-	  <div class="d-flex"  style="margin-top:-40px;align-items:center;justify-content: end;margin-bottom:20px">
+	  <div class="d-flex"  style="margin-top:-40px;align-items:center;justify-content: end;margin-bottom:5px">
       <h3 style="font-size:14px !important;margin-bottom:0px!important" v-if="selectedTranscript">
         {{ selectedGene.gene_name}} {{ selectedTranscript.transcript_id}} {{ selectedTranscript.is_mane_select ? `MANE SELECT` : `` }}
       </h3>
@@ -222,33 +222,38 @@
       </v-menu>
     </div>
 
+    <div style="min-width:300px">
+      <v-btn-toggle id="other-transcripts-mode-button-group"
+        v-show="geneObjectsInRegion && geneObjectsInRegion.length > 0"
+        v-model="otherTranscriptsMode"
+        color="primary"
+        mandatory divided
+        variant="elevated">
+        <v-btn density="compact" value="mane">MANE transcript</v-btn>
+        <v-btn density="compact" value="all">All transcripts</v-btn>
+      </v-btn-toggle>
+    </div>
+
+    <div
+       v-if="otherTranscriptsMode == 'all'"
+       v-for="(otherTranscript, idx) in geneModel.getTranscriptsInRegion(selectedGene, geneStart, geneEnd, otherTranscriptsMode)"
+       :id="'transcript-panel-' + selectedGene.gene_name + '-' + idx"
+       v-show="showTranscriptMenu" >
+        <div id="transcript-diagram" >
+        </div>
+    </div>
 
     <div style="" class="d-flex flex-column "
      v-for="otherGene in geneObjectsInRegion" key="gene_name">
-      <div :id="'other-transcript-panel-' + otherGene.gene_name" v-show="showTranscriptMenu" >
+
+      <div
+       v-for="(otherTranscript, idx) in geneModel.getTranscriptsInRegion(otherGene, geneStart, geneEnd, otherTranscriptsMode)"
+       :id="'other-transcript-panel-' + otherGene.gene_name + '-' + idx"
+       v-show="showTranscriptMenu" >
         <div id="transcript-diagram" >
         </div>
       </div>
-      <div v-if="false" class="d-flex align-center">
-        <v-spacer/>
-        <v-btn variant="tonal"  :id="'transcript-menu-button-' + otherGene.gene_name" style="margin-left:10px;"
-              icon="mdi-dots-vertical" color="#094792" density="compact">
 
-            </v-btn>
-          <v-menu eager bottom :activator="'#transcript-menu-button-' + otherGene.gene_name">
-
-            <v-list id="list-for-transcript-menu" style="margin-right:20px">
-              <v-list-item>
-                <div :id="'transcript-menu-panel-'+ otherGene.gene_name">
-                  <div id="transcript-menu-diagram" class="multiple" style="margin-right:0px;">
-
-                  </div>
-                </div>
-              </v-list-item>
-            </v-list>
-
-          </v-menu>
-        </div>
     </div>
 
 
@@ -553,6 +558,7 @@ export default {
 
     showGreyedOutJunctionsState: 'hide',
 
+    otherTranscriptsMode: 'mane',
 
     readCountMean: null,
     readCountStd: null,
@@ -699,42 +705,38 @@ export default {
            'labelExons': true, 'allowSelection': true});
         self.showTranscriptMenu = true;
 
-        self.geneModel.promiseGetGeneObjectsInRegion(self.selectedGene.chr, self.geneStart, self.geneEnd)
+        let i = 0;
+        let transcriptsSelectedGene = self.geneModel.getTranscriptsInRegion(self.selectedGene, self.geneStart, self.geneEnd, self.otherTranscriptsMode)
+        transcriptsSelectedGene.forEach(function(theTranscript) {
+          if (theTranscript.transcript_id != self.selectedTranscript.transcript_id) {
+            self.drawTranscriptDiagram(
+              "#diagrams #transcript-panel-" + self.selectedGene.gene_name + "-" + i + " #transcript-diagram",
+              self.selectedGene, self.geneStart, self.geneEnd, theTranscript,
+              {'selectedTranscriptOnly': true, 'allowSelection': false,
+              'showPointers': false, 'labelExons': false, 'labelGene': true,
+              'showBoundingBox': false})
+            i++;
+          }
+        })
+
+        self.geneModel.promiseGetOtherGeneObjectsInRegion(self.selectedGene.gene_name, self.selectedGene.chr, self.geneStart, self.geneEnd, self.otherTranscriptsMode)
         .then(function(geneObjects) {
           if (geneObjects && geneObjects.length > 0) {
-            self.geneObjectsInRegion = geneObjects.filter(function(geneObject) {
-              return geneObject.gene_name != self.selectedGene.gene_name;
-            })
+            self.geneObjectsInRegion = geneObjects;
 
             self.$nextTick(function() {
               self.geneObjectsInRegion.forEach(function(geneObject) {
-                let theTranscript = null;
-                geneObject.transcripts.forEach(function(transcript) {
-                  if (transcript.is_mane_select) {
-                    transcript.isSelected = true;
-                    theTranscript = transcript;
-                  }
-                })
-                if (theTranscript == null) {
-                  theTranscript = self.geneModel.getCanonicalTranscript(geneObject);
-                  if (theTranscript) {
-                    theTranscript.isSelected = true;
-                  }
-                }
-
-                if (theTranscript) {
-                  self.drawTranscriptDiagram("#diagrams #other-transcript-panel-" + geneObject.gene_name + " #transcript-diagram",
+                let theTranscripts = self.geneModel.getTranscriptsInRegion(geneObject, self.geneStart, self.geneEnd, self.otherTranscriptsMode);
+                let idx = 0;
+                theTranscripts.forEach(function(theTranscript) {
+                  self.drawTranscriptDiagram(
+                    "#diagrams #other-transcript-panel-" + geneObject.gene_name + "-" + idx + " #transcript-diagram",
                     geneObject, self.geneStart, self.geneEnd, theTranscript,
 		                {'selectedTranscriptOnly': true, 'allowSelection': false,
-                    'showPointers': false, 'labelExons': false, 'labelGene': true, 'showBoundingBox': false})
-                }
-
-
-                /*self.drawTranscriptDiagram(
-                '#transcript-menu-panel-' + geneObject.gene_name + ' #transcript-menu-diagram',
-                geneObject, self.geneStart, self.geneEnd, null,
-                {'selectedTranscriptOnly': false, 'allowSelection': true});
-                */
+                    'showPointers': false, 'labelExons': false, 'labelGene': true,
+                    'showBoundingBox': false})
+                  idx++;
+                })
               })
             })
 
@@ -753,6 +755,7 @@ export default {
   			console.log("Problem encountered. Splice junctions gene does not match selected gene.")
   		}
   	},
+
 
 		locateExon: function(bedPos) {
 		  var matched = this.selectedTranscript.exons.filter(function(exon) {
@@ -1617,12 +1620,9 @@ export default {
         if (xStart < 0 && xEnd > 0) {
           xPos = xEnd + 10;
           textAnchor = 'start';
-        } else if (xEnd > innerWidth && xStart > 0) {
+        } else {
           xPos = xStart - 10;
           textAnchor = 'end'
-        } else {
-          xPos = 0;
-          textAnchor = 'start';
         }
         transcripts.selectAll("gene-label").remove();
         transcripts
@@ -2510,11 +2510,11 @@ export default {
 
      self.$nextTick(function() {
         setTimeout(function() {
-          console.log('adjusting overlaps')
+          //console.log('adjusting overlaps')
           let start = new Date();
           self.adjustOverlaps(svg)
           let end = new Date();
-          console.log("adjust overlaps elapsed time: " + (end-start)/1000)
+          //console.log("adjust overlaps elapsed time: " + (end-start)/1000)
 
         }, 200)
      })
@@ -2588,7 +2588,7 @@ export default {
           let orientFactor = null;
           let basePathAttr = null;
 
-          console.log(" ")
+          //console.log(" ")
           for (let idx = 0; idx < overlapPathSet.length; idx++) {
             let path = overlapPathSet[idx];
             let bbPath = path.node().getBBox();
@@ -2614,16 +2614,16 @@ export default {
               let point = self.screenToSVG(svg, bbPath.x, bbPath.y)
 
               // Replace the path in the svg with the adjusted rx or ry
-              console.log('before: ' + pathAttr[targetField])
+              //console.log('before: ' + pathAttr[targetField])
               let pathString = path.attr('d').replace(pathAttr[targetField], pathTargetAdjusted)
               path.attr('d', pathString)
-              console.log('after: ' + self.parseArcPath(path.attr('d'))[targetField])
+              //console.log('after: ' + self.parseArcPath(path.attr('d'))[targetField])
 
               // Adjust the arcYTop so that the selected pointer will be placed at the new
               // top of the arc
               let pointAfter = self.screenToSVG(svg, path.node().getBBox().x, path.node().getBBox().y)
               let pointDelta = pointAfter.y - point.y
-              console.log("pointDelta: " + pointDelta)
+              //console.log("pointDelta: " + pointDelta)
               path.data()[0].arcYTop = path.data()[0].arcYTop + pointDelta;
             }
           }
@@ -2680,11 +2680,11 @@ export default {
           })
           overlapPathSets.push(overlaps)
         })
-        console.log('overlap path sets')
-        console.log(overlapPathSets)
+        //console.log('overlap path sets')
+        //console.log(overlapPathSets)
 
-        console.log('overlap pairs')
-        console.log(pathsToAdjust)
+        //console.log('overlap pairs')
+        //console.log(pathsToAdjust)
 
 
         // For each overlapping pair of splice junctions, adjust one splice junction
@@ -5062,6 +5062,9 @@ export default {
     showReadCounts: function() {
     	d3.selectAll("#arc-diagram").classed("hide-read-counts", !this.showReadCounts)
     },
+    otherTranscriptsMode: function() {
+      this.onDataChanged();
+    },
     variants: function() {
       let self = this;
       if (this.variants && this.variants.length > 0) {
@@ -5508,7 +5511,7 @@ text.seq.T, rect.seq.T {
     font-size: 11px
     fill: rgb(73, 73, 73)
 
-  #hist-button-group, #show-greyed-out-button-group
+  #hist-button-group, #show-greyed-out-button-group, #other-transcripts-mode-button-group
     height: 20px !important
     margin-top: 0px
     margin-bottom: 5px
