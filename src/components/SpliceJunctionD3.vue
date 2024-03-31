@@ -691,6 +691,7 @@ export default {
 		    self.drawArcDiagram('#diagrams', self.filteredSpliceJunctions, self.geneStart, self.geneEnd,
 		    	{'createBrush': false, 'isZoomedRegion': false});
         self.drawArcColorLegend('#arc-color-legend')
+        d3.selectAll("#arc-diagram").classed("hide-read-counts", !self.showReadCounts)
 
 		    self.drawTranscriptDiagram("#diagrams #selected-transcript-panel #transcript-diagram",
         self.selectedGene, self.geneStart, self.geneEnd, self.selectedTranscript,
