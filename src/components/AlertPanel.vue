@@ -1,12 +1,12 @@
 <template>
-  <v-navigation-drawer 
+  <v-navigation-drawer
       id="alert-panel"
       v-model="showAlertPanel"
       temporary
       location="right"
       style="margin-left: 5px; margin-right: 5px; padding: 5px;height: calc(100% - 65px);">
 
-    <div style="padding-top:0px;padding-left:5px" >
+    <div style="padding-top:0px;padding-left:5px;padding-right:2px" >
 
 
       <div class="d-flex flex-row align-center">
@@ -40,11 +40,11 @@
 
         <div v-html="alert.message"></div>
 
-        <div v-if="alert.details" style="padding-right:0px ;margin-top:-2px;display:flex;justify-content:flex-end" >
-          <v-btn v-if="!alert.showDetails" class="show-details-button" text @click="alert.showDetails = true">
+        <div v-if="alert.details" style="padding-right:0px ;margin-top:-2px;display:flex;justify-content:flex-end;margin-right: 10px;" >
+          <v-btn v-if="!alert.showDetails" class="show-details-button" variant="text" @click="alert.showDetails = true">
             Show details
           </v-btn>
-          <v-btn v-if="alert.showDetails" class="hide-details-button" text @click="alert.showDetails = false">
+          <v-btn v-if="alert.showDetails" class="hide-details-button" variant="text" @click="alert.showDetails = false">
             Hide details
           </v-btn>
         </div>
@@ -53,7 +53,7 @@
           </div>
         </div>
       </v-alert>
-      
+
 
     </div>
 
@@ -74,7 +74,7 @@ export default {
   name: 'AlertPanel',
   components: {
     ConfirmDialog
-    
+
   },
   props: {
     alerts: Array,
@@ -86,7 +86,7 @@ export default {
     showConfirmDialog: false,
     confirmMessage: "",
     confirmTitle: ""
-    
+
   }),
   methods: {
 
@@ -99,7 +99,7 @@ export default {
         return 'mdi-alert'
       } else if (alert.type == 'error') {
         return 'mdi-alert-octagon'
-      } 
+      }
     },
     getType: function(alert) {
       if (alert.type == 'success') {
@@ -112,7 +112,7 @@ export default {
         return 'info-coverage'
       } else if (alert.type == 'error') {
         return 'error'
-      } 
+      }
     },
     clearAlert: function(alert) {
       this.$emit("clear-alert", alert.key)
@@ -167,7 +167,7 @@ export default {
   #clear-all-button
     margin: 0px
     height: 20px
-    padding-left: 3px 
+    padding-left: 3px
     padding-right: 3px
     margin-right: 0px
 
@@ -181,7 +181,7 @@ export default {
     max-height: 20px
     margin: 0
     float: right
-    padding-left: 3px 
+    padding-left: 3px
     padding-right: 3px
     color: $text-color !important
 
@@ -192,7 +192,7 @@ export default {
         color: $text-color !important
         font-size: 13px
 
-  pre 
+  pre
     display: inline-block
     vertical-align: top
     padding-top: 0px
@@ -200,7 +200,7 @@ export default {
     font-size: 11px
     color: black
     margin-bottom: 0px
-    padding-left: 2px 
+    padding-left: 2px
     padding-right: 2px
     white-space: normal
 
@@ -209,8 +209,8 @@ export default {
     font-size: 15px
     margin-bottom: 10px
 
-  .v-alert 
-    font-size: 12px 
+  .v-alert
+    font-size: 12px
     padding: 0px 0px 10px 0px
     border: none !important
 
@@ -220,7 +220,7 @@ export default {
         font-size: 18px !important
         width:     18px !important
         height:    18px !important
-    div 
+    div
       padding-right: 0px
       max-width: 280px
       overflow-wrap: break-word
@@ -234,7 +234,7 @@ export default {
         div
           color: $text-color !important
       i.v-icon
-        color: #6c6c6c !important    
+        color: #6c6c6c !important
 
     &.text-warning
       .v-alert__content
@@ -257,5 +257,5 @@ export default {
       max-width: 56px
       .v-btn__content
         padding-right: 0px
-        color: $link-color !important      
+        color: $link-color !important
 </style>
