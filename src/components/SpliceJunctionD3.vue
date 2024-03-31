@@ -280,7 +280,7 @@
 
 
 
-      <div class="d-flex" v-if="clickedObject || regionIsSelected" style="width:100%;justify-content: center;">
+      <div class="d-flex" v-if="clickedObject" style="width:100%;justify-content: center;">
 
 
 
@@ -303,11 +303,9 @@
             v-model="showGreyedOutJunctionsState"
             color="primary"
             mandatory divided
-            variant="elevated"
-
-                            >
-            <v-btn density="compact" value="hide">Hide other junctions</v-btn>
-            <v-btn density="compact" value="show">Show other junctions</v-btn>
+            variant="elevated">
+            <v-btn density="compact" value="hide">Fade junctions not selected</v-btn>
+            <v-btn density="compact" value="show">No fading</v-btn>
           </v-btn-toggle>
         </div>
 
@@ -5112,6 +5110,9 @@ export default {
   margin: auto;
 }
 
+.v-btn-group
+  box-shadow: 0px 0px 3px 0px var(--v-shadow-key-umbra-opacity, rgba(0, 0, 0, 0.2)), 0px 0px 0px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.14)), 0px 0px 0px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.12))
+
 #brushable-axis  text {
 	font-size: 11px;
 	font-family: 'Poppins';
@@ -5188,11 +5189,11 @@ svg text.junction.clicked {
 }
 
 svg .junction.greyout {
-  opacity: .2 !important;
-  stroke: lightgray !important;
+  opacity: .4 !important;
+
 }
 svg text.junction.greyout {
-  opacity: .1 !important;
+  opacity: .4 !important;
 }
 
 
