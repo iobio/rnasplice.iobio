@@ -297,7 +297,7 @@ export default class MosaicSession {
   }
 
 
-  promiseGetFileMapForSample(project_id, sample, relationship) {
+  promiseGetFileMapForSample(project_id, sample, relationship, experiment_id) {
     let self = this;
     return new Promise((resolve,reject) => {
       var promises = [];
@@ -307,8 +307,8 @@ export default class MosaicSession {
       .then(files => {
         if (files) {
           files.filter(file => {
-            if(self.experiment_id){
-              return file.experiment_ids.includes(Number(self.experiment_id))
+            if(experiment_id){
+              return file.experiment_ids.includes(Number(experiment_id))
             }
             else {
               return file

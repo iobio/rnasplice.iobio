@@ -211,6 +211,9 @@ import { reject } from 'async'
         if (localStorage.getItem('hub-iobio-tkn') && localStorage.getItem('hub-iobio-tkn').length > 0) {
           self.promiseInitMosaicSession()
           .then(function(loadInfo) {
+            if (self.project) {
+              self.addAppAlert("info", "initialized session from Mosaic project " + self.project.name)
+            }
             self.$emit('load-data-from-mosaic', loadInfo)
           })
         }
@@ -236,25 +239,43 @@ import { reject } from 'async'
             self.user = data.user;
             loadInfo = data.loadInfo;
 
-            let genes = self.urlParams.get('genes')
-            loadInfo.genes = genes;
-            if (genes && genes.length > 0) {
-              let promises = []
-              genes.split(",").forEach(function(geneName){
-                let p = self.geneModel.promiseAddGeneName(geneName)
-                promises.push(p)
-              })
-              Promise.all(promises)
-              .then(function(){
-
-              })
-              .catch(function(error) {
+            let genes = [];
+            let genesString = self.urlParams.get('genes')
+            if (genesString && genesString.length > 0) {
+              genes = genesString.split(",");
+              if (genes.length === 1 && genes[0] === "") {
+                genes = [];
+              }
+            }
+            if (self.geneSet && self.geneSet.genes && self.geneSet.genes.length > 0) {
+              self.addAppAlert("info", 'loading gene set <pre>' + self.geneSet.name + "</pre>")
+              self.geneSet.genes.forEach(function(gene) {
+                genes.push(gene);
               })
             }
-
-
+            loadInfo.genes = genes;
+            let promises = []
+            if (genes && genes.length > 0) {
+              genes.forEach(function(geneName){
+                if (self.geneModel.isKnownGene) {
+                  let p = self.geneModel.promiseAddGeneName(geneName)
+                  promises.push(p)
+                } else {
+                  self.addAppAlert("warn", "Bypassing unknown gene <pre>" + geneName + "</pre>.")
+                }
+              })
+              return Promise.all(promises)
+            } else {
+              return Promise.resolve();
+            }
+          })
+          .then(function() {
             self.projectId = self.urlParams.get('project_id')
-            return self.mosaicSession.promiseGetProject(self.projectId)
+            if (self.projectId && self.projectId != "") {
+              return self.mosaicSession.promiseGetProject(self.projectId)
+            } else {
+              throw Error('Mosaic project id missing from URL parameters')
+            }
           })
           .then(project => {
             self.project = project;
