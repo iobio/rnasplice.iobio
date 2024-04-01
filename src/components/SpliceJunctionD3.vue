@@ -201,7 +201,7 @@
 		  </div>
 	  </div>
 	  <div class="d-flex"  style="margin-top:-40px;align-items:center;justify-content: end;margin-bottom:5px">
-      <h3 style="font-size:14px !important;margin-bottom:0px!important" v-if="selectedTranscript">
+      <h3 style="font-size:14px !important;margin-bottom:0px!important" v-if="selectedGene && selectedTranscript">
         {{ selectedGene.gene_name}} {{ selectedTranscript.transcript_id}} {{ selectedTranscript.is_mane_select ? `MANE SELECT` : `` }}
       </h3>
       <v-btn variant="tonal"  id="transcript-menu-button" style="margin-left:10px;"
@@ -235,7 +235,7 @@
     </div>
 
     <div
-       v-if="otherTranscriptsMode == 'all'"
+       v-if="otherTranscriptsMode == 'all' && selectedGene"
        v-for="(otherTranscript, idx) in geneModel.getTranscriptsInRegion(selectedGene, geneStart, geneEnd, otherTranscriptsMode)"
        :id="'transcript-panel-' + selectedGene.gene_name + '-' + idx"
        v-show="showTranscriptMenu" >
@@ -596,17 +596,8 @@ export default {
 	  				self.showLoading = false;
 	  				self.loadDiagram();
 	  			} else {
-            //d3.selectAll('#diagrams #arc-diagram svg').remove();
-            //d3.selectAll('#diagrams #selected-transcript-panel svg').remove();
-            //d3.selectAll('#diagrams #variant-diagram svg').remove();
-            //d3.selectAll('#diagrams #brushable-axis svg').remove();
-            //d3.selectAll('#diagrams #coverage-diagram svg').remove();
-            //self.resetZoom();
-
 				    self.showLoading = true;
-
 	  			}
-
   			})
   		}
   	},
@@ -1124,6 +1115,14 @@ export default {
         d3.select("#zoomed-diagrams").select("#coverage-diagram svg").remove();
       }
 
+    },
+
+    clearAndReload: function() {
+      let self = this;
+      this.clickedObject = null;
+      this.showZoomPanel = false;
+      this.showTranscriptMenu = false;
+      this.resetZoom();
     },
 
 
@@ -5110,8 +5109,9 @@ export default {
   margin: auto;
 }
 
-.v-btn-group
-  box-shadow: 0px 0px 3px 0px var(--v-shadow-key-umbra-opacity, rgba(0, 0, 0, 0.2)), 0px 0px 0px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.14)), 0px 0px 0px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.12))
+.v-btn-group {
+  box-shadow: 0px 0px 3px 0px var(--v-shadow-key-umbra-opacity, rgba(0, 0, 0, 0.2)), 0px 0px 0px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.14)), 0px 0px 0px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.12));
+}
 
 #brushable-axis  text {
 	font-size: 11px;

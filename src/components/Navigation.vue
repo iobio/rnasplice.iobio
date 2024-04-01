@@ -133,7 +133,8 @@ import { Typeahead } from 'uiv'
       alertCounts: Object,
       sampleNames: Array,
       selectedGene: Object,
-      preLoadInfo: Object
+      preLoadInfo: Object,
+      loadInfo: Object
     },
     data: () => ({
       searchedGene: null,
@@ -175,25 +176,25 @@ import { Typeahead } from 'uiv'
     },
     computed: {
       sampleName: function() {
-        if (this.preLoadInfo && this.preLoadInfo.sampleName) {
-          return this.preLoadInfo.sampleName;
+        if (this.loadInfo && this.loadInfo.sampleName) {
+          return this.loadInfo.sampleName;
         } else {
           return null;
         }
       },
       buildName: function() {
-        if (this.preLoadInfo && this.preLoadInfo.buildName) {
-          return this.preLoadInfo.buildName;
+        if (this.loadInfo && this.loadInfo.buildName) {
+          return this.loadInfo.buildName;
         } else {
           return null;
         }
       },
       projectName: function() {
-        if (this.preLoadInfo && this.preLoadInfo.project) {
-          if (false && this.preLoadInfo.project.nickname && this.preLoadInfo.project.nickname != "" ) {
-            return this.preLoadInfo.project.nickname;
+        if (this.loadInfo && this.loadInfo.project) {
+          if (false && this.loadInfo.project.nickname && this.loadInfo.project.nickname != "" ) {
+            return this.loadInfo.project.nickname;
           } else {
-            let name = this.preLoadInfo.project.name;
+            let name = this.loadInfo.project.name;
             name = name.replaceAll("-", " ")
             name = name.replaceAll("_", " ")
             if (name.length > 30) {

@@ -132,7 +132,6 @@ import { reject } from 'async'
       mosaicSession: null,
       user: null,
       geneSet: null,
-      variantSet: null,
       project: null,
 
       genomeBuildHelper: null,
@@ -257,7 +256,7 @@ import { reject } from 'async'
             let promises = []
             if (genes && genes.length > 0) {
               genes.forEach(function(geneName){
-                if (self.geneModel.isKnownGene) {
+                if (self.geneModel.isKnownGene(geneName)) {
                   let p = self.geneModel.promiseAddGeneName(geneName)
                   promises.push(p)
                 } else {
@@ -378,21 +377,33 @@ import { reject } from 'async'
       clearAndReload: function(geneNameToLoad) {
         let self = this;
 
+        self.variants = null;
+
+        if (self.$refs.ref_SpliceJunctionD3) {
+          self.$refs.ref_SpliceJunctionD3.clearAndReload();
+        }
+
         let geneNames = [];
         if (self.geneModel.sortedGeneNames) {
-          geneNames = self.geneModel.sortedGeneNames.filter(function(geneName) {
-            return geneNameToLoad == null || geneName != geneNameToLoad;
+          self.geneModel.sortedGeneNames.forEach(function(geneName) {
+            geneNames.push(geneName)
           });
         }
 
         self.geneModel.clearAllGenes();
+        let promises = [];
         geneNames.forEach(function(geneName) {
-          self.loadGene(geneName);
+          let p = self.geneModel.promiseAddGeneName(geneName);
+          promises.push(p)
+        })
+        Promise.all(promises)
+        .then(function(){
+          if (geneNameToLoad) {
+            self.loadGene(geneNameToLoad);
+          }
         })
 
-        if (geneNameToLoad) {
-          self.loadGene(geneNameToLoad);
-        }
+
       },
       getSpliceJunctionRecords: function() {
         let self = this;
@@ -596,6 +607,9 @@ import { reject } from 'async'
         })
 
 
+      },
+      onVcfURLCleared: function() {
+        this.vcf.clearVcfURL();
       },
       getCoverage() {
         let self = this;

@@ -10,6 +10,7 @@
       :sampleNames="sampleNames"
       :selectedGene="selectedGene"
       :preLoadInfo="preLoadInfo"
+      :loadInfo="loadInfo"
       @gene-searched="onGeneSearched"
       @show-alert-panel="onShowAlertPanel"
       @show-genes-panel="onShowLeftNavDrawer"
@@ -264,7 +265,8 @@ export default {
     },
     onLoadData: function(loadInfo) {
       let self = this;
-      this.loadInfo = loadInfo;
+      let reload = self.loadInfo == null ? false : true;
+      self.loadInfo = loadInfo;
 
       // The user has specified the URLs for the splice junctions (bed), and optionally,
       // the URLs for coverage (bigwig) and variants (vcf). If the user
@@ -276,26 +278,48 @@ export default {
       .forEach(function(param) {
         if (loadInfo[param]) {
           queryObject[param] = loadInfo[param];
+        } else {
+          delete queryObject[param]
         }
       })
       let urlPath = window.location.origin + "?" + qs.stringify(queryObject)
       window.history.pushState({},"", urlPath);
+
+      if (reload) {
+        self.$nextTick(function() {
+          if (self.loadInfo.vcfURL && self.loadInfo.tbiURL) {
+            self.onVcfURLEntered(self.loadInfo.vcfURL, self.loadInfo.tbiURL)
+          } else {
+            self.sampleNames = [];
+            self.onVcfURLCleared();
+          }
+          self.onReinit();
+        })
+      }
+
+
     },
     onLoadDataFromURL: function(theLoadInfo) {
       let self = this;
+
       self.loadInfo = theLoadInfo;
       self.preLoadInfo = $.extend({}, theLoadInfo);
-      if (self.loadInfo.vcfURL && self.loadInfo.tbiURL) {
-        self.$nextTick(function() {
+      self.$nextTick(function() {
+        if (self.loadInfo.vcfURL && self.loadInfo.tbiURL) {
           self.onVcfURLEntered(self.loadInfo.vcfURL, self.loadInfo.tbiURL)
-        })
-      }
+        } else {
+          self.sampleNames = [];
+          self.onVcfURLCleared();
+        }
+      })
     },
     onReinit: function() {
       let self = this;
       let geneNameToReload = self.selectedGene ? self.selectedGene.gene_name : null;
       self.selectedGene = null;
       self.searchedGene = null;
+      self.spliceJunctionsForGene = null;
+      self.selectedObject = null;
       if (self.$refs && self.$refs.ref_SpliceJunctionHome) {
         self.$refs.ref_SpliceJunctionHome.clearAndReload(geneNameToReload);
       }
@@ -495,6 +519,11 @@ export default {
       // we are ready to read the VCF header to get the sample names
       if (this.$refs.ref_SpliceJunctionHome) {
         this.$refs.ref_SpliceJunctionHome.onVcfURLEntered(vcfURL, tbiURL)
+      }
+    },
+    onVcfURLCleared: function() {
+      if (this.$refs.ref_SpliceJunctionHome) {
+        this.$refs.ref_SpliceJunctionHome.onVcfURLCleared()
       }
     }
   }

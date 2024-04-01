@@ -446,6 +446,8 @@ export default {
             this.samplesLoading = true;
             this.$emit("vcf-url-entered", this.vcfURL, this.tbiURL)
           }
+        } else {
+          this.selectedSampleName = null;
         }
       },
       tbiURL: function(){
