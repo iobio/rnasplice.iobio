@@ -191,10 +191,10 @@
     <div id="coverage-diagram" style="min-height:100px">
     </div>
 
-	  <div id="arc-diagram" class="hide-read-counts" style="margin-top:-142px">
+	  <div id="arc-diagram" class="hide-read-counts" style="margin-top:-136px">
 	  </div>
 
-    <div id="selected-transcript-panel" v-show="showTranscriptMenu" style="margin-top:-7px">
+    <div id="selected-transcript-panel" v-show="showTranscriptMenu" style="margin-top:-4px">
 
 		  <div id="transcript-diagram" >
 		    <svg/>
@@ -327,7 +327,7 @@
     <div id="arc-diagram" style="margin-top: -135px" class="hide-read-counts">
 	    <svg/>
 	  </div>
-	  <div id="transcript-diagram">
+	  <div id="transcript-diagram" style="margin-top:-5px">
 	    <svg/>
 	  </div>
 
@@ -1809,7 +1809,7 @@ export default {
                                  y: d => d[1],
                                  yLabel: "Coverage",
                                  width: self.$el.offsetWidth - 20,
-                                 yDomain: [0, d3.max(self.covData, d=> d[1])],
+                                 yDomain: [0, d3.max(filteredCovData, d=> d[1])],
                                  xDomain: [regionStart, regionEnd],
                                  height: options && options.height ? options.height : 100,
                                  marginLeft:  options && options.marginLeft >= 0 ? options.marginLeft : 0,
@@ -5615,10 +5615,6 @@ text.seq.T, rect.seq.T {
       svg
         gene-label
           font-size: 13px
-    #coverage-diagram
-      svg
-        path
-          transform: translate(0px, -6px)
 
     .other-gene-label
       margin-top: 0px
