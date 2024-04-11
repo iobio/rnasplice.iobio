@@ -1,14 +1,14 @@
 <template>
 
-<div v-if="geneModel && genomeBuildHelper" style="margin-left:5px;margin-right:5px;" class="d-flex flex-column mt-1">
+<div v-if="geneModel && genomeBuildHelper" style="margin-left:5px;margin-right:0px;" class="d-flex flex-column mt-1">
     <div class="tooltip"></div>
 
-    <GeneCard  v-show="selectedGene" class="full-width-card"
+    <GeneCard  v-show="selectedGene" class="main-card-card"
     :selectedGene="selectedGene"
     :geneModel="geneModel"
      @reinit="$emit('reinit')"/>
 
-    <v-card  v-show="selectedGene" class="full-width-card" style="padding-top:0px !important;min-height: calc(100vh + 20px);">
+    <div  v-show="selectedGene" class="main-card-card">
 
             <SpliceJunctionD3
             ref="ref_SpliceJunctionD3"
@@ -30,6 +30,7 @@
             :variantWidth="variantWidth"
             :vcf="vcf"
             :covData="covData"
+            :loadInfo="loadInfo"
             @reinit="$emit('reinit')"
             @object-selected="onObjectSelected"
             @transcript-selected="onTranscriptSelected"
@@ -43,7 +44,7 @@
             @show-legend="$emit('show-legend')"/>
 
 
-    </v-card>
+    </div>
 
       <v-snackbar
         v-model="snackbar"
@@ -64,7 +65,7 @@
       </v-snackbar>
 
 <v-dialog v-model="showIGVPopup" persistent fullscreen >
-  <v-card class="full-width">
+  <v-card class="main-card">
     <div style="margin-right: 5px">
       <v-btn variant="tonal" color="#094792" size="large"
       style="float:right;margin-bottom:10px;" @click="onShowIGV(false)">Close</v-btn>
@@ -72,8 +73,7 @@
     <SpliceJunctionViz
     ref="ref_SpliceJunctionViz"
     :loadInfo="loadInfo"
-    :tab="tab"
-    :showIGVPopup="showIGVPopup"
+    :show="showIGVPopup"
     :selectedGene="selectedGene"
     :geneSource="geneModel.geneSource"
     :genomeBuildHelper="genomeBuildHelper"
@@ -585,7 +585,13 @@ import { reject } from 'async'
         }
       },
       onShowIGV: function(show) {
-        this.showIGVPopup = show;
+        let self = this;
+        if (!show && this.$refs && this.$refs.ref_SpliceJunctionViz) {
+          this.$refs.ref_SpliceJunctionViz.closeBrowser();
+        }
+        this.$nextTick(function() {
+          self.showIGVPopup = show;
+        })
       },
       onVcfURLEntered: function(vcfURL, tbiURL) {
         let self = this;

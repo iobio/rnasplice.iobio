@@ -91,7 +91,7 @@
 
 
       <v-dialog v-model="showDisclaimer" max-width="400" min-height="400">
-        <v-card class="full-width">
+        <v-card class="main-card">
           <v-card-title class="headline">Disclaimer</v-card-title>
           <v-card-text>
 

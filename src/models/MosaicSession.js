@@ -16,12 +16,13 @@ export default class MosaicSession {
     return new Promise((resolve, reject) => {
       let geneSet = null;
       self.promiseGetCurrentUser()
-      .then(function(data) {
-        self.user = data;
-      })
-      .catch(function(error) {
-        console.log(error)
-      })
+        .then(function(data) {
+          self.user = data;
+        })
+        .catch(function(error) {
+          console.log(error);
+          reject(error)
+        })
 
       self.promiseGetClientApplication()
       .then(function() {

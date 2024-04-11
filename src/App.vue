@@ -1,5 +1,5 @@
 <template>
-    <v-layout class="bg-grey-lighten-3">
+    <v-layout class="bg-grey-lighten-2">
 
       <Navigation
       ref="ref_Navigation"
@@ -632,11 +632,11 @@ h3, .h3
   padding: 10px !important;
   font-size: 13px;
 }
-.v-card.full-width-card {
+.v-card.main-card-card {
   margin-left:   5px !important;
   margin-right:  5px !important;
   margin-top:    0px !important;
-  margin-bottom: 5px !important;
+  margin-bottom: 8px !important;
 }
 
 .v-input--center-affix .v-input__prepend, .v-input--center-affix .v-input__append {

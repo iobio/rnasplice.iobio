@@ -1,14 +1,17 @@
 <template>
 
-<div id="splice-junction-viz" style="padding-top:10px;padding-bottom: 10px">
-	<div class="text-center" v-if="showLoading">
-    <v-progress-circular v-if="showLoading"
-      indeterminate
-      color="primary"
-    ></v-progress-circular>
-  </div>
+<div id="splice-junction-viz" >
 
-  <div id="panel-heading" class="d-flex flex-row align-start mb-5" >
+	<v-card id="diagrams" class="main-card-card">
+    <div class="text-center" v-if="showLoading">
+      <v-progress-circular v-if="showLoading"
+        indeterminate
+        color="primary"
+      ></v-progress-circular>
+    </div>
+
+
+    <div id="panel-heading" class="d-flex flex-row align-start mb-5" >
       <h2 class="mr-5" style="margin-top: 0px !important;margin-bottom: 0px !important;min-width: 150px;">
         Splice Junctions
       </h2>
@@ -28,145 +31,142 @@
         <v-icon class="mr-1">mdi-map</v-icon>
         <span style="font-size:13px">Legend</span>
       </v-btn>
-  </div>
+    </div>
 
-  <div class="d-flex flex-row align-start flex-wrap mb-1">
+    <div class="d-flex flex-row align-start flex-wrap mb-1">
 
-      <div style="width:170px" class="">
-        <v-select
-          v-model="colorBy"
-          hide-details="auto"
-          label="Color junctions by"
-          density="compact"
-          :items="colorByItems"
-        ></v-select>
-      </div>
-
-      <div id="arc-color-legend" class="mr-6">
-      </div>
-
-      <div id="label-cb" class="mr-2" style="width: 90px" >
-				<v-checkbox
-				  hide-details="true"
-          density="compact"
-		      v-model="showReadCounts"
-		      label="Show read counts"
-		    ></v-checkbox>
-	    </div>
-
-      <div id="show-strand-mismatch-cb" class="mr-9" style="width: 120px" >
-        <v-checkbox
-          hide-details="true"
-          density="compact"
-          v-model="showStrandMismatches"
-          label="Show junctions on other strand"
-        ></v-checkbox>
-      </div>
-
-      <div class="" style="padding-top:5px;">
-        <div class="d-flex">
-          <div style="width:110px"  >
-            <v-text-field
-            density="compact"
+        <div style="width:170px" class="">
+          <v-select
+            v-model="colorBy"
             hide-details="auto"
-            variant="underlined"
-            label="Min read count"
-            v-model="minUniquelyMappedReads"
-            @blur="onSettingsChanged()"/>
-          </div>
-          <div style="width:110px" class="ml-2 mr-5" >
-            <v-text-field
+            label="Color junctions by"
             density="compact"
-            hide-details="auto"
-            variant="underlined"
-            label="Max read count"
-            v-model="maxUniquelyMappedReads"
-            @blur="onSettingsChanged()"/>
+            :items="colorByItems"
+          ></v-select>
+        </div>
+
+        <div id="arc-color-legend" class="mr-6">
+        </div>
+
+        <div id="label-cb" class="mr-2" style="width: 90px" >
+          <v-checkbox
+            hide-details="true"
+            density="compact"
+            v-model="showReadCounts"
+            label="Show read counts"
+          ></v-checkbox>
+        </div>
+
+        <div id="show-strand-mismatch-cb" class="mr-9" style="width: 120px" >
+          <v-checkbox
+            hide-details="true"
+            density="compact"
+            v-model="showStrandMismatches"
+            label="Show junctions on other strand"
+          ></v-checkbox>
+        </div>
+
+        <div class="" style="padding-top:5px;">
+          <div class="d-flex">
+            <div style="width:110px"  >
+              <v-text-field
+              density="compact"
+              hide-details="auto"
+              variant="underlined"
+              label="Min read count"
+              v-model="minUniquelyMappedReads"
+              @blur="onSettingsChanged()"/>
+            </div>
+            <div style="width:110px" class="ml-2 mr-5" >
+              <v-text-field
+              density="compact"
+              hide-details="auto"
+              variant="underlined"
+              label="Max read count"
+              v-model="maxUniquelyMappedReads"
+              @blur="onSettingsChanged()"/>
+            </div>
           </div>
         </div>
-      </div>
 
 
-      <v-card style="padding:0 !important;margin:0 !important" class="" variant="flat">
-        <v-card-actions style="min-height:30px !important;padding:0 !important;margin:0 !important">
-          <v-btn color="#30638e" density="compact"  @click="exploreReadCounts = !exploreReadCounts" variant="tonal">
-            <v-icon class="mr-1">mdi-poll</v-icon>
-             <span style="font-size:13px">Read count distributions</span>
-          </v-btn>
-          <v-btn density="compact"
-            :icon="exploreReadCounts ? 'mdi-chevron-up' : 'mdi-chevron-down'"
-            @click="exploreReadCounts = !exploreReadCounts"
-          ></v-btn>
-        </v-card-actions>
+        <v-card style="padding:0 !important;margin:0 !important" class="" variant="flat">
+          <v-card-actions style="min-height:30px !important;padding:0 !important;margin:0 !important">
+            <v-btn color="#30638e" density="compact"  @click="exploreReadCounts = !exploreReadCounts" variant="tonal">
+              <v-icon class="mr-1">mdi-poll</v-icon>
+              <span style="font-size:13px">Read count distributions</span>
+            </v-btn>
+            <v-btn density="compact"
+              :icon="exploreReadCounts ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+              @click="exploreReadCounts = !exploreReadCounts"
+            ></v-btn>
+          </v-card-actions>
 
-        <v-expand-transition>
-          <div v-show="exploreReadCounts">
-            <v-card-text style="padding:0 !important">
+          <v-expand-transition>
+            <div v-show="exploreReadCounts">
+              <v-card-text style="padding:0 !important">
 
-                <div class="d-flex">
-                  <div  v-show="!showLoading && selectedGene">
-                    <div v-if="readCountRange == null" class="hint-box">
-                      <v-icon>mdi-select-drag</v-icon>
-                      <div>Drag to zoom in</div>
+                  <div class="d-flex">
+                    <div  v-show="!showLoading && selectedGene">
+                      <div v-if="readCountRange == null" class="hint-box">
+                        <v-icon>mdi-select-drag</v-icon>
+                        <div>Drag to zoom in</div>
+                      </div>
+                      <div v-if="readCountRange != null" class="hint-box">
+                        <v-icon>mdi-restore</v-icon>
+                        <div>Click outside to restore</div>
+                      </div>
+                      <div id="all-histogram" class="d-flex mr-9 mt-1">
+                        <div id="read-count-histogram" style="margin-left: 0px">
+                        </div>
+                      </div>
                     </div>
-                    <div v-if="readCountRange != null" class="hint-box">
-                      <v-icon>mdi-restore</v-icon>
-                      <div>Click outside to restore</div>
-                    </div>
-                    <div id="all-histogram" class="d-flex mr-9 mt-1">
-                      <div id="read-count-histogram" style="margin-left: 0px">
+
+                    <div class="d-flex flex-column">
+
+
+                      <div class="d-flex justify-center mb-2">
+
+                      <v-btn-toggle id="hist-button-group"
+                          class="short"
+                          v-show="!showLoading && selectedGene"
+                          v-model="scaleYHist"
+                          color="#306387"
+                          mandatory divided
+                          >
+                          <v-btn density="compact" value="normal">Normal</v-btn>
+                          <v-btn density="compact" value="log">Log</v-btn>
+                          <v-btn density="compact" value="density">Density</v-btn>
+                        </v-btn-toggle>
+                      </div>
+
+                      <div class="d-flex">
+                        <div id="canonical-histogram" class="d-flex ml-9">
+                          <div id="read-count-histogram" style="margin-left: 0px">
+                          </div>
+                        </div>
+
+                        <div id="exon-skipping-histogram" class="d-flex ml-9">
+                          <div id="read-count-histogram" style="margin-left: 0px">
+                          </div>
+                        </div>
+
+                        <div id="cryptic-site-histogram" class="d-flex ml-9">
+                          <div id="read-count-histogram" style="margin-left: 0px">
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div class="d-flex flex-column">
-
-
-                    <div class="d-flex justify-center">
-
-                     <v-btn-toggle id="hist-button-group"
-                        v-show="!showLoading && selectedGene"
-                        v-model="scaleYHist"
-                        color="primary"
-                        mandatory divided
-                        variant="elevated"
-
-                      >
-                        <v-btn density="compact" value="normal">Normal</v-btn>
-                        <v-btn density="compact" value="log">Log</v-btn>
-                        <v-btn density="compact" value="density">Density</v-btn>
-                      </v-btn-toggle>
-                    </div>
-
-                    <div class="d-flex">
-                      <div id="canonical-histogram" class="d-flex ml-9">
-                        <div id="read-count-histogram" style="margin-left: 0px">
-                        </div>
-                      </div>
-
-                      <div id="exon-skipping-histogram" class="d-flex ml-9">
-                        <div id="read-count-histogram" style="margin-left: 0px">
-                        </div>
-                      </div>
-
-                      <div id="cryptic-site-histogram" class="d-flex ml-9">
-                        <div id="read-count-histogram" style="margin-left: 0px">
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
 
 
-
-            </v-card-text>
-          </div>
-        </v-expand-transition>
-      </v-card>
-  </div>
-
-	<div id="diagrams">
+              </v-card-text>
+            </div>
+          </v-expand-transition>
+        </v-card>
+    </div>
 	  <div  class="d-flex flex-column align-start">
       <div v-if="!showLoading && selectedGene" style="margin-top:-30px;margin:auto">
           <div v-if="!regionIsSelected" class="hint-box">
@@ -223,12 +223,12 @@
     </div>
 
     <div style="min-width:300px">
-      <v-btn-toggle id="other-transcripts-mode-button-group"
+      <v-btn-toggle id="other-transcripts-mode-button-group" class="short"
         v-show="geneObjectsInRegion && geneObjectsInRegion.length > 0"
         v-model="otherTranscriptsMode"
-        color="primary"
+        color="#30638f"
         mandatory divided
-        variant="elevated">
+        >
         <v-btn density="compact" value="mane">MANE transcript</v-btn>
         <v-btn density="compact" value="all">All transcripts</v-btn>
       </v-btn-toggle>
@@ -258,15 +258,17 @@
 
 
 
-	</div>
+	</v-card>
 
-	<div id="zoomed-diagrams" v-show="clickedObject || regionIsSelected"  style="margin-top:30px;z-index:1000;border-top: solid 12px #e7e7e7">
+	<v-card id="zoomed-diagrams" v-show="clickedObject || regionIsSelected"  class="main-card-card"
+     style="z-index:1000;">
 
-    <div class="d-flex" v-if="clickedObject || regionIsSelected">
+    <div class="d-flex" style="align-items: center;margin-bottom: 15px;">
       <h2 style="margin-bottom:10px !important;margin-top:10px !important">
         Selected Region
       </h2>
-      <div class="coord">
+
+      <div v-if="selectedGene" class="coord ml-4">
         {{ selectedGene.chr}}:{{ formatRegion(zoomRegionStart) }}-{{ formatRegion(zoomRegionEnd) }}
       </div>
       <v-btn  @click="copyZoomCoord" density="compact" variant="text" size="medium"
@@ -274,55 +276,40 @@
         <v-icon icon="mdi-content-copy" ></v-icon>
       </v-btn>
 
-    </div>
+      <v-spacer/>
+      <div class="ml-6" style="min-width:300px">
+        <v-btn-toggle id="show-greyed-out-button-group"
+          class="short"
+          v-show="clickedObject"
+          v-model="showGreyedOutJunctionsState"
+          mandatory divided
+          color="#30638f">
+          <v-btn density="compact" value="hide">Fade junctions not selected</v-btn>
+          <v-btn density="compact" value="show">No fading</v-btn>
+        </v-btn-toggle>
+      </div>
 
-    <div class="d-flex justify-center" style="margin-top:-28px;margin-bottom:20px">
+      <div class="ml-9 mr-4">
+        <v-btn icon="mdi-minus" class="zoom-button" @click="zoomOut" density="compact" size="medium" >
+        </v-btn>
 
-
-
-      <div class="d-flex" v-if="clickedObject" style="width:100%;justify-content: center;">
-
-
-
-        <v-spacer/>
-
-        <div style="margin-left:300px;">
-          <v-btn icon="mdi-minus" class="zoom-button" @click="zoomOut" density="compact" size="medium" >
-          </v-btn>
-
-          <v-btn icon="mdi-plus" class="zoom-button" @click="zoomIn" density="compact" size="medium" style="margin-left:10px;">
-          </v-btn>
-        </div>
-
-
-        <v-spacer/>
-
-        <div style="min-width:300px">
-          <v-btn-toggle id="show-greyed-out-button-group"
-            v-show="clickedObject"
-            v-model="showGreyedOutJunctionsState"
-            color="primary"
-            mandatory divided
-            variant="elevated">
-            <v-btn density="compact" value="hide">Fade junctions not selected</v-btn>
-            <v-btn density="compact" value="show">No fading</v-btn>
-          </v-btn-toggle>
-        </div>
-
+        <v-btn icon="mdi-plus" class="zoom-button" @click="zoomIn" density="compact" size="medium" style="margin-left:15px;">
+        </v-btn>
       </div>
 
     </div>
+
     <div id="variant-diagram">
       <svg/>
     </div>
-    <div  class="hint-box" style="margin-top:0px">
+    <div  class="hint-box" style="margin-top:0px;margin-bottom:25px">
       <span class="material-symbols-outlined" style="font-size:18px">
           drag_pan
       </span>
       <div>Drag to pan left or right</div>
     </div>
 
-    <div id="coverage-diagram" style="margin-top:30px;min-height:100px">
+    <div id="coverage-diagram" style="margin-top:0px;min-height:100px">
     </div>
     <div id="arc-diagram" style="margin-top: -135px" class="hide-read-counts">
 	    <svg/>
@@ -330,14 +317,46 @@
 	  <div id="transcript-diagram" style="margin-top:-5px">
 	    <svg/>
 	  </div>
+	</v-card>
 
-	</div>
 
+
+
+
+  <v-card class="main-card-card">
+    <div style="min-width:300px">
+        <v-btn-toggle id="show-igv-panel" class="primary short"
+          v-model="igvDisplayMode"
+          mandatory divided
+          color="primary">
+          <v-btn density="compact" value="show">
+            <span class="material-symbols-outlined" style="margin-right:2px;">
+              legend_toggle
+            </span>
+            <span>IGV Pileup</span>
+          </v-btn>
+          <v-btn density="compact" value="hide">Hide</v-btn>
+        </v-btn-toggle>
+     </div>
+
+     <div  v-show="igvDisplayMode == 'show' && igvStarted">
+      <IGVPileupPanel
+        ref="ref_IGVPileupPanel"
+        :loadInfo="loadInfo"
+        :show="igvStarted"
+        :selectedGene="selectedGene"
+        :geneSource="geneModel.geneSource"
+        :genomeBuildHelper="genomeBuildHelper"
+        :geneModel="geneModel"
+        :coordinates="igvCoordinates"
+        @reinit="$emit('reinit')"/>
+    </div>
+  </v-card>
 
 
   <div id="site-diagrams" class="d-flex plus"
    v-if="clickedObject && clickedObject.strand == '+'" >
-  	<div class="donor-site" v-if="showDonorPanel" style="width:50%">
+  	<v-card class="donor-site main-card-card" v-if="showDonorPanel" style="width:50%">
       <div class="d-flex mb-4" style="justify-content:center;" >
   		  <h2 >Donor site</h2>
         <v-btn  icon="mdi-minus" class="ml-4 zoom-button" @click="zoomOutDonorSite()" density="compact" size="medium" >
@@ -357,8 +376,8 @@
 		  <div id="sequence">
         <svg/>
   	  </div>
-  	</div>
-  	<div class="acceptor-site right-panel" v-if="showAcceptorPanel">
+  	</v-card>
+  	<v-card class="acceptor-site right-panel  main-card-card" v-if="showAcceptorPanel">
       <div class="d-flex mb-4" style="justify-content:center;" >
   		  <h2 >Acceptor site</h2>
         <v-btn  icon="mdi-minus" class="ml-4 zoom-button" @click="zoomOutAcceptorSite()" density="compact" size="medium" >
@@ -378,10 +397,10 @@
 		  <div id="sequence">
         <svg/>
   	  </div>
-  	</div>
+  	</v-card>
   </div>
   <div id="site-diagrams" class="d-flex minus" v-if="clickedObject && clickedObject.strand == '-'" >
-  	<div class="acceptor-site" v-if="showAcceptorPanel" style="width:50%">
+  	<v-card class="acceptor-site  main-card-card" v-if="showAcceptorPanel" style="width:50%">
       <div class="d-flex mb-4" style="justify-content:center;" >
   		  <h2 >Acceptor site</h2>
         <v-btn  icon="mdi-minus" class="ml-4 zoom-button" @click="zoomOutAcceptorSite()" density="compact" size="medium" >
@@ -401,8 +420,8 @@
 		  <div id="sequence">
         <svg/>
   	  </div>
-  	</div>
-  	<div class="donor-site right-panel" style="width:50%" v-if="showDonorPanel" >
+  	</v-card>
+  	<v-card class="donor-site right-panel  main-card-card" style="width:50%" v-if="showDonorPanel" >
       <div class="d-flex mb-4" style="justify-content:center;" >
   		  <h2 >Donor site</h2>
         <v-btn  icon="mdi-minus" class="ml-4 zoom-button" @click="zoomOutDonorSite()" density="compact" size="medium" >
@@ -422,7 +441,7 @@
 		  <div id="sequence">
         <svg/>
   	  </div>
-  	</div>
+  	</v-card>
   </div>
 
   <v-snackbar
@@ -449,6 +468,7 @@
 </template>
 <script>
 
+import IGVPileupPanel          from '@/components/IGVPileupPanel.vue'
 
 import AreaChart               from '@/components/AreaChart.js'
 import TreeNode                from '@/util/TreeNode.js'
@@ -457,6 +477,7 @@ import Tree                    from '@/util/Tree.js'
 export default {
   name: 'SpliceJunctionD3',
   components: {
+    IGVPileupPanel
   },
   props: {
     selectedGene: Object,
@@ -477,6 +498,7 @@ export default {
     variantWidth: Number,
     vcf: Object,
     covData: Array,
+    loadInfo: Object
 
   },
   data: () => ({
@@ -498,6 +520,10 @@ export default {
     brushRegionEnd: null,
     zoomRegionStart: null,
     zoomRegionEnd: null,
+
+    igvStarted: false,
+    igvDisplayMode: 'hide',
+    igvCoordinates: null,
 
 		selectedTranscript: null,
 		filteredSpliceJunctions: null,
@@ -554,6 +580,7 @@ export default {
 
     showZoomPanel: false,
 
+
     showGreyedOutJunctionsState: 'hide',
 
     otherTranscriptsMode: 'mane',
@@ -585,7 +612,7 @@ export default {
 
   	onDataChanged: function() {
   		let self = this;
-  		if (this.tab == 'tab-2' && this.selectedGene) {
+  		if (this.selectedGene) {
   			self.$nextTick(function() {
           self.showDonorPanel = false;
           self.showAcceptorPanel = false;
@@ -647,6 +674,12 @@ export default {
   		let self = this;
       self.showZoomPanel = false;
       self.showTranscriptMenu = false;
+      self.zoomRegionStart = null;
+      self.zoomRegionEnd = null;
+      self.clickedObject = null;
+      self.regionIsSelected = false;
+      self.igvDisplayMode = 'hide';
+
 
       d3.selectAll("#read-count-histogram svg").remove();
       self.readCountMean = null;
@@ -959,10 +992,12 @@ export default {
           self.showZoomPanel = true;
           self.zoomRegionStart = regionStart;
           self.zoomRegionEnd = regionEnd;
+          self.setIGVCoordinates();
 			    self.drawArcDiagram("#zoomed-diagrams", filteredEdgesClone, self.zoomRegionStart, self.zoomRegionEnd,
             {'createBrush': false,
              'allEdges': self.filteredSpliceJunctions,
-             'showXAxis': true,
+             'showXAxis': self.variants && self.variants.length > 0 ? false : true,
+             'marginTop': 40,
              'marginRight': 0,
              'showJunctionArrow': true,
              'isZoomedRegion': true})
@@ -985,11 +1020,11 @@ export default {
               return variant;
             })
             self.vcf.pileupVariants(filteredVariants, self.zoomRegionStart, self.zoomRegionEnd,
-              self.$el.offsetWidth - 20)
+              self.$el.offsetWidth - 30)
             self.drawVariantDiagram("#zoomed-diagrams #variant-diagram",
-              self.$el.offsetWidth - 20,
+              self.$el.offsetWidth - 30,
               self.zoomRegionStart, self.zoomRegionEnd, filteredVariants,
-              {'marginTop': 20})
+              {'marginTop': 35, showXAxis: true})
 
           }
 
@@ -1174,7 +1209,7 @@ export default {
         margin.bottom = 0;
       }
 
-		  var width = self.$el.offsetWidth - 20;
+		  var width = self.$el.offsetWidth - 30;
 		  if (options.width) {
 		  	width = options.width;
 		  }
@@ -1727,7 +1762,7 @@ export default {
 
 		  // dimensions
 		  var margin = {top: 40, right: 5, bottom: 5, left: 0};
-		  var width = self.$el.offsetWidth - 20,
+		  var width = self.$el.offsetWidth - 30,
 		      height = 60;
 
 
@@ -1807,8 +1842,8 @@ export default {
                                  container: container,
                                  x: d => d[0],
                                  y: d => d[1],
-                                 yLabel: "Coverage",
-                                 width: self.$el.offsetWidth - 20,
+                                 yLabel: null,
+                                 width: self.$el.offsetWidth - 30,
                                  yDomain: [0, d3.max(filteredCovData, d=> d[1])],
                                  xDomain: [regionStart, regionEnd],
                                  height: options && options.height ? options.height : 100,
@@ -1837,11 +1872,11 @@ export default {
 		  }
 
 		  // dimensions
-		  var margin = {top: (options.showXAxis ? 40 : 10),
+		  var margin = {top:  (options.hasOwnProperty('marginTop') ? options.marginTop : (options.showXAxis ? 40 : 10)),
                    right: (options.hasOwnProperty('marginRight') ? options.marginRight : 5),
                    bottom: 0,
                    left: 0};
-		  var width = self.$el.offsetWidth - 20,
+		  var width = self.$el.offsetWidth - 30,
 		      height = 100;
 
 		  var innerWidth = width - margin.left - margin.right;
@@ -3003,7 +3038,7 @@ export default {
       self.showAcceptorPanel = false;
       self.showDonorPanel = false;
 
- 	 	  self.clickedObject = false;
+ 	 	  self.clickedObject = null;
 		},
 
     showGreyedOutJunctions: function(state) {
@@ -3327,7 +3362,7 @@ export default {
       self.drawSiteSequenceDiagram(
         'donor',
         donorSitePanel,
-        self.$el.offsetWidth/2,
+        (self.$el.offsetWidth - 30)/2,
       	donorSequence,
       	donorSiteStart,
       	donorSiteEnd,
@@ -3346,9 +3381,9 @@ export default {
         })
         self.vcf.pileupVariants(filteredVariants,
           donorSiteStart, donorSiteEnd,
-          self.$el.offsetWidth/2 - 40)
+          (self.$el.offsetWidth - 30)/2)
         self.drawVariantDiagram(donorSitePanel + " #variant-diagram",
-          self.$el.offsetWidth/2,
+          (self.$el.offsetWidth - 30)/2,
           donorSiteStart, donorSiteEnd, filteredVariants,
           {'marginLeft': 15, 'marginRight': 20, 'marginTop': 20})
       }
@@ -3367,7 +3402,7 @@ export default {
       self.drawSiteSequenceDiagram(
         'acceptor',
         acceptorSitePanel,
-        self.$el.offsetWidth/2,
+        (self.$el.offsetWidth - 30)/2,
       	acceptorSequence,
       	acceptorSiteStart,
       	acceptorSiteEnd,
@@ -3387,9 +3422,9 @@ export default {
         })
         self.vcf.pileupVariants(filteredVariants,
           acceptorSiteStart, acceptorSiteEnd,
-          self.$el.offsetWidth/2 - 40)
+          (self.$el.offsetWidth - 30)/2)
         self.drawVariantDiagram(acceptorSitePanel + " #variant-diagram",
-          self.$el.offsetWidth/2,
+          (self.$el.offsetWidth - 30)/2,
           acceptorSiteStart, acceptorSiteEnd, filteredVariants,
           {'marginLeft': 15, 'marginRight': 20, 'marginTop': 20})
       }
@@ -3874,11 +3909,13 @@ export default {
       self.showZoomPanel = true;
       self.zoomRegionStart = regionStart;
       self.zoomRegionEnd = regionEnd;
+      self.setIGVCoordinates();
 	    d3.selectAll("#zoomed-diagrams svg").remove()
 	    self.drawArcDiagram("#zoomed-diagrams", filteredEdgesClone, self.zoomRegionStart, self.zoomRegionEnd,
           {'createBrush': false,
            'allEdges': self.filteredSpliceJunctions,
-           'showXAxis': true,
+           'showXAxis': self.variants && self.variants.length > 0 ? false : true,
+           'marginTop': 40,
            'marginRight': 0,
            'showJunctionArrow': true,
            'isZoomedRegion': true})
@@ -3916,11 +3953,11 @@ export default {
         })
         self.vcf.pileupVariants(filteredVariants,
           self.zoomRegionStart, self.zoomRegionEnd,
-          self.$el.offsetWidth - 20)
+          self.$el.offsetWidth - 30)
         self.drawVariantDiagram("#zoomed-diagrams #variant-diagram",
-          self.$el.offsetWidth - 20,
+          self.$el.offsetWidth - 30,
           self.zoomRegionStart, self.zoomRegionEnd, filteredVariants,
-          {'marginTop': 20})
+          {'marginTop': 35, showXAxis: true})
       }
 		},
 
@@ -4353,6 +4390,34 @@ export default {
       var symbolSizeWye = symbolScaleWye(variantHeight*1.5);
 
 
+
+      let xRange = regionEnd - regionStart
+      let numTicks = 20;
+      let nthTick = 5;
+      var tickFormatter = function(d,i) {
+        if (i % nthTick == 0) {
+          // For every nth tick, show the full value
+          return d3.format(",")(d)
+        } else {
+          // For other ticks, show the last digits based on the range
+          if (xRange <= 1000) {
+            return String(d).slice(-3);
+          } else if (xRange <= 10000) {
+            return String(d).slice(-4);
+          } else if (xRange <= 100000) {
+            return String(d).slice(-5);
+          } else {
+            return d3.format(",")(d)
+          }
+        }
+      }
+
+      // x axis
+      var xAxis = d3.axisBottom(x)
+                    .ticks(numTicks)
+                    .tickFormat(tickFormatter);
+
+
       // Select the svg element, if it exists.
       d3.select(container).select("svg").remove();
       var svg = d3.select(container)
@@ -4363,21 +4428,31 @@ export default {
       if (data.length > 0) {
         svg.append("text")
         .attr("x", 0)
-        .attr("y", 12)
+        .attr("y", function(d) {
+          if (options && options.showXAxis) {
+            return 30;
+          } else {
+            return 10;
+          }
+        })
         .attr("class", "chart-title")
         .text("Variants")
       }
-
       let group = svg
         .append("g")
         .attr("class", "group")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
 
+      if (options && options.showXAxis) {
+        svg.append("g")
+           .attr("class", "x-axis")
+           .call(xAxis)
+
+      }
 
       var variantGroup = group
       .append('g')
       .attr('class', 'track variants')
-
 
       // Insert symbols for variants
       variantGroup.selectAll('path.variant')
@@ -5009,11 +5084,36 @@ export default {
 
     formatRegion: function (value) {
       return !value ? '' : value.toLocaleString('en-US');
+    },
+    setIGVCoordinates: function() {
+      let self = this;
+      if (this.selectedGene && (this.clickedObject || this.regionIsSelected)) {
+        if (this.zoomRegionStart && this.zoomRegionEnd) {
+          if (this.igvStarted && this.igvDisplayMode == 'show') {
+            self.igvCoordinates = this.selectedGene.chr + ':' + this.zoomRegionStart + '-' + this.zoomRegionEnd
+          }
+        }
+      } else if (self.geneStart && self.geneEnd) {
+        if (this.igvStarted && this.igvDisplayMode == 'show') {
+          self.igvCoordinates = this.selectedGene.chr + ':' + this.geneStart + '-' + this.geneEnd
+        }
+      }
+
+
     }
 
 
   },
+  computed: {
+    zoomCoordinates: function() {
+      if (this.selectedGene && this.zoomRegionStart && this.zoomRegionEnd) {
+        return this.selectedGene.chr + ':' + this.zoomRegionStart + '-' + this.zoomRegionEnd
+      } else {
+        return null;
+      }
+    },
 
+  },
 
   watch: {
   	selectedGene: function() {
@@ -5069,7 +5169,7 @@ export default {
         //self.$nextTick(function() {
         //  setTimeout(function() {
             self.drawVariantDiagram('#diagrams #variant-diagram',
-              self.$el.offsetWidth - 20,
+              self.$el.offsetWidth - 30,
               self.geneStart, self.geneEnd, self.variants)
 
         //  }, 2000)
@@ -5087,6 +5187,18 @@ export default {
       self.drawReadCountHistogram('#canonical-histogram', 'canonical', 'Canonical', {}, self.readCountRange);
       self.drawReadCountHistogram('#exon-skipping-histogram', 'exon-skipping', 'Exon-skipping', {}, self.readCountRange);
       self.drawReadCountHistogram('#cryptic-site-histogram', 'cryptic-site', 'Cryptic-site', {}, self.readCountRange);
+    },
+    igvDisplayMode: function() {
+      let self = this;
+      // We will set startIGV once, the first time the button is toggled on.
+      if (self.igvStarted == false) {
+        if (self.igvDisplayMode == 'show') {
+          self.igvStarted = true;
+        }
+      }
+      if (self.igvDisplayMode == 'show') {
+        self.setIGVCoordinates();
+      }
     }
   }
 }
@@ -5107,10 +5219,6 @@ export default {
   margin-left: 10px;
   width: 300px;
   margin: auto;
-}
-
-.v-btn-group {
-  box-shadow: 0px 0px 3px 0px var(--v-shadow-key-umbra-opacity, rgba(0, 0, 0, 0.2)), 0px 0px 0px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.14)), 0px 0px 0px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.12));
 }
 
 #brushable-axis  text {
@@ -5513,15 +5621,7 @@ text.seq.T, rect.seq.T {
     font-size: 11px
     fill: rgb(73, 73, 73)
 
-  #hist-button-group, #show-greyed-out-button-group, #other-transcripts-mode-button-group
-    height: 20px !important
-    margin-top: 0px
-    margin-bottom: 5px
-    .v-btn
-      height: 20px !important
-      .v-btn__content
-        font-size: 11px
-        font-weight: 600
+
 
   #all-histogram
     #read-count-histogram
@@ -5622,31 +5722,78 @@ text.seq.T, rect.seq.T {
       font-weight: 500
 
   .zoom-button
-    background-color: #728dac !important
+    background-color: $primary-button-color !important
     .v-btn__content
       i
         font-size: 26px
         color: white !important
 
   .donor-site, .acceptor-site
-    border-top: 10px solid #e7e7e7
     padding-top: 10px
     &.right-panel
-      border-left: 10px solid #e7e7e7
+      margin-left: 0px !important
       padding-left: 5px
       margin-right: 5px
 
   .coord
     font-size: 14px !important
-    margin-top: 11px !important
     font-weight: 500
-    margin-left: 43px
 
 
   .coord-button
     height: 28px
-    margin-top: 6px
-    color: #30638f
+    margin-top: 0px
+    color: $primary-button-color
+
+  .tonal-button
+    height: 28px !important
+    .v-btn__content
+      padding-left: 8px
+      padding-right: 8px
+      font-size: 12px !important
+      font-weight: 600 !important
+
+  .v-btn-group
+    height: 28px !important
+    margin-top: 0px
+    box-shadow: 0px 0px 3px 0px var(--v-shadow-key-umbra-opacity, rgba(0, 0, 0, 0.2)), 0px 0px 0px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.14)), 0px 0px 0px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.12))
+
+    &.short
+      height: 24px !important
+      .v-btn
+        height: 24px !important
+    .v-btn
+      height: 28px !important
+      .v-btn__overlay
+        color: #666666 !important
+      .v-btn__content
+        font-size: 12px
+        font-weight: 500
+        color: #6d6d6d
+      &.v-btn--active
+        background-color: $tonal-button-color !important
+        .v-btn__content
+          color: $tonal-button-text-color !important
+          font-weight: 600
+
+    &.primary
+      &.short
+        height: 24px !important
+        .v-btn
+          height: 24px !important
+      .v-btn
+        height: 28px !important
+        .v-btn__overlay
+          color: white !important
+        .v-btn__content
+          font-size: 12px
+          font-weight: 500
+          color: #6d6d6d
+        &.v-btn--active
+          background-color: $primary-button-color !important
+          .v-btn__content
+            color: white !important
+            font-weight: 600
 
 
 </style>

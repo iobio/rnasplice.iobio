@@ -11,8 +11,9 @@ import igv from 'igv'
 export default {
   name: 'RNASeqIGV',
   props: {
+    visible: Boolean,
     heading: String,
-    referenceURL: String,
+    reference: Object,
     genomeBuild: String,
     locus: String,
     showLabels: {
@@ -27,7 +28,11 @@ export default {
     }
   },
   mounted: function () {
-    this.init();
+    let self = this;
+
+  },
+  created: function() {
+
   },
   methods: {
     init: function() {
@@ -36,8 +41,8 @@ export default {
 
       var options = {
         locus: this.locus,
-        genome: this.genomeBuild,
-        loadDefaultGenomes: true,
+        reference: this.reference,
+        loadDefaultGenomes: false,
         tracks: self.tracks,
         queryParametersSupported: true
       };
@@ -51,7 +56,14 @@ export default {
     search: function() {
       let self = this;
       if (this.browser && this.locus) {
-        this.browser.search(this.locus)
+        self.browser.search(self.locus);
+      }
+    },
+    closeBrowser: function() {
+      if (igv && this.browser) {
+        //igv.removeBrowser(this.browser);
+        igv.removeAllBrowsers();
+        this.browser = null;
       }
     },
     onRefreshTracks: function() {
@@ -89,16 +101,21 @@ export default {
     }
   },
   watch: {
-    locus: function() {
-      this.search();
+    visible: function() {
+      if (!this.visible && this.browser)  {
+        igv.removeBrowser(this.browser);
+        this.browser = null;
+      } else if (this.visible && !this.browser) {
+        this.init();
+      }
     },
-    genome: function() {
-      if (this.genome && this.tracks) {
-        this.reinit();
+    locus: function() {
+      if (this.locus) {
+        this.search();
       }
     },
     tracks: function() {
-      if (this.genome && this.tracks) {
+      if (this.tracks) {
         this.reinit();
       }
     },

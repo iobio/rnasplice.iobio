@@ -6,7 +6,7 @@
                flat  slot="activator">
         <v-icon>help</v-icon>
       </v-btn>
-      <v-card class="info-card full-width">
+      <v-card class="info-card main-card">
         <v-card-title style="justify-content:space-between">
           <span class="info-title">{{ info[name].title }}</span>
           <v-btn  @click="onClose" flat class="close-button">

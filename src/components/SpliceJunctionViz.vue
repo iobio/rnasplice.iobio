@@ -6,14 +6,14 @@
             {{ selectedGene.gene_name }} Splice Junctions
           </h2>
           <div style="width:195px" class="ml-4 mr-5">
-            <v-text-field 
+            <v-text-field
             density="compact"
-            hide-details="auto" 
-            label="Min Uniquely Mapped Reads" 
+            hide-details="auto"
+            label="Min Uniquely Mapped Reads"
             v-model="minUniquelyMappedReads"/>
           </div>
           <div style="width:220px" class="mr-5">
-            <v-select 
+            <v-select
               v-model="colorBy"
               hide-details="auto"
               label="Color by"
@@ -27,7 +27,8 @@
       <div>
         <RNASeqIGV   class="" id="splice-junction-viz-container"
           ref="ref_RNASeqIGV"
-          heading="Splice junctions" 
+          heading="Splice junctions"
+          :visible="show"
           :genome="genome"
           :locus="coord"
           :tracks="tracksSpliceJunctions"
@@ -37,7 +38,7 @@
       </div>
     </div>
 
-		
+
 
 </template>
 
@@ -56,7 +57,7 @@ import RNASeqIGV   from './RNASeqIGV.vue'
       loadInfo: Object,
       geneSource: String,
       tab: String,
-      showIGVPopup: Boolean
+      show: Boolean
     },
     data() {
       let self = this;
@@ -107,9 +108,9 @@ import RNASeqIGV   from './RNASeqIGV.vue'
                   hideMotifs: ['GT/AT', 'cryptic-site'], //options: 'GT/AG', 'CT/AC', 'GC/AG', 'CT/GC', 'AT/AC', 'GT/AT', 'cryptic-site'
               }
 
-            ]          
+            ]
           },
-          
+
           {
             name: "Gencode",
             order: 2,
@@ -120,7 +121,7 @@ import RNASeqIGV   from './RNASeqIGV.vue'
             url: null,
             indexURL: null,
             visibilityWindow: 1000000,
-          }, 
+          },
 
         ],
 
@@ -150,10 +151,10 @@ import RNASeqIGV   from './RNASeqIGV.vue'
       if (this.selectedGene && this.selectedGene.gene_name) {
         this.coord = this.selectedGene.chr + ":" + this.selectedGene.start + "-" + this.selectedGene.end;
 
-      } 
-    },    
+      }
+    },
     watch: {
-      showIGVPopup: function() {
+      show: function() {
         let self = this;
         if (this.bedURL == null && this.loadInfo) {
           this.initTrackURLs();
@@ -161,7 +162,8 @@ import RNASeqIGV   from './RNASeqIGV.vue'
         if (this.selectedGene && this.selectedGene.gene_name) {
           this.coord = this.selectedGene.chr + ":" + this.selectedGene.start + "-" + this.selectedGene.end;
 
-        } 
+        }
+
       },
       selectedGene: function() {
         let self = this;
@@ -171,7 +173,7 @@ import RNASeqIGV   from './RNASeqIGV.vue'
         if (this.selectedGene && this.selectedGene.gene_name) {
           this.coord = this.selectedGene.chr + ":" + this.selectedGene.start + "-" + this.selectedGene.end;
 
-        } 
+        }
       },
       loadInfo: function() {
         let self = this;
@@ -207,12 +209,12 @@ import RNASeqIGV   from './RNASeqIGV.vue'
             this.genome = this.buildMap[this.loadInfo.buildName];
             this.genomeBuildHelper.setCurrentBuild(this.loadInfo.buildName)
           } else {
-            this.$emit('alert-issued', 'error', 
+            this.$emit('alert-issued', 'error',
                        'Invalid genome ' + this.loadInfo.buildName + ' specified');
           }
         }
-        if (this.loadInfo && 
-          this.loadInfo.hasOwnProperty('bedURL') && 
+        if (this.loadInfo &&
+          this.loadInfo.hasOwnProperty('bedURL') &&
           this.loadInfo.hasOwnProperty('bedIndexURL')) {
 
           // This is a workaround for 'downloadable links' URLs from Mosaic hitting CORS issues.
@@ -236,7 +238,7 @@ import RNASeqIGV   from './RNASeqIGV.vue'
           this.setVariantsTrack();
 
           this.setPileupTrack();
-  
+
           if (!firstTime) {
             if (this.$refs && this.$refs.ref_RNASeqIGV) {
               this.coord = null;
@@ -255,7 +257,7 @@ import RNASeqIGV   from './RNASeqIGV.vue'
         if (!firstTime) {
           if (this.$refs && this.$refs.ref_RNASeqIGV) {
             this.$refs.ref_RNASeqIGV.onRefreshTracks();
-          }          
+          }
         }
       },
       setVariantsTrack: function() {
@@ -352,7 +354,13 @@ import RNASeqIGV   from './RNASeqIGV.vue'
           delete this.tracksSpliceJunctions[1].colorTable;
         }
 
-      }     
+      },
+      closeBrowser: function() {
+        let self = this;
+        if (this.$refs && this.$refs.ref_RNASeqIGV) {
+          this.$refs.ref_RNASeqIGV.closeBrowser();
+        }
+      }
     }
   }
 </script>
