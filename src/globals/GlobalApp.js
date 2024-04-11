@@ -67,6 +67,22 @@ class GlobalApp {
     }
 
   }
+  scrollToTop(container) {
+
+    if ($(container) && $(container).length > 0) {
+      let el = $(container)[0]
+      const { top, left, bottom, right } = el.getBoundingClientRect();
+      const { innerHeight, innerWidth } = window;
+      let isVisible = top >= 0 && left >= 0 && bottom <= innerHeight && right <= innerWidth;
+      if (!isVisible) {
+        let y = window.scrollY + (top - 40);
+        let parentElem = $('html')[0]
+        parentElem.scrollTo({top: y, behavior: 'smooth'})
+      }
+
+    }
+
+  }
 
 
   doArcsIntersect(path0, path1) {

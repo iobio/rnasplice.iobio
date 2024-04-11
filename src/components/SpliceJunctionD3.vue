@@ -2,7 +2,7 @@
 
 <div id="splice-junction-viz" >
 
-	<v-card id="diagrams" class="main-card-card">
+	<v-card id="diagrams" class="app-card">
     <div class="text-center" v-if="showLoading">
       <v-progress-circular v-if="showLoading"
         indeterminate
@@ -209,7 +209,7 @@
       </v-btn>
       <v-menu eager bottom activator="#transcript-menu-button">
 
-          <v-list id="list-for-transcript-menu" style="margin-right:20px">
+          <v-list id="list-for-transcript-menu" style="">
           <v-list-item>
             <div id="transcript-menu-panel">
               <div id="transcript-menu-diagram" class="multiple" style="margin-right:0px;">
@@ -222,7 +222,7 @@
       </v-menu>
     </div>
 
-    <div style="min-width:300px">
+    <div style="min-width:300px;margin-top:-10px;margin-bottom:10px">
       <v-btn-toggle id="other-transcripts-mode-button-group" class="short"
         v-show="geneObjectsInRegion && geneObjectsInRegion.length > 0"
         v-model="otherTranscriptsMode"
@@ -233,34 +233,36 @@
         <v-btn density="compact" value="all">All transcripts</v-btn>
       </v-btn-toggle>
     </div>
-
-    <div
-       v-if="otherTranscriptsMode == 'all' && selectedGene"
-       v-for="(otherTranscript, idx) in geneModel.getTranscriptsInRegion(selectedGene, geneStart, geneEnd, otherTranscriptsMode)"
-       :id="'transcript-panel-' + selectedGene.gene_name + '-' + idx"
-       v-show="showTranscriptMenu" >
-        <div id="transcript-diagram" >
-        </div>
-    </div>
-
-    <div style="" class="d-flex flex-column "
-     v-for="otherGene in geneObjectsInRegion" key="gene_name">
+    <div style="max-height: 150px;overflow-y:scroll">
 
       <div
-       v-for="(otherTranscript, idx) in geneModel.getTranscriptsInRegion(otherGene, geneStart, geneEnd, otherTranscriptsMode)"
-       :id="'other-transcript-panel-' + otherGene.gene_name + '-' + idx"
-       v-show="showTranscriptMenu" >
-        <div id="transcript-diagram" >
-        </div>
+        v-if="otherTranscriptsMode == 'all' && selectedGene"
+        v-for="(otherTranscript, idx) in geneModel.getTranscriptsInRegion(selectedGene, geneStart, geneEnd, otherTranscriptsMode)"
+        :id="'transcript-panel-' + selectedGene.gene_name + '-' + idx"
+        v-show="showTranscriptMenu" >
+          <div id="transcript-diagram" >
+          </div>
       </div>
 
+      <div style="" class="d-flex flex-column "
+      v-for="otherGene in geneObjectsInRegion" key="gene_name">
+
+        <div
+        v-for="(otherTranscript, idx) in geneModel.getTranscriptsInRegion(otherGene, geneStart, geneEnd, otherTranscriptsMode)"
+        :id="'other-transcript-panel-' + otherGene.gene_name + '-' + idx"
+        v-show="showTranscriptMenu" >
+          <div id="transcript-diagram" >
+          </div>
+        </div>
+
+      </div>
     </div>
 
 
 
 	</v-card>
 
-	<v-card id="zoomed-diagrams" v-show="clickedObject || regionIsSelected"  class="main-card-card"
+	<v-card id="zoomed-diagrams" v-show="clickedObject || regionIsSelected"  class="app-card"
      style="z-index:1000;">
 
     <div class="d-flex" style="align-items: center;margin-bottom: 15px;">
@@ -268,7 +270,7 @@
         Selected Region
       </h2>
 
-      <div v-if="selectedGene" class="coord ml-4">
+      <div v-if="selectedGene" class="coord" style="margin-left:42px;">
         {{ selectedGene.chr}}:{{ formatRegion(zoomRegionStart) }}-{{ formatRegion(zoomRegionEnd) }}
       </div>
       <v-btn  @click="copyZoomCoord" density="compact" variant="text" size="medium"
@@ -323,23 +325,55 @@
 
 
 
-  <v-card class="main-card-card">
-    <div style="min-width:300px">
-        <v-btn-toggle id="show-igv-panel" class="primary short"
-          v-model="igvDisplayMode"
-          mandatory divided
-          color="primary">
-          <v-btn density="compact" value="show">
-            <span class="material-symbols-outlined" style="margin-right:2px;">
-              legend_toggle
-            </span>
-            <span>IGV Pileup</span>
-          </v-btn>
-          <v-btn density="compact" value="hide">Hide</v-btn>
-        </v-btn-toggle>
-     </div>
+  <v-card id="igv-card" class="app-card">
+    <div class="d-flex align-center" style="margin-top:5px;margin-bottom:5px;">
+      <h2 style="margin-bottom:5px !important;margin-top:5px !important;margin-right:20px;">
+        IGV Pileup
+      </h2>
+      <div  style="margin-left:72px;min-width:300px">
+          <v-btn-toggle class="primary "
+            v-model="igvRegionMode"
+            mandatory divided
+            color="primary">
+            <v-btn density="compact" value="selected">
+              <span class="material-symbols-outlined" style="margin-right:2px;font-size: 20px;">
+                select
+              </span>
+              <span>Selected region</span>
+            </v-btn>
 
-     <div  v-show="igvDisplayMode == 'show' && igvStarted">
+            <v-btn density="compact" value="donor">
+              <span class="material-symbols-outlined" style="margin-right:2px;font-size: 20px;">
+                logout
+              </span>
+              <span>Donor</span>
+            </v-btn>
+
+            <v-btn density="compact" value="acceptor">
+              <span class="material-symbols-outlined" style="margin-right:2px;font-size: 20px;">
+                login
+              </span>
+              <span>Acceptor</span>
+            </v-btn>
+
+            <v-btn density="compact" value="gene">
+              <span class="material-symbols-outlined" style="margin-right:2px;font-size: 20px;">
+                genetics
+              </span>
+              <span>Gene</span>
+            </v-btn>
+
+            <v-btn density="compact" value="hide">
+              <span class="material-symbols-outlined" style="margin-right:2px;font-size: 20px;">
+                close
+              </span>
+              <span>None</span>
+            </v-btn>
+          </v-btn-toggle>
+      </div>
+    </div>
+
+     <div  v-show="showIGVPanel">
       <IGVPileupPanel
         ref="ref_IGVPileupPanel"
         :loadInfo="loadInfo"
@@ -356,12 +390,13 @@
 
   <div id="site-diagrams" class="d-flex plus"
    v-if="clickedObject && clickedObject.strand == '+'" >
-  	<v-card class="donor-site main-card-card" v-if="showDonorPanel" style="width:50%">
-      <div class="d-flex mb-4" style="justify-content:center;" >
+  	<v-card class="donor-site app-card" v-if="showDonorPanel" style="width:50%">
+      <div class="d-flex mb-4" style="justify-content:flex-start;" >
   		  <h2 >Donor site</h2>
+        <v-spacer/>
         <v-btn  icon="mdi-minus" class="ml-4 zoom-button" @click="zoomOutDonorSite()" density="compact" size="medium" >
         </v-btn>
-        <v-btn icon="mdi-plus" class="zoom-button" @click="zoomInDonorSite()" density="compact" size="medium"  style="margin-left:10px">
+        <v-btn icon="mdi-plus" class="zoom-button" @click="zoomInDonorSite()" density="compact" size="medium"  style="margin-left:15px;margin-right:10px">
         </v-btn>
       </div>
       <div id="variant-diagram">
@@ -377,12 +412,13 @@
         <svg/>
   	  </div>
   	</v-card>
-  	<v-card class="acceptor-site right-panel  main-card-card" v-if="showAcceptorPanel">
-      <div class="d-flex mb-4" style="justify-content:center;" >
+  	<v-card class="acceptor-site right-panel  app-card" v-if="showAcceptorPanel">
+      <div class="d-flex mb-4" style="justify-content:flex-start;" >
   		  <h2 >Acceptor site</h2>
+        <v-spacer/>
         <v-btn  icon="mdi-minus" class="ml-4 zoom-button" @click="zoomOutAcceptorSite()" density="compact" size="medium" >
         </v-btn>
-        <v-btn icon="mdi-plus" class="zoom-button" @click="zoomInAcceptorSite()" density="compact" size="medium"  style="margin-left:10px">
+        <v-btn icon="mdi-plus" class="zoom-button" @click="zoomInAcceptorSite()" density="compact" size="medium"  style="margin-left:15px;margin-right:10px">
         </v-btn>
       </div>
       <div id="variant-diagram">
@@ -400,12 +436,13 @@
   	</v-card>
   </div>
   <div id="site-diagrams" class="d-flex minus" v-if="clickedObject && clickedObject.strand == '-'" >
-  	<v-card class="acceptor-site  main-card-card" v-if="showAcceptorPanel" style="width:50%">
-      <div class="d-flex mb-4" style="justify-content:center;" >
+  	<v-card class="acceptor-site  app-card" v-if="showAcceptorPanel" style="width:50%">
+      <div class="d-flex mb-4" style="justify-content:flex-start;" >
   		  <h2 >Acceptor site</h2>
+        <v-spacer/>
         <v-btn  icon="mdi-minus" class="ml-4 zoom-button" @click="zoomOutAcceptorSite()" density="compact" size="medium" >
         </v-btn>
-        <v-btn icon="mdi-plus" class="zoom-button" @click="zoomInAcceptorSite()" density="compact" size="medium"  style="margin-left:10px">
+        <v-btn icon="mdi-plus" class="zoom-button" @click="zoomInAcceptorSite()" density="compact" size="medium"  style="margin-left:15px;margin-right:10px">
         </v-btn>
       </div>
       <div id="variant-diagram">
@@ -421,12 +458,14 @@
         <svg/>
   	  </div>
   	</v-card>
-  	<v-card class="donor-site right-panel  main-card-card" style="width:50%" v-if="showDonorPanel" >
-      <div class="d-flex mb-4" style="justify-content:center;" >
+  	<v-card class="donor-site right-panel  app-card" style="width:50%" v-if="showDonorPanel" >
+      <div class="d-flex mb-4" style="justify-content:flex-start;" >
   		  <h2 >Donor site</h2>
+        <v-spacer/>
+
         <v-btn  icon="mdi-minus" class="ml-4 zoom-button" @click="zoomOutDonorSite()" density="compact" size="medium" >
         </v-btn>
-        <v-btn icon="mdi-plus" class="zoom-button" @click="zoomInDonorSite()" density="compact" size="medium"  style="margin-left:10px">
+        <v-btn icon="mdi-plus" class="zoom-button" @click="zoomInDonorSite()" density="compact" size="medium"  style="margin-left:15px;margin-right:10px">
         </v-btn>
       </div>
       <div id="variant-diagram">
@@ -522,7 +561,7 @@ export default {
     zoomRegionEnd: null,
 
     igvStarted: false,
-    igvDisplayMode: 'hide',
+    igvRegionMode: 'hide',
     igvCoordinates: null,
 
 		selectedTranscript: null,
@@ -678,7 +717,7 @@ export default {
       self.zoomRegionEnd = null;
       self.clickedObject = null;
       self.regionIsSelected = false;
-      self.igvDisplayMode = 'hide';
+
 
 
       d3.selectAll("#read-count-histogram svg").remove();
@@ -721,11 +760,12 @@ export default {
            'labelExons': true, 'showBoundingBox': true})
 
 
-		    d3.selectAll("#diagrams #transcript-menu-diagram svg").remove();
+		    d3.selectAll("#transcript-menu-panel #transcript-menu-diagram svg").remove();
 		    self.drawTranscriptDiagram('#transcript-menu-panel #transcript-menu-diagram',
         self.selectedGene, self.geneStart, self.geneEnd, null,
 		    	{'selectedTranscriptOnly': false, 'showPointers': true,
-           'labelExons': true, 'allowSelection': true});
+           'labelExons': true, 'allowSelection': true,
+           'width': self.$el.offsetWidth - 30});
         self.showTranscriptMenu = true;
 
         let i = 0;
@@ -1210,7 +1250,7 @@ export default {
       }
 
 		  var width = self.$el.offsetWidth - 30;
-		  if (options.width) {
+		  if (options && options.width) {
 		  	width = options.width;
 		  }
 
@@ -3099,14 +3139,14 @@ export default {
           setTimeout(function() {
             self._selectSpliceJunctionImpl(d)
             self.$nextTick(function() {
-              self.globalApp.scrollToBottom("#site-diagrams");
+              self.globalApp.scrollToTop("#zoomed-diagrams");
             })
           }, 1000)
         })
       } else {
         self._selectSpliceJunctionImpl(d)
         self.$nextTick(function() {
-          self.globalApp.scrollToBottom("#site-diagrams");
+          self.globalApp.scrollToTop("#zoomed-diagrams");
         })
       }
     },
@@ -4392,7 +4432,7 @@ export default {
 
 
       let xRange = regionEnd - regionStart
-      let numTicks = 20;
+      let numTicks = 15;
       let nthTick = 5;
       var tickFormatter = function(d,i) {
         if (i % nthTick == 0) {
@@ -5087,19 +5127,27 @@ export default {
     },
     setIGVCoordinates: function() {
       let self = this;
-      if (this.selectedGene && (this.clickedObject || this.regionIsSelected)) {
-        if (this.zoomRegionStart && this.zoomRegionEnd) {
-          if (this.igvStarted && this.igvDisplayMode == 'show') {
-            self.igvCoordinates = this.selectedGene.chr + ':' + this.zoomRegionStart + '-' + this.zoomRegionEnd
+      if (this.igvStarted && this.igvRegionMode != 'hide') {
+        if (this.igvRegionMode == 'selected') {
+          if (this.selectedGene && (this.clickedObject || this.regionIsSelected)) {
+            if (this.zoomRegionStart && this.zoomRegionEnd) {
+              self.igvCoordinates = this.selectedGene.chr + ':' + this.zoomRegionStart + '-' + this.zoomRegionEnd
+            }
           }
-        }
-      } else if (self.geneStart && self.geneEnd) {
-        if (this.igvStarted && this.igvDisplayMode == 'show') {
-          self.igvCoordinates = this.selectedGene.chr + ':' + this.geneStart + '-' + this.geneEnd
+        } else if (this.igvRegionMode == 'gene') {
+          if (self.geneStart && self.geneEnd) {
+            self.igvCoordinates = this.selectedGene.chr + ':' + this.geneStart + '-' + this.geneEnd
+          }
+        } else if (this.igvRegionMode == 'donor' && this.clickedObject) {
+          self.igvCoordinates = this.selectedGene.chr + ':' +
+                                (this.clickedObject.donor.pos - this.donorSiteSeqRange) + '-' +
+                                (this.clickedObject.donor.pos + this.donorSiteSeqRange);
+        } else if (this.igvRegionMode == 'acceptor' && this.clickedObject) {
+          self.igvCoordinates = this.selectedGene.chr + ':' +
+                                (this.clickedObject.acceptor.pos - this.acceptorSiteSeqRange) + '-' +
+                                (this.clickedObject.acceptor.pos + this.acceptorSiteSeqRange);
         }
       }
-
-
     }
 
 
@@ -5112,6 +5160,17 @@ export default {
         return null;
       }
     },
+    showIGVPanel: function() {
+      if (this.igvRegionMode != 'hide' && this.igvStarted) {
+        if (this.igvRegionMode == 'selected') {
+          return this.clickedObject || this.regionIsSelected;
+        } else if (this.igvRegionMode == 'gene') {
+          return this.selectedGene && this.geneStart && this.geneEnd;
+        } else if (this.igvRegionMode == 'acceptor' || this.igvRegionMode == 'donor') {
+          return this.clickedObject != null;
+        }
+      }
+    }
 
   },
 
@@ -5188,15 +5247,15 @@ export default {
       self.drawReadCountHistogram('#exon-skipping-histogram', 'exon-skipping', 'Exon-skipping', {}, self.readCountRange);
       self.drawReadCountHistogram('#cryptic-site-histogram', 'cryptic-site', 'Cryptic-site', {}, self.readCountRange);
     },
-    igvDisplayMode: function() {
+    igvRegionMode: function() {
       let self = this;
-      // We will set startIGV once, the first time the button is toggled on.
+
       if (self.igvStarted == false) {
-        if (self.igvDisplayMode == 'show') {
+        if (self.igvRegionMode != 'hide') {
           self.igvStarted = true;
         }
       }
-      if (self.igvDisplayMode == 'show') {
+      if (self.igvRegionMode != 'hide') {
         self.setIGVCoordinates();
       }
     }

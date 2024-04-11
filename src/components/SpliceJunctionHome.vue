@@ -1,14 +1,15 @@
 <template>
 
-<div v-if="geneModel && genomeBuildHelper" style="margin-left:5px;margin-right:0px;" class="d-flex flex-column mt-1">
+<div v-if="geneModel && genomeBuildHelper"
+     style="margin-left:0px;margin-right:0px;" class="d-flex flex-column mt-1">
     <div class="tooltip"></div>
 
-    <GeneCard  v-show="selectedGene" class="main-card-card"
+    <GeneCard  v-show="selectedGene" class="app-card"
     :selectedGene="selectedGene"
     :geneModel="geneModel"
      @reinit="$emit('reinit')"/>
 
-    <div  v-show="selectedGene" class="main-card-card">
+    <div  v-show="selectedGene" class="app-card">
 
             <SpliceJunctionD3
             ref="ref_SpliceJunctionD3"
@@ -64,24 +65,7 @@
         </template>
       </v-snackbar>
 
-<v-dialog v-model="showIGVPopup" persistent fullscreen >
-  <v-card class="main-card">
-    <div style="margin-right: 5px">
-      <v-btn variant="tonal" color="#094792" size="large"
-      style="float:right;margin-bottom:10px;" @click="onShowIGV(false)">Close</v-btn>
-    </div>
-    <SpliceJunctionViz
-    ref="ref_SpliceJunctionViz"
-    :loadInfo="loadInfo"
-    :show="showIGVPopup"
-    :selectedGene="selectedGene"
-    :geneSource="geneModel.geneSource"
-    :genomeBuildHelper="genomeBuildHelper"
-    :geneModel="geneModel"
-    @reinit="$emit('reinit')"
-    />
-  </v-card>
-</v-dialog>
+
 
 </div>
 
@@ -95,7 +79,6 @@ import Vcf               from '@/models/Vcf.js'
 import MosaicSession     from '@/models/MosaicSession.js'
 
 import GeneCard          from './GeneCard.vue'
-import SpliceJunctionViz from './SpliceJunctionViz.vue'
 import SpliceJunctionD3  from './SpliceJunctionD3.vue'
 import { reject } from 'async'
 
@@ -103,7 +86,6 @@ import { reject } from 'async'
     name: 'SpliceJunctionHome',
     components: {
       GeneCard,
-      SpliceJunctionViz,
       SpliceJunctionD3
     },
     props: {
@@ -150,8 +132,6 @@ import { reject } from 'async'
       tab: 'tab-2',
 
       selectedTranscript: null,
-
-      showIGVPopup: false,
 
       geneRegionStart: null,
       geneRegionEnd: null,
@@ -584,15 +564,6 @@ import { reject } from 'async'
           this.$refs.ref_SpliceJunctionD3.selectSpliceJunction(spliceJunction)
         }
       },
-      onShowIGV: function(show) {
-        let self = this;
-        if (!show && this.$refs && this.$refs.ref_SpliceJunctionViz) {
-          this.$refs.ref_SpliceJunctionViz.closeBrowser();
-        }
-        this.$nextTick(function() {
-          self.showIGVPopup = show;
-        })
-      },
       onVcfURLEntered: function(vcfURL, tbiURL) {
         let self = this;
         self.sampleNames = [];
@@ -698,9 +669,6 @@ import { reject } from 'async'
 
           self.getSpliceJunctionRecords();
         }
-      },
-      showIGV: function() {
-        this.showIGVPopup = this.showIGV;
       }
     }
 

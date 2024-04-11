@@ -9,7 +9,7 @@
           <h2> Gene {{ selectedGene.gene_name }} </h2>
         </div>
 
-        <div class="coord flex-grow-0 flex-shrink-0" style="margin-left:84px">
+        <div class="coord flex-grow-0 flex-shrink-0" style="margin-left:77px">
         {{ selectedGene.chr}}:{{ formatRegion(selectedGene.startOrig) }}-{{ formatRegion(selectedGene.endOrig) }}
         </div>
         <v-btn  @click="copyGeneCoord" density="compact" variant="text" size="medium"

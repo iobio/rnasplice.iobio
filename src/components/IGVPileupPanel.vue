@@ -356,6 +356,8 @@ export default {
       border-style: none
       border-radius: 0px
       background-color: white
+      .igv-logo
+        display: none
 
       .igv-zoom-widget
         svg
@@ -383,7 +385,7 @@ export default {
       .igv-search-container
         width: initial !important
         input.igv-search-input
-          font-size: 14px
+          font-size: 13px
           font-family: Poppins
           font-weight: 500
           padding: 5px 10px 5px 10px

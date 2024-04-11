@@ -16,15 +16,15 @@
       @show-genes-panel="onShowLeftNavDrawer"
       @load-data="onLoadData"
       @vcf-url-entered="onVcfURLEntered"
-      @show-igv="onShowIGV(true)"
       @show-legend="onShowLegend(true)"
       />
 
-       <v-navigation-drawer
+       <v-navigation-drawer style="margin-left:5px"
         id="left-nav-drawer"
         width="400"
         v-model="showLeftNavDrawer"
         permanent
+        class="bg-grey-lighten-2"
         location="left">
 
             <GenesPanel
@@ -40,11 +40,13 @@
               @select-splice-junction="selectSpliceJunction"
             />
 
+<!--
             <ObjectDetails :show="selectedGene && selectedObject"
               class="d-flex flex-column"
               :selectedObject="selectedObject"
               :selectedGene="selectedGene"
             />
+-->
 
       </v-navigation-drawer>
 
@@ -222,12 +224,6 @@ export default {
       this.selectedGene = gene;
       this.addAlert("info", "gene <pre>" + gene.gene_name + "</pre> loaded", gene.gene_name)
       this.showLeftNavDrawer = true;
-    },
-    onShowIGV: function(show) {
-      let self = this;
-      if (self.$refs && self.$refs.ref_SpliceJunctionHome) {
-        self.$refs.ref_SpliceJunctionHome.onShowIGV(show);
-      }
     },
     onShowLegend: function(show) {
       this.showLegendDrawer = show;
@@ -540,10 +536,10 @@ export default {
   background-color: $nav-color !important
 
 #left-nav-drawer
-  margin-left: 5px
-  margin-right: 5px
+  margin-left: 0px !important
+  margin-right: 0px !important
   padding: 5px
-  height: calc(100vh - 50px)
+  border: none
 
 
 #legend-drawer-close-button
@@ -632,7 +628,7 @@ h3, .h3
   padding: 10px !important;
   font-size: 13px;
 }
-.v-card.main-card-card {
+.v-card.app-card {
   margin-left:   5px !important;
   margin-right:  5px !important;
   margin-top:    0px !important;

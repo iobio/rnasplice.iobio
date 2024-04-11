@@ -1,5 +1,5 @@
 <template>
- 
+
     <v-card id="genes-panel">
 
       <div class="d-flex flex-row align-center mb-1">
@@ -16,7 +16,7 @@
         </v-btn>
       </div>
 
-    
+
 
       <v-expansion-panels v-if="geneModel && geneModel.sortedGeneNames.length > 0"
        v-model="expandGene">
@@ -25,17 +25,16 @@
           <template v-slot:title>
             <div :id="geneName + `-expansion-title`"
             :class="`d-flex gene-expansion-title` + (selectedGene && selectedGene.gene_name == geneName ? ` selected` : ``)">
-              <v-btn class="gene-button" variant="tonal" 
-                @click.stop="onGeneClicked(geneName)" size="medium" 
-                style="margin-left:0px;padding-left: 5px;padding-right:5px;padding-top: 1px;padding-bottom: 1px;font-size: 13px; width:120px"  
+              <v-btn class="gene-button" variant="tonal"
+                @click.stop="onGeneClicked(geneName)" size="medium"
+                style="margin-left:0px;padding-left: 5px;padding-right:5px;padding-top: 1px;padding-bottom: 1px;font-size: 13px; min-width:130px;max-width:130px"
                 color="#094792" density="compact">{{ geneName }}</v-btn>
 
             </div>
-            <div  style="color:#4682b4;font-weight:500;margin-left:10px;font-size:13px;margin-right:3px;">Splice Junctions</div>
-            <v-chip v-if="getSummary(geneName)" color="#4682b4" class="" size="small" >
+            <v-chip v-if="getSummary(geneName)" color="#4682b4" style="margin-left:50px" size="small" >
                   {{ getSummary(geneName).count }}
             </v-chip>
-             
+
              <v-spacer/>
              <v-btn  id="clear-gene-button" variant="text" @click="onClearGene(geneName)">
                 <v-icon icon="mdi-close"></v-icon>
@@ -43,15 +42,15 @@
           </template>
           <template v-slot:text>
             <div v-if="getSummary(geneName)">
-              <h3 style="color: #e66a7f !important;">Cryptic-site splice junctions
-                <v-chip v-if="getSummary(geneName)" color="#e66a7f" class="ml-8" size="small" >
+              <h3 style="margin-left:2px;color: #e66a7f !important;font-size:12px !important">Cryptic-site splice junctions
+                <v-chip v-if="getSummary(geneName)" color="#e66a7f" class="ml-1" size="small" >
                       {{ getCrypticJunctions(geneName).length }}
                 </v-chip>
-                    
+
               </h3>
 
 
-              <div class="d-flex flex-column" style="max-height:167px;overflow-y:scroll">
+              <div class="d-flex flex-column" style="max-height:50vh;overflow-y:scroll">
 
                 <div  class="d-flex splice-junction-entry">
                   <div style="width: 31px"></div>
@@ -59,13 +58,13 @@
                   <div style="width: 100px;">Acceptor</div>
                   <div style="width: 40px;text-align:right;margin-right:2px;"># Reads</div>
                   <div style="width: 40px;text-align:right;margin-right:10px;">z</div>
-                  <div style="width: 40px;text-align:center">strand</div>  
+                  <div style="width: 40px;text-align:center">strand</div>
                 </div>
 
 
 
                 <div  v-for="spliceJunction, idx in getCrypticJunctions(geneName)"
-                  :key="spliceJunction.key" 
+                  :key="spliceJunction.key"
                   :class="`d-flex splice-junction-entry` + (selectedObject && selectedObject.key == spliceJunction.key ? ` selected` : ``)"
                    @click="onSelectSpliceJunction(spliceJunction, geneName)" flat density="compact">
                   <div style="width: 31px">{{ idx+1 }}.</div>
@@ -73,10 +72,10 @@
                   <div style="width: 100px;">{{ spliceJunction.acceptor.label}}</div>
                   <div style="width: 40px;text-align:right;margin-right:2px;">{{ spliceJunction.readCount }}</div>
                   <div style="width: 40px;text-align:right;margin-right:10px;">{{ spliceJunction.zScore }}</div>
-                  <div style="width:40px;text-align:center">{{ (spliceJunction.strand && spliceJunction.strand != 'undefined' ? spliceJunction.strand : `?`)}}</div>  
+                  <div style="width:40px;text-align:center">{{ (spliceJunction.strand && spliceJunction.strand != 'undefined' ? spliceJunction.strand : `?`)}}</div>
                 </div>
               </div>
-   
+
             </div>
           </template>
 
@@ -84,19 +83,19 @@
       </v-expansion-panels>
 
 
-    <ConfirmDialog 
+    <ConfirmDialog
       :showIt="showConfirmDialog"
       :message="confirmMessage"
       :title="confirmTitle"
       @confirmed="onConfirmed"/>
 
-    
+
 
 
     </v-card>
 
-   
-  
+
+
 </template>
 
 <script>
@@ -122,7 +121,7 @@ export default {
     confirmTitle: "",
     expandGene: null,
 
-    
+
   }),
   methods: {
 
@@ -205,15 +204,23 @@ export default {
   padding-top:   0px
   padding-left:  5px
   flex-grow: 1
-  height: calc(100% - 360px)
+  height: calc(100vh - 65px)
 
 
-  
-   
+  .v-chip.v-chip--size-small
+    width: 36px
+    height: 20px
+    justify-content: center
+  .v-chip__content
+    font-size: 11px
+    font-weight: 500
+
   .gene-expansion-title
     justify-content: space-between
+    border: 2px solid transparent
     &.selected
       border: 2px solid #08a9f4
+      border-radius: 6px
 
   .v-expansion-panel--active:not(:first-child)
     margin-top: 4px !important
@@ -228,7 +235,7 @@ export default {
     background-color: #ababab
   .v-expansion-panel-text__wrapper
     padding: 4px 4px
-    margin-bottom: 80px
+    margin-bottom: 5px
 
   .splice-junction-entry
     font-size: 12px
@@ -238,6 +245,7 @@ export default {
     padding-left: 4px
     &.selected
       border: 2px solid #08a9f4
+      border-radius: 3px
 
 
   .gene-button
@@ -256,7 +264,7 @@ export default {
   #clear-all-button
     margin: 0px
     height: 20px
-    padding-left: 3px 
+    padding-left: 3px
     padding-right: 3px
     margin-right: 0px
     margin-top: -5px
@@ -271,7 +279,7 @@ export default {
     max-height: 20px
     margin: 0
     float: right
-    padding-left: 3px 
+    padding-left: 3px
     padding-right: 3px
     color: $text-color !important
 

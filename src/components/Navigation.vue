@@ -33,12 +33,6 @@
       </div>
       <v-spacer></v-spacer>
 
-      <v-btn v-if="selectedGene" class="ml-3 navbar-icon-button" id="show-igv-button" @click="$emit('show-igv', true)">
-          <span class="material-symbols-outlined" style="margin-right:2px;">
-          legend_toggle
-          </span>
-          IGV
-      </v-btn>
 
 
 
