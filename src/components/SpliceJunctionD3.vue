@@ -168,7 +168,7 @@
         </v-card>
     </div>
 	  <div  class="d-flex flex-column align-start">
-      <div v-if="!showLoading && selectedGene" style="margin-top:-30px;margin:auto">
+      <div v-if="!showLoading && selectedGene" style="margin: auto;margin-bottom: 5px;margin-top: -5px;">
           <div v-if="!regionIsSelected" class="hint-box">
             <v-icon>mdi-select-drag</v-icon>
             <div>Drag to zoom into gene region</div>
@@ -188,7 +188,7 @@
       <svg/>
     </div>
 
-    <div id="coverage-diagram" style="min-height:100px">
+    <div id="coverage-diagram" style="min-height:100px;margin-top:-6px">
     </div>
 
 	  <div id="arc-diagram" class="hide-read-counts" style="margin-top:-136px">
@@ -5201,6 +5201,14 @@ export default {
 
       }
   	},
+    loadInProgress: function() {
+      let self = this;
+      // If the parent component encounters an error,
+      // we need to stop the loading gif from showing
+      if (!self.loadInProgress && self.showLoading) {
+        self.showLoading = false;
+      }
+    },
   	geneSource: function() {
 			this.$emit("reinit");
   	},

@@ -443,7 +443,13 @@ import { reject } from 'async'
               })
               .catch(function(error) {
                 self.loadInProgress = false;
-                self.$emit("add-alert", 'error', error.message, self.selectedGene.gene_name, error.details ? [error.details] : null)
+                if (error && error.message && error.message == 'No data returned from backend service bedRegion') {
+                  let spliceJunctionsEmpty = self.geneModel.createSpliceJunctions([], self.selectedGene, self.selectedTranscript);
+
+                  self.$emit('splice-junctions-loaded', self.selectedGene.gene_name, spliceJunctionsEmpty, {})
+                } else {
+                  self.$emit("add-alert", 'error', error.message, self.selectedGene.gene_name, error.details ? [error.details] : null)
+                }
               })
 
             } else {
