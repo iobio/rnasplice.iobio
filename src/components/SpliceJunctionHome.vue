@@ -195,6 +195,9 @@ import { reject } from 'async'
             }
             self.$emit('load-data-from-mosaic', loadInfo)
           })
+          .catch(function(error) {
+            self.addAppAlert('error', error)
+          })
         }
       },
 
@@ -217,6 +220,11 @@ import { reject } from 'async'
             self.geneSet = data.geneSet;
             self.user = data.user;
             loadInfo = data.loadInfo;
+
+            if (!loadInfo.bedURL || !loadInfo.bedIndexURL) {
+              let msg = "Unable to run rnasplice.iobio without splice junctions bed file."
+              reject(msg);
+            }
 
             let genes = [];
             let genesString = self.urlParams.get('genes')
