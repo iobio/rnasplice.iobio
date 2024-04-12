@@ -6,7 +6,6 @@ class GlobalApp {
 
     this.cacheHelper           = null;
     this.launchedFromUtahMosaic = false;
-    this.version               = "1.0.0";
     this.DEFAULT_IOBIO_BACKEND  = "backend.iobio.io"
     this.IOBIO_SERVICES         = null;
     this.HTTP_SERVICES          = null;
