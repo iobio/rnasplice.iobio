@@ -605,6 +605,11 @@ import { reject } from 'async'
       getCoverage() {
         let self = this;
 
+        if (self.loadInfo.bigwigURL == null || self.loadInfo.bigwigURL == "") {
+          self.addAppAlert("warning", "Unable to show coverage because no bigWig file was specified.")
+          return;
+        }
+
         let chr = self.selectedGene.chr;
         if (self.selectedGene.chr.indexOf('chr') == 0 && self.stripChrForBigWig) {
           chr = self.selectedGene.chr.split("chr")[1]
