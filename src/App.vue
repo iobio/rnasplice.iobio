@@ -413,10 +413,14 @@ export default {
         this.appAlertCounts[type] += 1
         this.appAlertCounts.total += 1
 
+        // Open notifications side panel if this is
+        // the first time we have encountered a particular
+        // error or warning.
+        if (type == 'error' || type == 'warning') {
+          this.onShowAlertPanel();
+        }
       }
-      if (type == 'error' || type == 'warning') {
-        this.onShowAlertPanel();
-      }
+
     },
     onClearAlert: function(key) {
       let self = this;
