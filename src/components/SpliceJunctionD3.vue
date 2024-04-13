@@ -11,12 +11,23 @@
     </div>
 
 
-    <div id="panel-heading" class="d-flex flex-row align-start mb-5" >
-      <h2 class="mr-5" style="margin-top: 0px !important;margin-bottom: 0px !important;min-width: 150px;">
+    <div id="panel-heading" class="d-flex flex-row align-center mb-5" >
+      <h2  style="margin-top: 0px !important;margin-bottom: 0px !important;min-width: 150px;">
         Splice Junctions
       </h2>
+      <v-spacer/>
 
-      <div style="width:210px;margin-top:-15px;margin-left:20px"  >
+
+      <v-btn @click="$emit('show-legend')" color="#30638e" class="mr-4" density="compact" variant="tonal">
+        <v-icon class="mr-1">mdi-map</v-icon>
+        <span style="font-size:13px">Legend</span>
+      </v-btn>
+    </div>
+
+    <div class="d-flex flex-row align-center flex-wrap mb-9">
+
+
+      <div style="width:185px;" class="mr-6 ml-1">
         <v-text-field
         density="compact"
         hide-details="auto"
@@ -26,16 +37,7 @@
         @blur="highlightRegionFromCoord"/>
       </div>
 
-
-      <v-btn @click="$emit('show-legend')" color="#30638e" class="ml-6" density="compact" variant="tonal">
-        <v-icon class="mr-1">mdi-map</v-icon>
-        <span style="font-size:13px">Legend</span>
-      </v-btn>
-    </div>
-
-    <div class="d-flex flex-row align-start flex-wrap mb-1">
-
-        <div style="width:170px" class="">
+        <div style="width:170px" class="mr-6">
           <v-select
             v-model="colorBy"
             hide-details="auto"
@@ -45,10 +47,10 @@
           ></v-select>
         </div>
 
-        <div id="arc-color-legend" class="mr-6">
+        <div id="arc-color-legend" class="mr-2">
         </div>
 
-        <div id="label-cb" class="mr-2" style="width: 90px" >
+        <div id="label-cb" class="mr-4"   style="max-width: 100px">
           <v-checkbox
             hide-details="true"
             density="compact"
@@ -57,7 +59,7 @@
           ></v-checkbox>
         </div>
 
-        <div id="show-strand-mismatch-cb" class="mr-9" style="width: 120px" >
+        <div id="show-strand-mismatch-cb" class="mr-6" style="max-width: 160px" >
           <v-checkbox
             hide-details="true"
             density="compact"
@@ -77,7 +79,7 @@
               v-model="minUniquelyMappedReads"
               @blur="onSettingsChanged()"/>
             </div>
-            <div style="width:110px" class="ml-2 mr-5" >
+            <div style="width:110px" class="ml-2 mr-6" >
               <v-text-field
               density="compact"
               hide-details="auto"
@@ -90,8 +92,8 @@
         </div>
 
 
-        <v-card style="padding:0 !important;margin:0 !important" class="" variant="flat">
-          <v-card-actions style="min-height:30px !important;padding:0 !important;margin:0 !important">
+        <v-card style="padding:0px !important;margin:0 !important;margin-top:20px !important;margin-left:1px !important" class="" variant="flat">
+          <v-card-actions style="min-height:30px !important;padding:0 !important;margin:0 !important;margin-bottom: 10px !important;margin-left:1px !important">
             <v-btn color="#30638e" density="compact"  @click="exploreReadCounts = !exploreReadCounts" variant="tonal">
               <v-icon class="mr-1">mdi-poll</v-icon>
               <span style="font-size:13px">Read count distributions</span>
@@ -104,7 +106,7 @@
 
           <v-expand-transition>
             <div v-show="exploreReadCounts">
-              <v-card-text style="padding:0 !important">
+              <v-card-text style="padding:0 !important;margin-left: 10px !important">
 
                   <div class="d-flex">
                     <div  v-show="!showLoading && selectedGene">
@@ -116,7 +118,7 @@
                         <v-icon>mdi-restore</v-icon>
                         <div>Click outside to restore</div>
                       </div>
-                      <div id="all-histogram" class="d-flex mr-9 mt-1">
+                      <div id="all-histogram" class="d-flex mt-1">
                         <div id="read-count-histogram" style="margin-left: 0px">
                         </div>
                       </div>
@@ -265,7 +267,7 @@
 	<v-card id="zoomed-diagrams" v-show="clickedObject || regionIsSelected"  class="app-card"
      style="z-index:1000;">
 
-    <div class="d-flex" style="align-items: center;margin-bottom: 15px;">
+    <div class="d-flex" style="align-items: center;margin-bottom: 30px;">
       <h2 style="margin-bottom:10px !important;margin-top:10px !important">
         Selected Region
       </h2>
@@ -373,7 +375,7 @@
       </div>
     </div>
 
-     <div  v-show="showIGVPanel">
+     <div  v-show="showIGVPanel" style="margin-top: 10px">
       <IGVPileupPanel
         ref="ref_IGVPileupPanel"
         :loadInfo="loadInfo"
@@ -391,7 +393,7 @@
   <div id="site-diagrams" class="d-flex plus"
    v-if="clickedObject && clickedObject.strand == '+'" >
   	<v-card class="donor-site app-card" v-if="showDonorPanel" style="width:50%">
-      <div class="d-flex mb-4" style="justify-content:flex-start;" >
+      <div class="d-flex mt-1 mb-4" style="justify-content:flex-start;" >
   		  <h2 >Donor site</h2>
         <v-spacer/>
         <v-btn  icon="mdi-minus" class="ml-4 zoom-button" @click="zoomOutDonorSite()" density="compact" size="medium" >
@@ -413,7 +415,7 @@
   	  </div>
   	</v-card>
   	<v-card class="acceptor-site right-panel  app-card" v-if="showAcceptorPanel">
-      <div class="d-flex mb-4" style="justify-content:flex-start;" >
+      <div class="d-flex mt-1 mb-4" style="justify-content:flex-start;" >
   		  <h2 >Acceptor site</h2>
         <v-spacer/>
         <v-btn  icon="mdi-minus" class="ml-4 zoom-button" @click="zoomOutAcceptorSite()" density="compact" size="medium" >
@@ -437,7 +439,7 @@
   </div>
   <div id="site-diagrams" class="d-flex minus" v-if="clickedObject && clickedObject.strand == '-'" >
   	<v-card class="acceptor-site  app-card" v-if="showAcceptorPanel" style="width:50%">
-      <div class="d-flex mb-4" style="justify-content:flex-start;" >
+      <div class="d-flex mt-1 mb-4" style="justify-content:flex-start;" >
   		  <h2 >Acceptor site</h2>
         <v-spacer/>
         <v-btn  icon="mdi-minus" class="ml-4 zoom-button" @click="zoomOutAcceptorSite()" density="compact" size="medium" >
@@ -459,7 +461,7 @@
   	  </div>
   	</v-card>
   	<v-card class="donor-site right-panel  app-card" style="width:50%" v-if="showDonorPanel" >
-      <div class="d-flex mb-4" style="justify-content:flex-start;" >
+      <div class="d-flex mt-1 mb-4" style="justify-content:flex-start;" >
   		  <h2 >Donor site</h2>
         <v-spacer/>
 
@@ -5559,9 +5561,10 @@ text.junction {
   display: initial !important;
 }
 
-#label-cb, #show-matching-strand-only-cb, #show-cryptic-site-only-cb {
-	height: 45px;
+#label-cb, #show-matching-strand-only-cb, #show-cryptic-site-only-cb, #show-strand-mismatch-cb {
   font-weight: 500;
+  min-width: 90px;
+  max-width: 90px;
 }
 .label-subheader {
   font-weight: 600;

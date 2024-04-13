@@ -566,7 +566,7 @@ h1, .h1
   font-weight: 500 !important
 
 h2, .h2
-  font-size: 18px !important
+  font-size: 20px !important
   margin-top: 0px !important
   margin-bottom: 5px !important
   color: $link-color !important
@@ -636,7 +636,7 @@ h3, .h3
   margin-left:   5px !important;
   margin-right:  5px !important;
   margin-top:    0px !important;
-  margin-bottom: 8px !important;
+  margin-bottom: 10px !important;
 }
 
 .v-input--center-affix .v-input__prepend, .v-input--center-affix .v-input__append {
