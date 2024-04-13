@@ -204,7 +204,7 @@ export default {
   padding-top:   0px
   padding-left:  5px
   flex-grow: 1
-  height: calc(100vh - 65px)
+  height: calc(100vh - 70px)
 
 
   .v-chip.v-chip--size-small

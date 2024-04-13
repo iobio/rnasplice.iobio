@@ -392,7 +392,7 @@
 
   <div id="site-diagrams" class="d-flex plus"
    v-if="clickedObject && clickedObject.strand == '+'" >
-  	<v-card class="donor-site app-card" v-if="showDonorPanel" style="width:50%">
+  	<v-card class="donor-site app-card" v-if="showDonorPanel" style="width:50%;margin-bottom:5px !important">
       <div class="d-flex mt-1 mb-4" style="justify-content:flex-start;" >
   		  <h2 >Donor site</h2>
         <v-spacer/>
@@ -414,7 +414,7 @@
         <svg/>
   	  </div>
   	</v-card>
-  	<v-card class="acceptor-site right-panel  app-card" v-if="showAcceptorPanel">
+  	<v-card class="acceptor-site right-panel  app-card" v-if="showAcceptorPanel" style="margin-bottom:5px !important">
       <div class="d-flex mt-1 mb-4" style="justify-content:flex-start;" >
   		  <h2 >Acceptor site</h2>
         <v-spacer/>
@@ -438,7 +438,7 @@
   	</v-card>
   </div>
   <div id="site-diagrams" class="d-flex minus" v-if="clickedObject && clickedObject.strand == '-'" >
-  	<v-card class="acceptor-site  app-card" v-if="showAcceptorPanel" style="width:50%">
+  	<v-card class="acceptor-site  app-card" v-if="showAcceptorPanel" style="width:50%;margin-bottom:5px !important">
       <div class="d-flex mt-1 mb-4" style="justify-content:flex-start;" >
   		  <h2 >Acceptor site</h2>
         <v-spacer/>
@@ -460,7 +460,7 @@
         <svg/>
   	  </div>
   	</v-card>
-  	<v-card class="donor-site right-panel  app-card" style="width:50%" v-if="showDonorPanel" >
+  	<v-card class="donor-site right-panel  app-card" style="width:50%;margin-bottom:5px !important" v-if="showDonorPanel" >
       <div class="d-flex mt-1 mb-4" style="justify-content:flex-start;" >
   		  <h2 >Donor site</h2>
         <v-spacer/>
