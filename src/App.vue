@@ -3,6 +3,7 @@
 
       <Navigation
       ref="ref_Navigation"
+      :geneModel="geneModel"
       :appVersion="appVersion"
       :genes="genes"
       :alerts="appAlerts"
@@ -647,4 +648,11 @@ h3, .h3
   padding-top: 4px;
   padding-left: 6px;
 }
+
+
+.dropdown.open .dropdown-menu {
+  max-height: 400px !important;
+  overflow-y: scroll !important;
+}
+
 </style>

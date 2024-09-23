@@ -18,7 +18,7 @@
 
       <v-spacer></v-spacer>
 
-      <div id="search-gene-box" style="min-width:200px">
+      <!--<div id="search-gene-box" style="min-width:200px">
         <v-text-field id="search-gene-input" class="pl-2"
         hide-details
         v-model="searchedGeneInput"
@@ -31,6 +31,34 @@
         :data="genes"
         item-key="gene_name" />
       </div>
+      -->
+      
+      <div id="search-gene-box" style="min-width:200px">
+          <v-text-field id="search-gene-name"
+          class="pl-2"
+          :hide-details="true"
+          density="compact"
+          prepend-icon="mdi-magnify"
+          v-model="geneEntered" label="Gene name" >
+          </v-text-field>
+          <typeahead v-model="lookupGene"
+          force-select v-bind:limit="typeaheadLimit"
+          target="#search-gene-name"
+          :async-function="asyncLookupGene"
+          item-key="gene_name">
+            <template #item="{ items, activeIndex, select, highlight }">
+              <li
+                v-for="(item, index) in items"
+                :key="item.gene_name"
+                :class="{ active: activeIndex === index }"
+              >
+                <a role="button" @click="select(item)">
+                  <span v-html="geneAndAliases(item)"></span>
+                </a>
+              </li>
+            </template>
+          </typeahead>
+        </div>
       <v-spacer></v-spacer>
 
 
@@ -128,21 +156,26 @@ import { Typeahead } from 'uiv'
       sampleNames: Array,
       selectedGene: Object,
       preLoadInfo: Object,
-      loadInfo: Object
+      loadInfo: Object,
+      geneModel: Object,
     },
     data: () => ({
-      searchedGene: null,
-      searchedGeneInput: null,
+      searchAlias: 'last',
+      searchTerm: '',
+      lookupGene: {},
+      geneEntered: null,
+      typeaheadLimit: parseInt(100),
+     
       showLoadDataDialog: false,
       showDisclaimer: false,
     }),
     watch: {
-      searchedGene: function() {
-        if (this.searchedGene && this.searchedGene.gene_name) {
-          this.$emit("gene-searched", this.searchedGene)
+      lookupGene: function(a, b) {
+        if (this.lookupGene && this.lookupGene.gene_name) {
+          this.geneEntered = this.lookupGene.gene_name;
+          this.$emit("gene-searched", this.lookupGene);
         }
       },
-
     },
     methods: {
       onShowAlertPanel: function() {
@@ -165,7 +198,40 @@ import { Typeahead } from 'uiv'
         this.$emit('show-genes-panel')
       },
       setGeneSearchField: function(theValue) {
-        this.searchedGeneInput = theValue;
+        this.geneEntered = theValue;
+      },
+      geneAndAliases: function(typeaheadObject) {
+        if (typeaheadObject.hasOwnProperty("gene_alias") && typeaheadObject.gene_alias && typeaheadObject.gene_alias != "") {
+          return this.highlightTerm(typeaheadObject.gene_name + " (" + typeaheadObject.gene_alias + ")", this.searchTerm);
+        } else {
+          return this.highlightTerm(typeaheadObject.gene_name, this.searchTerm);
+        }
+      },
+      highlightTerm: function highlight(value, searchTerm) {
+        let newVal = value.replace(searchTerm.toUpperCase(), '<b>' + searchTerm.toUpperCase() + '</b>', 'i');
+        return newVal;
+      },
+      asyncLookupGene: function(searchTerm, callback) {
+        this.searchTerm = searchTerm;
+        let url = this.geneModel.globalApp.geneInfoServer + "lookup/";
+        url += searchTerm + "?searchAlias=" + this.searchAlias;
+        $.ajax({
+          url: url,
+          jsonp: "callback",
+          type: "GET",
+          dataType: "json",
+          success: function( response ) {
+            if (response && response.hasOwnProperty('genes')) {
+              var genes = response.genes;
+              callback(genes)
+            } else {
+              console.log(msg);
+            }
+          },
+          error: function( xhr, status, errorThrown ) {
+            console.log(errorThrown)
+          }
+        })
       }
     },
     computed: {
