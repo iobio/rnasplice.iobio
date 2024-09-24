@@ -497,47 +497,53 @@ import { reject } from 'async'
       onSpliceJunctionSelected: function(spliceJunction) {
         let self = this;
         let promises = [];
-        let p = self.promiseGetReferenceSequence('donor',
-          self.selectedGene.chr,
-          spliceJunction.donor.pos - self.donorSiteSeqRange + self.donorSitePan,
-          spliceJunction.donor.pos + self.donorSiteSeqRange + self.donorSitePan)
-        .then(function(sequenceData) {
-          self.donorReferenceSequence = sequenceData;
-        })
-        promises.push(p)
-        p = self.promiseGetReferenceSequence('acceptor',
-          self.selectedGene.chr,
-          spliceJunction.acceptor.pos - self.acceptorSiteSeqRange + self.acceptorSitePan,
-          spliceJunction.acceptor.pos + self.acceptorSiteSeqRange + self.acceptorSitePan)
-        .then(function(sequenceData) {
-          self.acceptorReferenceSequence = sequenceData;
-        })
+        if (spliceJunction) {
+          
+          let p = self.promiseGetReferenceSequence('donor',
+            self.selectedGene.chr,
+            spliceJunction.donor.pos - self.donorSiteSeqRange + self.donorSitePan,
+            spliceJunction.donor.pos + self.donorSiteSeqRange + self.donorSitePan)
+          .then(function(sequenceData) {
+            self.donorReferenceSequence = sequenceData;
+          })
+          promises.push(p)
+          p = self.promiseGetReferenceSequence('acceptor',
+            self.selectedGene.chr,
+            spliceJunction.acceptor.pos - self.acceptorSiteSeqRange + self.acceptorSitePan,
+            spliceJunction.acceptor.pos + self.acceptorSiteSeqRange + self.acceptorSitePan)
+          .then(function(sequenceData) {
+            self.acceptorReferenceSequence = sequenceData;
+          })
 
-        promises.push(p)
-        Promise.all(promises)
-        .then(function() {
+          promises.push(p)
+          Promise.all(promises)
+          .then(function() {
 
-          let donorVariants = null;
-          let acceptorVariants = null;
-          if (self.variants) {
-            donorVariants = self.variants.filter(function(d) {
-              return d.start >= spliceJunction.donor.pos - self.donorSiteSeqRange + self.donorSitePan &&
-                     d.start <= spliceJunction.donor.pos + self.donorSiteSeqRange + self.donorSitePan
-            })
-            acceptorVariants = self.variants.filter(function(d) {
-              return d.start >= spliceJunction.acceptor.pos - self.acceptorSiteSeqRange + self.acceptorSitePan &&
-                     d.start <= spliceJunction.acceptor.pos + self.acceptorSiteSeqRange + self.acceptorSitePan
-            })
+            let donorVariants = null;
+            let acceptorVariants = null;
+            if (self.variants) {
+              donorVariants = self.variants.filter(function(d) {
+                return d.start >= spliceJunction.donor.pos - self.donorSiteSeqRange + self.donorSitePan &&
+                      d.start <= spliceJunction.donor.pos + self.donorSiteSeqRange + self.donorSitePan
+              })
+              acceptorVariants = self.variants.filter(function(d) {
+                return d.start >= spliceJunction.acceptor.pos - self.acceptorSiteSeqRange + self.acceptorSitePan &&
+                      d.start <= spliceJunction.acceptor.pos + self.acceptorSiteSeqRange + self.acceptorSitePan
+              })
 
-          }
-          if (self.$refs.ref_SpliceJunctionD3) {
-            self.$refs.ref_SpliceJunctionD3.drawAcceptorAndDonorSites(self.donorReferenceSequence,
-              self.acceptorReferenceSequence, donorVariants, acceptorVariants)
-          }
-        })
-        .catch(function(error) {
+            }
+            if (self.$refs.ref_SpliceJunctionD3) {
+              self.$refs.ref_SpliceJunctionD3.drawAcceptorAndDonorSites(self.donorReferenceSequence,
+                self.acceptorReferenceSequence, donorVariants, acceptorVariants)
+            }
+          })
+          .catch(function(error) {
 
-        })
+          })
+        } else {
+          self.donorReferenceSequence = null;
+          self.acceptorReferenceSequence = null;
+        }
 
 
       },
