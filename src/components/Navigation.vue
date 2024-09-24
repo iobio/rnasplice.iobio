@@ -18,20 +18,6 @@
 
       <v-spacer></v-spacer>
 
-      <!--<div id="search-gene-box" style="min-width:200px">
-        <v-text-field id="search-gene-input" class="pl-2"
-        hide-details
-        v-model="searchedGeneInput"
-        density="compact"
-        label="Gene"
-        prepend-icon="mdi-magnify"
-        />
-        <Typeahead  v-model="searchedGene"
-        target="#search-gene-input"
-        :data="genes"
-        item-key="gene_name" />
-      </div>
-      -->
       
       <div id="search-gene-box" style="min-width:200px">
           <v-text-field id="search-gene-name"

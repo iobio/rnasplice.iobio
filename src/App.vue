@@ -5,7 +5,6 @@
       ref="ref_Navigation"
       :geneModel="geneModel"
       :appVersion="appVersion"
-      :genes="genes"
       :alerts="appAlerts"
       :alertCounts="appAlertCounts"
       :sampleNames="sampleNames"
@@ -81,7 +80,6 @@
          <SpliceJunctionHome
           ref="ref_SpliceJunctionHome"
           :loadInfo="loadInfo"
-          :genes="genes"
           :searchedGene="searchedGene"
           :selectedGene="selectedGene"
           :alerts="appAlerts"
@@ -126,9 +124,6 @@ import ObjectDetails      from './components/ObjectDetails.vue';
 import LegendPanel        from './components/LegendPanel.vue';
 
 
-import genesData          from '@/data/genes.json'
-
-
 import  qs  from 'qs'
 
 
@@ -146,8 +141,6 @@ export default {
 
   data: () => ({
     appVersion:  import.meta.env.PACKAGE_VERSION,
-
-    genes:       genesData,
 
     geneModel: null,
 

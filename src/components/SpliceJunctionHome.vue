@@ -90,7 +90,6 @@ import { reject } from 'async'
     },
     props: {
       loadInfo: Object,
-      genes: Array,
       genomeBuild: Array,
 
       searchedGene: Object,
@@ -171,8 +170,9 @@ import { reject } from 'async'
                                                       true,
                                                       { DEFAULT_BUILD: 'GRCh38' });
         self.geneModel =         new GeneModel(self.globalApp,
-                                              self.genomeBuildHelper)
-        self.geneModel.setAllKnownGenes(self.genes)
+                                              self.genomeBuildHelper,
+                                              self.launchedFromMosaic)
+
         self.geneModel.addEventListener("alertIssued", function(eventArgs) {
           let [type, message, genes, details] = eventArgs
           self.addAppAlert(type, message, genes, details)
@@ -243,15 +243,8 @@ import { reject } from 'async'
             loadInfo.genes = genes;
             let promises = []
             if (genes && genes.length > 0) {
-              genes.forEach(function(geneName){
-                if (self.geneModel.isKnownGene(geneName)) {
-                  let p = self.geneModel.promiseAddGeneName(geneName)
-                  promises.push(p)
-                } else {
-                  self.addAppAlert("warn", "Bypassing unknown gene <pre>" + geneName + "</pre>.")
-                }
-              })
-              return Promise.all(promises)
+              return self.geneModel.promiseAddGenesOrAliases(genes);
+              
             } else {
               return Promise.resolve();
             }
@@ -297,7 +290,7 @@ import { reject } from 'async'
         let self = this;
         self.geneModel.promiseAddGeneName(geneName)
         .then(function() {
-          self.geneModel.promiseGetGeneObject(geneName)
+          self.geneModel.promiseGetCachedGeneObject(geneName, true)
           .then(function(theGeneObject) {
             self.geneModel.adjustGeneRegion(theGeneObject);
             self.geneRegionStart = theGeneObject.start;

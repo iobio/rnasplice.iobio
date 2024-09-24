@@ -11,8 +11,10 @@ class GlobalApp {
     this.HTTP_SERVICES          = null;
     this.useSSL                = true;
     this.geneInfoServer        = null;
+    this.geneToPhenoServer     = null;
     this.genomeBuildServer     = null;
-
+    this.phenolyzerOnlyServer  = null;
+    this.hpoLookupUrl          = null;
   }
 
 
@@ -24,7 +26,12 @@ class GlobalApp {
       }
 
       this.geneInfoServer            = this.HTTP_SERVICES + "/geneinfo/";
+      this.geneToPhenoServer         = this.HTTP_SERVICES + "/gene2pheno/";
       this.genomeBuildServer         = this.HTTP_SERVICES + "/genomebuild/"
+      this.phenolyzerOnlyServer      = this.HTTP_SERVICES + "/phenolyzer/";
+      this.hpoLookupUrl              = this.HTTP_SERVICES + "/hpo/hot/lookup/?term=";
+
+
   }
 
   initServices(useMosaicBackend) {
