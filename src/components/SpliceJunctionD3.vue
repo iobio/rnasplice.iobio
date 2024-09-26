@@ -5494,8 +5494,7 @@ div.tooltip {
 
 .utr:hover,
 .cds:hover,
-.exon:hover,
-{
+.exon:hover {
     cursor: pointer;
 }
 
@@ -5528,13 +5527,6 @@ div.tooltip {
   stroke-width: 3;
   stroke: black;
 }
-
-#zoomed-diagrams .arc-pointer,
-#zoomed-diagrams .arc-pointer-line {
-
-}
-
-
 
 .donor-problem, .acceptor-problem, .donor-problem-small, .acceptor-problem-small  {
 	fill: #049ee3 !important;
