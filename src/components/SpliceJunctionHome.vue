@@ -108,6 +108,8 @@ import { reject } from 'async'
     },
     data: () => ({
       urlParams: null,
+      
+      enforceGeneLimit: false,
 
       launchedFromMosaic: null,
       mosaicSession: null,
@@ -170,8 +172,9 @@ import { reject } from 'async'
                                                       true,
                                                       { DEFAULT_BUILD: 'GRCh38' });
         self.geneModel =         new GeneModel(self.globalApp,
+                                              self.enforceGeneLimit,
                                               self.genomeBuildHelper,
-                                              self.launchedFromMosaic)
+                                              [])
 
         self.geneModel.addEventListener("alertIssued", function(eventArgs) {
           let [type, message, genes, details] = eventArgs

@@ -24,8 +24,11 @@
           class="pl-2"
           :hide-details="true"
           density="compact"
-          prepend-icon="mdi-magnify"
+          prepend-icon="mdi-magnify" 
+          
           v-model="geneEntered" label="Gene name" >
+          
+            
           </v-text-field>
           <typeahead v-model="lookupGene"
           force-select v-bind:limit="typeaheadLimit"
@@ -45,6 +48,14 @@
             </template>
           </typeahead>
         </div>
+        
+       
+        
+        <MultiGeneInput v-if="false"
+         :geneModel="geneModel">
+          
+        </MultiGeneInput>
+        
       <v-spacer></v-spacer>
 
 
@@ -124,6 +135,7 @@
 
 import AlertButton    from '../components/AlertButton.vue'
 import LoadDataDialog from '../components/LoadDataDialog.vue'
+import MultiGeneInput from '../components/MultiGeneInput.vue'
 import { Typeahead } from 'uiv'
 
   export default {
@@ -131,7 +143,8 @@ import { Typeahead } from 'uiv'
     components: {
       AlertButton,
       Typeahead,
-      LoadDataDialog
+      LoadDataDialog,
+      MultiGeneInput
     },
     props: {
       appVersion: String,
