@@ -17,6 +17,7 @@
       @load-data="onLoadData"
       @vcf-url-entered="onVcfURLEntered"
       @show-legend="onShowLegend(true)"
+      @apply-genes="onApplyGenes"
       />
 
        <v-navigation-drawer style="margin-left:5px"
@@ -92,6 +93,7 @@
           :acceptorSitePan="acceptorSitePan"
           @add-alert="addAlert"
           @gene-selected="onGeneSelected"
+          @gene-auto-selected="onGeneAutoSelected"
           @reinit="onReinit"
           @gene-model-initialized="onGeneModelInitialized"
           @splice-junctions-loaded="onSpliceJunctionsLoaded"
@@ -215,8 +217,16 @@ export default {
       this.spliceJunctionsForGene = null;
     },
     onGeneSelected: function(gene) {
+      this.onGeneSearched({'gene_name': geneName})
+      if (this.$refs && this.$refs.ref_Navigation) {
+        this.$refs.ref_Navigation.setGeneSearchField(geneName)
+      }
+    },
+    onGeneAutoSelected: function(gene) {
+      this.searchedGene = gene;
+      this.selectedObject = null;
+      this.spliceJunctionsForGene = null;
       this.selectedGene = gene;
-      this.addAlert("info", "gene <pre>" + gene.gene_name + "</pre> loaded", gene.gene_name)
       this.showLeftNavDrawer = true;
     },
     onShowLegend: function(show) {
@@ -347,6 +357,12 @@ export default {
     },
     onSampleNamesLoaded: function(sampleNames) {
       this.sampleNames = sampleNames;
+    },
+    onApplyGenes: function(genesToApply, options) {
+      let self = this;
+      if (self.$refs && self.$refs.ref_SpliceJunctionHome) {
+        self.$refs.ref_SpliceJunctionHome.onApplyGenes(genesToApply, options);
+      }    
     },
     addAlert: function(type, message, genes=null, details=null) {
       let self = this;

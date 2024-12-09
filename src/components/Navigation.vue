@@ -51,8 +51,9 @@
         
        
         
-        <MultiGeneInput v-if="false"
-         :geneModel="geneModel">
+        <MultiGeneInput v-if="true"
+         :geneModel="geneModel"
+         @apply-genes="onApplyGenes">
           
         </MultiGeneInput>
         
@@ -231,6 +232,9 @@ import { Typeahead } from 'uiv'
             console.log(errorThrown)
           }
         })
+      },
+      onApplyGenes: function(genesToApply, options) {
+        this.$emit('apply-genes', genesToApply, options)
       }
     },
     computed: {

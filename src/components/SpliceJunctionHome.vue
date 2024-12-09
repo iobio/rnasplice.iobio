@@ -271,6 +271,76 @@ import { reject } from 'async'
           })
         })
       },
+      
+      onApplyGenes: function(genesString, options, callback) {
+        let self = this;
+        let existingGeneCount = self.geneModel.sortedGeneNames.length;
+        let genesToApplyCount = self.geneModel.getCopyPasteGeneCount(genesString);
+
+        let msg = ""
+        let geneCount = genesString.split(",").length
+        if (options && options.replace) {
+          msg = "Replace existing genes with " + geneCount + " genes "
+        } else {
+          msg = "Adding " + geneCount + " genes "
+        }
+        self.addAppAlert("info", msg, genesString, [genesString]);
+
+        let oldGeneNames = $.extend([], self.geneModel.sortedGeneNames);
+        self.applyGenesImpl(genesString, options, function() {
+          if (options && options.replace) {
+            self.onGenesReplaced(oldGeneNames, self.geneModel.sortedGeneNames);
+          }
+          
+          if (callback) {
+            callback();
+          }
+        })
+      },
+    
+      applyGenesImpl: function(genesString, options, callback) {
+        let self = this;
+        let geneNameToSelect = null;
+        self.geneModel.promiseCopyPasteGenes(genesString, options)
+        .then(function(results) {
+          let genesJustAdded = results && results.newGenes ? results.newGenes : [];
+          if (options && options.hasOwnProperty('geneNameToSelect')) {
+            geneNameToSelect = options.geneNameToSelect;
+          } else {
+            geneNameToSelect = genesJustAdded && genesJustAdded.length > 0 ? genesJustAdded[0] : self.geneModel.sortedGeneNames[0];          
+          }
+
+          if (geneNameToSelect) {
+            return self.loadGene(geneNameToSelect, "gene-auto-selected");
+            if (callback) {
+              callback();
+            }
+
+          } else {
+            if (callback) {
+              callback();
+            }
+          }
+        })
+        .catch(function(error) {
+          console.log("applyGenesImpl encountered an error: " )
+          console.log(error)
+          self.addAppAlert('error', 'Unable to apply genes due to error', null, [error])
+        })
+
+      },
+      
+      
+      onGenesReplaced: function(oldGeneNames, newGeneNames) {
+        let self = this;
+
+        // The genes to remove are those in the old list and not in the
+        // new list of genes
+        let removedGeneNames = oldGeneNames.filter(function(geneName) {
+          return newGeneNames.indexOf(geneName) === -1;
+        })
+        self.addAppAlert('info', 'Genes removed.', removedGeneNames.join(","))
+      },
 
       loadURLParameters: function() {
         let self = this;
@@ -289,7 +359,7 @@ import { reject } from 'async'
         }
 
       },
-      loadGene: function(geneName) {
+      loadGene: function(geneName, loadGeneEventName='gene-selected') {
         let self = this;
         self.geneModel.promiseAddGeneName(geneName)
         .then(function() {
@@ -298,7 +368,7 @@ import { reject } from 'async'
             self.geneModel.adjustGeneRegion(theGeneObject);
             self.geneRegionStart = theGeneObject.start;
             self.geneRegionEnd   = theGeneObject.end;
-            self.$emit("gene-selected", theGeneObject)
+            self.$emit(loadGeneEventName, theGeneObject)
 
             if (self.loadInfo == null) {
               self.snackbarText = "Click on 'Load data' to continue."
@@ -312,7 +382,6 @@ import { reject } from 'async'
           console.log(error)
         })
       },
-
       setGeneRegion: function() {
         let self = this;
 

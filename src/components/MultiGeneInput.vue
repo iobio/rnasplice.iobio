@@ -1,7 +1,7 @@
 <template>
   <div class="text-center">
     <v-menu
-      v-model="showGenesMenu"
+      v-model="menu"
       :close-on-content-click="false"
       location="bottom"
     >
@@ -18,9 +18,9 @@
         </v-btn>
       </template>
 
-      <v-card min-width="450">
+      <v-card id="multi-gene-input-content" >
        
-        <v-card-text>
+        <v-card-text style="width: 420px">
 
           
           <div id="enter-genes-input">
@@ -32,22 +32,22 @@
               :label="STARTING_INPUT"
               v-model="genesToApply"
               :rules="geneRules"
-              :success="showWarning"
-              :success-messages="warningMessage">
+              :success="isValidForm"
+              :success-messages="successMessage">
             </v-textarea>
 
-            <div class="v-text-field__details" style="margin-top: -18px">
+            <div class="v-text-field__details" style="margin-top:-30px">
               <div class="v-messages theme--light">
-                <div class="v-messages__wrapper" style="float: right">
+                <div id="gene-count" class="v-messages__wrapper" style="float: right">
                   {{ geneCount }}
                 </div>
               </div>
             </div>
           </div>
-          <div style="min-height:60px">
+          <div class="mt-4" style="min-height:60px">
             <div  v-for="msg in validateMessages"  :key="msg.text"  :class="`d-flex gene-warning-` + msg.type">
               <v-icon>{{ msg.icon }}</v-icon>
-              <div v-html="msg.text"></div>
+              <div v-html="msg.text" ></div>
             </div>
           </div>
           
@@ -59,9 +59,9 @@
 
           
           <v-btn
-            color="primary"
+            color="primary" :dark="!disableApplyBtn" id="apply-button" :disabled="disableApplyBtn"
             variant="flat" elevation="2" density="compact" size="large"
-            @click="menu = false"
+            @click="onApplyGenes"
           >
             Apply
           </v-btn>
@@ -86,13 +86,14 @@ export default {
   props: {
     geneModel: Object
   },
-  data: () => (
+  data: (vm) => (
   
   {
-    self: this,  
-    showGenesMenu: false,
+    //self: this,  
+    menu: null,
 
-    REC_GENE_NUMBER: 50,
+    HARD_MAX_GENE_COUNT: 5,
+    SOFT_MAX_GENE_COUNT: 3,
     STARTING_INPUT: 'Enter gene names (<50 recommended)',
     
     genesToApply: null,
@@ -101,26 +102,37 @@ export default {
     validateInProgress: false,
     validateMessages: [],
     validGenesMap: {},
-    showWarning: false,
+    isValidForm: false,
+    successMessage: '',
     disableApplyBtn: false,
     geneCount: 0,
     geneRules: [
-      v => {
-        self.disableApplyBtn = false;
-        let numGenes = v ? v.toUpperCase().split(/[\s,\n]+/).filter((v, i, a) => a.indexOf(v) === i).length : 0;
-        let isRec = numGenes <= self.REC_GENE_NUMBER;
-        self.showWarning = !isRec;
-        return isRec;
+    v => {
+        let numGenes = v ? v.toUpperCase().split(/[\s,\n]+/).filter((v, i, a) => a.indexOf(v) === i && v && v != '').length : 0;
+        let isValid = numGenes <= vm.HARD_MAX_GENE_COUNT;
+        if (!isValid) {
+          vm.disableApplyBtn = true;
+          vm.isValidForm = false;
+          vm.successMessage = '';
+          return isValid || 'The maximum number of genes (' +  vm.HARD_MAX_GENE_COUNT + ') of genes has been exceeded.'
+        } else {
+          vm.disableApplyBtn = false;
+          let withinRecommendedLimit = numGenes <= vm.SOFT_MAX_GENE_COUNT;
+          vm.isValidForm = true;
+          return withinRecommendedLimit || 'For optimal performance, the number of genes should not exceed ' + vm.SOFT_MAX_GENE_COUNT;
+        }
+        
       },
       v => {
-        let numGenes = v ? v.toUpperCase().split(/[\s,\n]+/).filter((v, i, a) => a.indexOf(v) === i).length : 0;
-        let isValid = numGenes <= 200;
-        if (!isValid) {
-          self.showWarning = false;
-          self.disableApplyBtn = true;
+        if (vm.showWarning) {
+          let numGenes = v ? v.toUpperCase().split(/[\s,\n]+/).filter((v, i, a) => a.indexOf(v) === i && v && v != '').length : 0;
+          let withinRecommendedLimit = numGenes <= vm.SOFT_MAX_GENE_COUNT;
+          vm.showWarning = !withinRecommendedLimit;
+          return withinRecommendedLimit || vm.warningMessage;
+        } else {
+          return true || '';
         }
-        return isValid || 'Error: maximum number of genes is 200';
-      }
+      },
     ],
   }),
   methods: {
@@ -194,6 +206,9 @@ export default {
               self.validateMessages.push({'title': 'Gene alias', 'type': 'info', 'icon': 'mdi-bell', 'text': aliasMsg})
             }
             self.validateInProgress = false;
+            if (isValid) {
+              self.disableApplyBtn = false;
+            }
             resolve(isValid)
 
           })
@@ -241,11 +256,13 @@ export default {
       })
     },
 
-    onApplyGenes: function(options) {
+    onApplyGenes: function() {
       let self = this;
-
-      self.$emit("apply-genes", self.replaceGeneAliases(self.genesToApply));
-      self.showGenesMenu = false;
+      let options = {}
+      options.replace = true;
+      options.warnOnDup = false;
+      self.$emit("apply-genes", self.replaceGeneAliases(self.genesToApply), options);
+      self.menu = false;
     },
     replaceGeneAliases: function(genesString) {
       let self = this;
@@ -263,7 +280,7 @@ export default {
     },
     onCancel: function() {
       let self = this;
-      self.showGenesMenu = false;
+      self.menu = false;
     },
     onClearAllGenes: function() {
       this.$emit("clear-all-genes");
@@ -271,18 +288,11 @@ export default {
   },
   computed: {
     
-    warningMessage: function() {
-      if (this.showWarning) {
-        return 'Warning: recommended gene count is <' + this.REC_GENE_NUMBER + ' for optimal performance';
-      } else {
-        return '';
-      }
-    }
   },
   watch: {
-    showGenesMenu: function() {
+    menu: function() {
       let self = this;
-      if (self.showGenesMenu) {
+      if (self.menu) {
         this.genesToApply = self.geneModel.geneNames.join(", ");
       }
     },
@@ -290,7 +300,7 @@ export default {
       if (this.genesToApply === this.STARTING_INPUT || this.genesToApply === '') {
         this.geneCount = 0;
       } else {
-        this.geneCount = this.genesToApply.toUpperCase().split(/[\s,\n]+/).filter((v, i, a) => a.indexOf(v) === i).length;
+        this.geneCount = this.genesToApply.toUpperCase().split(/[\s,\n]+/).filter((v, i, a) => a.indexOf(v) === i && v && v != '').length;
         this.promiseValidateGenes();
       }
     }
@@ -305,52 +315,66 @@ export default {
 .navbar-icon-button
   background-color: transparent !important
 
-#enter-genes-input
-  .v-label.v-field-label
-    font-size: 13px
-  .v-field--variant-filled.v-field--focused 
-    .v-field__overlay
-      opacity: 0.08
-  #copy-paste-genes
-    font-size: 13px
-    font-weight: 500
-
-.gene-warning-error, .gene-warning-info 
-  font-size: 13px
-  line-height: 14px
-  width: 440px
-  color: #595959
-  align-items: flex-start
-  
-.gene-warning-error pre, .gene-warning-info pre
-  display: inline-block
-  vertical-align: middle
-  padding-top: 0px
-  padding-bottom: 0px
-  font-size: 12px
-  color: black
-  margin-bottom: 0px
-  padding-left: 2px
-  padding-right: 2px
-  white-space: normal
-
-.gene-warning-error 
-  .v-icon 
-    color: #cd0c0c
-    font-size: 19px
-    margin-right: 10px
-    max-width: 10px
-.gene-warning-info
-  margin-top: 10px
-  margin-bottom: 5px
-  .v-icon
-    color: #0664b3
-    font-size: 19px
-    margin-right: 10px
-    max-width: 10px
-
 .v-app-bar
   .v-btn
     font-size: 16px !important
     font-weight: 500
+    
+#multi-gene-input-content
+  #gene-count 
+    font-weight: 500
+    font-size: 13px
+    
+  #enter-genes-input
+    .v-label.v-field-label
+      font-size: 13px
+    .v-field--variant-filled.v-field--focused 
+      .v-field__overlay
+        opacity: 0.08
+    #copy-paste-genes
+      max-width: 400px
+      min-width: 400px
+      font-size: 13px
+      font-weight: 500
+      
+    #copy-paste-genes-messages
+      min-height: 30px
+
+  .gene-warning-error, .gene-warning-info 
+    font-size: 13px
+    line-height: 14px
+    max-width: 400px
+    min-width: 350px
+    white-space: break-spaces
+    color: #595959
+    align-items: flex-start
+    
+  .gene-warning-error pre, .gene-warning-info pre
+    display: inline-block
+    vertical-align: middle
+    padding-top: 0px
+    padding-bottom: 0px
+    font-size: 12px
+    color: black
+    margin-bottom: 0px
+    padding-left: 2px
+    padding-right: 2px
+    white-space: normal
+
+  .gene-warning-error 
+    .v-icon 
+      color: #cd0c0c
+      font-size: 19px
+      margin-right: 10px
+      max-width: 10px
+  .gene-warning-info
+    margin-top: 10px
+    margin-bottom: 5px
+    .v-icon
+      color: #0664b3
+      font-size: 19px
+      margin-right: 10px
+      max-width: 10px
+
+
 </style>
