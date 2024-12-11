@@ -92,8 +92,8 @@ export default {
     //self: this,  
     menu: null,
 
-    HARD_MAX_GENE_COUNT: 5,
-    SOFT_MAX_GENE_COUNT: 3,
+    HARD_MAX_GENE_COUNT: 200,
+    SOFT_MAX_GENE_COUNT: 50,
     STARTING_INPUT: 'Enter gene names (<50 recommended)',
     
     genesToApply: null,

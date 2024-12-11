@@ -217,17 +217,12 @@ export default {
       this.spliceJunctionsForGene = null;
     },
     onGeneSelected: function(gene) {
-      this.onGeneSearched({'gene_name': geneName})
-      if (this.$refs && this.$refs.ref_Navigation) {
-        this.$refs.ref_Navigation.setGeneSearchField(geneName)
-      }
+      this.selectedGene = gene;
+      this.addAlert("info", "gene <pre>" + gene.gene_name + "</pre> loaded", gene.gene_name)
+      this.showLeftNavDrawer = true;
     },
     onGeneAutoSelected: function(gene) {
-      this.searchedGene = gene;
-      this.selectedObject = null;
-      this.spliceJunctionsForGene = null;
-      this.selectedGene = gene;
-      this.showLeftNavDrawer = true;
+      this.onGeneClicked(gene.gene_name)
     },
     onShowLegend: function(show) {
       this.showLegendDrawer = show;
