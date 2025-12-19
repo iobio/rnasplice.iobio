@@ -693,13 +693,15 @@ export default {
   		let self = this;
 
       self.selectedTranscript = null;
-		  this.selectedGene.transcripts.forEach(function(transcript) {
-		    if (transcript.is_mane_select) {
-		      transcript.isSelected = true;
-		      self.selectedTranscript = transcript;
-		      self.$emit('transcript-selected', self.selectedTranscript);
-		    }
-      })
+      if (this.selectedGene && this.selectedGene.hasOwnProperty('transcripts')) {
+        this.selectedGene.transcripts.forEach(function(transcript) {
+          if (transcript.is_mane_select) {
+            transcript.isSelected = true;
+            self.selectedTranscript = transcript;
+            self.$emit('transcript-selected', self.selectedTranscript);
+          }
+        })
+      }
       if (this.selectedTranscript == null) {
         this.selectedTranscript = this.geneModel.getCanonicalTranscript(self.selectedGene);
         if (this.selectedTranscript) {

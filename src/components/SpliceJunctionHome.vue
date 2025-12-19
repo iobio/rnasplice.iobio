@@ -147,6 +147,7 @@ import { reject } from 'async'
 
       stripChrForBed: false,
       stripChrForBigWig: false,
+      stripChrForVcf: false,
       covData: []
 
 
@@ -542,13 +543,19 @@ import { reject } from 'async'
           return;
         }
 
+        // Strip 'chr' from chromosome name if VCF doesn't use 'chr' prefix
+        let chr = self.selectedGene.chr;
+        if (chr.indexOf('chr') === 0 && self.stripChrForVcf) {
+          chr = chr.split("chr")[1];
+        }
+
         let regions = [];
-        regions.push({'name': self.selectedGene.chr, 'start': self.selectedGene.start, 'end': self.selectedGene.end})
+        regions.push({'name': chr, 'start': self.selectedGene.start, 'end': self.selectedGene.end})
         let isMultiSample = true;
-        let samplesToRetrieve = [{'vcfSampleName': self.loadInfo.sampleName,
+        let samplesToRetrieve = [{'vcfSampleName': self.loadInfo.vcfSampleName,
                                   'sampleName': self.loadInfo.sampleName}]
 
-        self.vcf.promiseGetVariants(self.selectedGene.chr, self.selectedGene, self.selectedTranscript, regions,isMultiSample, samplesToRetrieve)
+        self.vcf.promiseGetVariants(chr, self.selectedGene, self.selectedTranscript, regions, isMultiSample, samplesToRetrieve)
         .then(function(data) {
           let width = self.$el.offsetWidth - 420;
           let variants = data.results[0].features
@@ -654,15 +661,20 @@ import { reject } from 'async'
         self.sampleNames = [];
         self.vcf.promiseOpenVcfUrl(vcfURL, tbiURL)
         .then(function() {
-          self.vcf.promiseGetSampleNames()
-          .then(function(sampleNames) {
-            self.sampleNames = sampleNames;
-            self.$emit('sample-names-loaded', self.sampleNames)
-          })
-          .catch(function(error) {
-            self.addAppAlert('warning', 'Unable to get samples from VCF URL', null, [error])
-          })
-
+          // Determine chromosome naming convention (chr1 vs 1)
+          return self.vcf.promiseGetReferenceLengths()
+        })
+        .then(function(refData) {
+          // Check if refNames start with 'chr'
+          if (refData && refData.length > 0) {
+            let firstRef = refData[0].name;
+            self.stripChrForVcf = firstRef && firstRef.indexOf('chr') !== 0;
+          }
+          return self.vcf.promiseGetSampleNames()
+        })
+        .then(function(sampleNames) {
+          self.sampleNames = sampleNames;
+          self.$emit('sample-names-loaded', self.sampleNames)
         })
         .catch(function(error) {
           self.addAppAlert('warning', 'Unable to read VCF URL', null, [error])

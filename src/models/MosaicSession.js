@@ -41,13 +41,15 @@ export default class MosaicSession {
           .then(data => {
             theSample.files = data.fileMap;
             let loadInfo = {
-                        'buildName':   buildName,
-                        'bedURL':      theSample.files['bed.gz'],
-                        'bedIndexURL': theSample.files['bed.gz.tbi'],
-                        'bigwigURL':   theSample.files['bw'],
-                        'vcfURL':      theSample.files['vcf'],
-                        'tbiURL':      theSample.files['tbi'],
-                        'sampleName':  theSample.name}
+              'buildName':     buildName,
+              'bedURL':        theSample.files['bed.gz'],
+              'bedIndexURL':   theSample.files['bed.gz.tbi'],
+              'bigwigURL':     theSample.files['bw'],
+              'vcfURL':        theSample.files['vcf'],
+              'tbiURL':        theSample.files['tbi'],
+              'sampleName':    theSample.name,
+              'vcfSampleName': theSample.vcf_sample_name && theSample.vcf_sample_name.trim() != "" ? theSample.vcf_sample_name : null 
+            }
             if (theSample.files.bam != null) {
               loadInfo.alignmentURL = theSample.files.bam;
               if (theSample.files.bai) {

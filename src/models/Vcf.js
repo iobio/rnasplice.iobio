@@ -807,7 +807,9 @@ export default function Vcf(theGlobalApp) {
         resolve({'annotatedRecs': annotatedRecs, 'results': results});
 
       })
-
+      .catch(function(error) {  
+        reject(error);
+      })
     })
 
   }

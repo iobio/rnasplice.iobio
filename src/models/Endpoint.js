@@ -352,6 +352,12 @@ export default class EndpointCmd {
     return cmd;
   }
 
+  getChromosomes(vcfUrl, tbiUrl) {
+    const me = this;
+    let cmd = this.api.streamCommand('getChromosomes', {url: vcfUrl, indexUrl: tbiUrl});
+    return cmd;
+  }
+
 
 
 }
